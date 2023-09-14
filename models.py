@@ -233,7 +233,7 @@ class RBFConv2d(nn.Module):
                     dist += torch.cdist(window[:, in_channel].reshape(batch_size, -1), weight[:, in_channel].reshape(weight.shape[0], -1))
                 result[:, :, k, l] = self.rbf(dist, self.std)
 
-    # RGB 前處理
+    # RGB 前處理(方案一)
     def _rgb_forward(self, input: Tensor, gray_weight: Tensor, rgb_weight: Tensor, std, stride) -> Tensor:        
         batch_size = input.shape[0]
         output_height = torch.div((input.shape[2] - self.kernel_size[0]),  stride, rounding_mode='floor') + 1
