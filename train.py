@@ -15,7 +15,7 @@ import numpy as np
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print(f"Using {device} device")
 root = os.path.dirname(__file__)
-current_model = 'cnn' # SFM, mlp, cnn, resnet50, alexnet, lenet, googlenet
+current_model = 'SFM' # SFM, mlp, cnn, resnet50, alexnet, lenet, googlenet
 dataset = 'malaria' # mnist, fashion, cifar10, malaria
 input_size = (28, 28)
 kernel_size = (5, 5)
@@ -75,8 +75,8 @@ elif current_model == 'googlenet':
 # model = torch.load(f'{root}/result_pth/SFM_2000_85.44728724369442_malaria_4layer_4stride_22133111_15253045.pth').to(device)
 
 run_name = f"{dataset}_{layer}layer_{stride}stride_{''.join(str(x) + str(y) for x, y in model.filters)}_{rbf}" if current_model == 'SFM' else f"{dataset}_{current_model}"
-if not os.path.exists(f"{root}/{run_name}"):
-   os.makedirs(f"{root}/{run_name}")
+if not os.path.exists(f"{root}/result/{run_name}"):
+   os.makedirs(f"{root}/result/{run_name}")
 
 def train(train_dataloader: DataLoader, model: nn.Module, loss_fn, optimizer, epoch):
     example_ct = 0 # number of examples seen
@@ -162,7 +162,7 @@ wandb.log({"Test Table": record_table})
 # test_aug_acc, test_aug_loss = test(test_aug_dataloader, model, loss_fn)
 # print("Test(AUG): \n\tAccuracy: {}, Avg loss: {} \n".format(test_aug_acc, test_aug_loss))
 
-torch.save(model.state_dict(), f'{root}/{run_name}/{current_model}_{epoch}_{test_acc}_{run_name}_final.pth')
+torch.save(model.state_dict(), f'{root}/result/{run_name}/{current_model}_{epoch}_{test_acc}_{run_name}_final.pth')
 art = wandb.Artifact(f"{current_model}_{run_name}", type="model")
 art.add_file(f'{root}/result/{run_name}/{current_model}_{epoch}_{test_acc}_{run_name}_final.pth')
 wandb.log_artifact(art, aliases = ["latest"])

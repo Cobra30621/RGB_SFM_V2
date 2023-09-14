@@ -92,12 +92,21 @@ class SOMNetwork(nn.Module):
         shapes = [(height, width)]
         for i in range(3):
             shapes.append((int(shapes[i][0] / filters[i][0]), int(shapes[i][1] / filters[i][1])))
-            
-        self.layer1 = nn.Sequential(         
-            RBFConv2d(self.in_channels, math.prod(kernels[0]), kernel_size, stride=stride, rbf=rbf, color_init=True if self.in_channels == 3 else False),
-            cReLU(0.4),
-            SFM(kernel_size=kernels[0], shape=shapes[0], filter=filters[0])
-        )
+        
+        self.RGB_forward_layer = RGB_Conv2d(self.in_channels, math.prod(kernels[0]), kernel_size, stride=stride, rbf=rbf)
+        self.GRAY_forward_layer = RBFConv2d(1, math.prod(kernels[0]) - 19, kernel_size, stride=stride, rbf=rbf)
+
+        if self.in_channels == 3:
+            self.layer1 = nn.Sequential(         
+                cReLU(0.4),
+                SFM(kernel_size=kernels[0], shape=shapes[0], filter=filters[0])
+            )
+        else:
+            self.layer1 = nn.Sequential(         
+                RBFConv2d(self.in_channels, math.prod(kernels[0]), kernel_size, stride=stride, rbf=rbf),
+                cReLU(0.4),
+                SFM(kernel_size=kernels[0], shape=shapes[0], filter=filters[0])
+            )
         
         self.layer2 = nn.Sequential(         
             RBFConv2d(1, math.prod(kernels[1]), kernels[0], stride=1, rbf=rbf),      
@@ -121,7 +130,15 @@ class SOMNetwork(nn.Module):
             
     def forward(self, x):
         out: Tensor
-        out = self.layer1(x)
+        if self.in_channels == 3:
+            gray_out = self.GRAY_forward_layer(x)
+            rgb_out = self.RGB_forward_layer(x)
+            # print(gray_out.shape)
+            # print(rgb_out.shape)
+            out = torch.concat((gray_out, rgb_out), dim=1)
+        else:
+            out = x
+        out = self.layer1(out)
         out = self.layer2(out)
         out = self.layer3(out)
         out = self.layer4(out)
@@ -144,7 +161,7 @@ class cReLU(nn.Module):
         return f"bias={self.bias}"
 
 '''
-    高斯卷積層
+    GRAY高斯卷積層
 ''' 
 class RBFConv2d(nn.Module):
     def __init__(self, 
@@ -154,7 +171,6 @@ class RBFConv2d(nn.Module):
                  stride: _size_2_t = 1,
                  std: float = 2.0,
                  rbf: str = 'gauss',
-                 color_init: bool = False,
                  device=None,
                  dtype=None) -> None:
         super().__init__()
@@ -165,14 +181,76 @@ class RBFConv2d(nn.Module):
         factory_kwargs = {'device': device, 'dtype': dtype}
         self.out_channels = out_channels
         self.in_channels = in_channels
-        self.color = color_init
         self.rbf = get_rbf(rbf)
         
         self.weight = torch.empty((out_channels, 1, *self.kernel_size), **factory_kwargs) 
         self.register_parameter('bias', None)
         self.reset_parameters()
-        if color_init:
-            self.color_init()
+ 
+ 
+    def reset_parameters(self) -> None:
+        init.kaiming_uniform_(self.weight, a=math.sqrt(5))
+        if self.bias is not None:
+            fan_in, _ = init._calculate_fan_in_and_fan_out(self.weight)
+            if fan_in != 0:
+                bound = 1 / math.sqrt(fan_in)
+                init.uniform_(self.bias, -bound, bound)
+        self.weight[0] = torch.zeros_like(self.weight[0])
+        self.weight = nn.Parameter(self.weight)
+    
+             
+    def _gray_forward(self, input: Tensor, weight: Tensor, std, stride) -> Tensor:        
+        output_height = torch.div((input.shape[2] - self.kernel_size[0]),  stride, rounding_mode='floor') + 1
+        output_width = torch.div((input.shape[3] - self.kernel_size[1]),  stride, rounding_mode='floor') + 1
+        result = torch.zeros((input.shape[0], self.out_channels, output_height, output_width)).to(input.device)
+        self.conv(result, input, weight, stride)
+        return result
+
+
+    def conv(self, result, input, weight, stride):
+        batch_size = input.shape[0]
+        for k in range(result.shape[2]):
+            for l in range(result.shape[3]):  
+                window = input[:, :, k*stride:k*stride+self.kernel_size[0], l*stride:l*stride+self.kernel_size[1]]
+                dist = torch.cdist(window.reshape(input.shape[0], -1), weight.reshape(-1, self.in_channels*math.prod(self.kernel_size)))      
+                result[:, :, k, l] = self.rbf(dist, self.std)
+    
+    
+    def forward(self, input: Tensor) -> Tensor:
+        if input.shape[1] == 3:
+            input = Grayscale()(input)
+        return self._gray_forward(input, self.weight, self.std, torch.tensor(self.stride[0]))
+
+        
+    def extra_repr(self) -> str:
+        return f"std={self.std}, weight shape={self.weight.shape}, kernel size={self.kernel_size}"
+    
+'''
+    RGB高斯卷積層
+''' 
+class RGB_Conv2d(nn.Module):
+    def __init__(self, 
+                 in_channels: int,
+                 out_channels: int, 
+                 kernel_size: _size_2_t,
+                 stride: _size_2_t = 1,
+                 std: float = 2.0,
+                 rbf: str = 'gauss',
+                 device=None,
+                 dtype=None) -> None:
+        super().__init__()
+        self.kernel_size = _pair(kernel_size)
+        self.stride = _pair(stride)
+        self.std = torch.nn.Parameter(torch.tensor(std))
+        factory_kwargs = {'device': device, 'dtype': dtype}
+        self.out_channels = out_channels
+        self.in_channels = in_channels
+        self.rbf = get_rbf(rbf)
+        
+        self.weight = torch.empty((out_channels, 1, *self.kernel_size), **factory_kwargs) 
+        self.register_parameter('bias', None)
+        self.reset_parameters()
+        self.color_init()
  
  
     def reset_parameters(self) -> None:
@@ -187,7 +265,7 @@ class RBFConv2d(nn.Module):
 
         
     '''
-        初始化原SFMNetwork前面的filter
+        RGB 初始化
     '''
     def color_init(self) -> None:
         max_color = 1
@@ -197,30 +275,11 @@ class RBFConv2d(nn.Module):
         #由19種顏色之filter來找出區塊對應之顏色(每個filter代表一個顏色)
         self.rgb_weight = torch.linspace(max_color, min_color, int((max_color - min_color) / (max_color / self.rgb_out_channels)))[:, None].repeat(1, 3)
         self.rgb_weight = nn.Parameter(self.rgb_weight)
-        
-        #初始化灰階前面的filter
-        self.gray_weight = torch.empty((self.out_channels - self.rgb_out_channels, 1, *self.kernel_size)) 
-        init.kaiming_uniform_(self.gray_weight, a=math.sqrt(5))
-
         if self.bias is not None:
             fan_in, _ = init._calculate_fan_in_and_fan_out(self.gray_weight)
             if fan_in != 0:
                 bound = 1 / math.sqrt(fan_in)
                 init.uniform_(self.bias, -bound, bound)
-
-        self.gray_weight = nn.Parameter(self.gray_weight)
-    
-             
-    def _gray_forward(self, input: Tensor, weight: Tensor, std, stride) -> Tensor:        
-        output_height = torch.div((input.shape[2] - self.kernel_size[0]),  stride, rounding_mode='floor') + 1
-        output_width = torch.div((input.shape[3] - self.kernel_size[1]),  stride, rounding_mode='floor') + 1
-        result = torch.zeros((input.shape[0], self.out_channels, output_height, output_width)).to(input.device)
-        for k in range(output_height):
-            for l in range(output_width):   
-                window = input[:, :, k*stride:k*stride+self.kernel_size[0], l*stride:l*stride+self.kernel_size[1]]
-                dist = torch.cdist(window.reshape(input.shape[0], -1), weight.reshape(-1, self.in_channels*math.prod(self.kernel_size)))
-                result[:, :, k, l] = self.rbf(dist, std)
-        return result
 
 
     def conv(self, result, input, weight, stride):
@@ -233,41 +292,23 @@ class RBFConv2d(nn.Module):
                     dist += torch.cdist(window[:, in_channel].reshape(batch_size, -1), weight[:, in_channel].reshape(weight.shape[0], -1))
                 result[:, :, k, l] = self.rbf(dist, self.std)
 
-    # RGB 前處理(方案一)
-    def _rgb_forward(self, input: Tensor, gray_weight: Tensor, rgb_weight: Tensor, std, stride) -> Tensor:        
+    def _rgb_forward(self, input: Tensor, rgb_weight: Tensor, std, stride) -> Tensor:        
         batch_size = input.shape[0]
         output_height = torch.div((input.shape[2] - self.kernel_size[0]),  stride, rounding_mode='floor') + 1
         output_width = torch.div((input.shape[3] - self.kernel_size[1]),  stride, rounding_mode='floor') + 1
-        gray_result = torch.zeros((batch_size, self.out_channels - self.rgb_out_channels, output_height, output_width)).to(input.device)
         rgb_result = torch.zeros((batch_size, self.rgb_out_channels, output_height, output_width)).to(input.device)
-        
-        if gray_weight.shape[0] == 0:
-            self.conv(rgb_result, input, rgb_weight, stride)
-            return rgb_result
-        elif rgb_weight.shape[0] == 0:
-            self.conv(gray_result, Grayscale()(input), gray_weight, stride)
-            return gray_result
-        else:
-            # RGB forward + gray forward
-            t = threading.Thread(target = self.conv, args = (gray_result, Grayscale()(input), gray_weight, stride,))
-            t.start()
-            self.conv(rgb_result, input, rgb_weight, stride)
-            t.join()
-            # result合併
-            return torch.concat((gray_result, rgb_result), dim=1)
+        self.conv(rgb_result, input, rgb_weight, stride)
+        return rgb_result
     
     
     def forward(self, input: Tensor) -> Tensor:
-        if self.color:
-            rgb_weight = torch.repeat_interleave(torch.repeat_interleave(self.rgb_weight.reshape(self.rgb_out_channels, self.in_channels, 1, 1), self.kernel_size[0], dim=2), self.kernel_size[1], dim=3)
-            return self._rgb_forward(input, self.gray_weight, rgb_weight, self.std, torch.tensor(self.stride[0]))
-        return self._gray_forward(input, self.weight, self.std, torch.tensor(self.stride[0]))
+        rgb_weight = torch.repeat_interleave(torch.repeat_interleave(self.rgb_weight.reshape(self.rgb_out_channels, self.in_channels, 1, 1), self.kernel_size[0], dim=2), self.kernel_size[1], dim=3)
+        return self._rgb_forward(input, rgb_weight, self.std, torch.tensor(self.stride[0]))
 
         
     def extra_repr(self) -> str:
         return f"std={self.std}, weight shape={self.weight.shape}, kernel size={self.kernel_size}"
-    
-    
+
 class MLP(nn.Module):
     def __init__(self):
         super(MLP, self).__init__()        
