@@ -9,20 +9,22 @@ from torch.utils.data import DataLoader
 from models import SOMNetwork, CNN, ResNet, AlexNet, LeNet, GoogLeNet, MLP
 from load_data import load_data
 
+import numpy as np
+
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print(f"Using {device} device")
 root = os.path.dirname(__file__)
-current_model = 'SFM' # SFM, mlp, cnn, resnet50, alexnet, lenet, googlenet
-dataset = 'mnist' # mnist, fashion, cifar10, malaria
+current_model = 'cnn' # SFM, mlp, cnn, resnet50, alexnet, lenet, googlenet
+dataset = 'malaria' # mnist, fashion, cifar10, malaria
 input_size = (28, 28)
 kernel_size = (5, 5)
 kernels = [(10, 10), (15, 15), (25, 25), (35, 35)]
-in_channels = 1 # 1, 3
+in_channels = 3 # 1, 3
 rbf = 'gauss' # gauss, triangle
 
 batch_size = 256
-epoch = 5
+epoch = 200
 lr = 1e-3
 layer = 4
 stride = 4
@@ -46,7 +48,7 @@ wandb.init(
 )
 
 
-if current_model == 'SFM':
+if current_model == 'SFM': 
     model = SOMNetwork(stride=stride, in_channels=in_channels, input_size=input_size, kernel_size=kernel_size, kernels=kernels, rbf=rbf).to(device)
 elif current_model == 'cnn':
     model = CNN(in_channels=in_channels).to(device)
@@ -96,11 +98,11 @@ def train(train_dataloader: DataLoader, model: nn.Module, loss_fn, optimizer, ep
                 losses += loss.item()
                 example_ct += len(X)
                 progress.set_description("Loss: {:.7f}".format(losses/(batch+1)))
-        metrics = {
-            "train/loss": losses/(batch+1),
-            "train/epoch": e,
-        }
-        wandb.log(metrics, step=e)
+            metrics = {
+                "train/loss": losses/(batch+1),
+                "train/epoch": e,
+            }
+            wandb.log(metrics, step=e)
             
     
     
@@ -117,7 +119,15 @@ def test(dataloader: DataLoader, model: nn.Module, loss_fn):
         test_loss += loss_fn(pred, y).item()
         correct += (pred.argmax(1) == y).type(torch.float).sum().item()
         size += len(X)
-        table.append([X, y, pred, loss_fn(pred, y).item(), (pred.argmax(1) == y).type(torch.float).sum().item()])
+
+        # tensor to cpu
+        loss = loss_fn(pred, y).item()
+        c = (pred.argmax(1) == y).type(torch.float).sum().item() / len(X)
+        X = X.cpu()
+        y = y.cpu()
+        
+        # sample first image in batch 
+        table.append([wandb.Image(np.array(X[0])), y[0], pred[0].argmax(), loss, c])
 
     test_loss /= num_batches
     correct = (correct / size) * 100
@@ -145,9 +155,8 @@ wandb.summary['train_accuracy'] = train_acc
 wandb.summary['train_avg_loss'] = train_loss
 wandb.summary['test_accuracy'] = test_acc
 wandb.summary['test_avg_loss'] = test_loss
-wandb.Table(columns=["Image", "Answer", "Predict", "Loss", "Correct"], data = test_table)
-
-
+record_table = wandb.Table(columns=["Image", "Answer", "Predict", "batch_Loss", "batch_Correct"], data = test_table)
+wandb.log({"Test Table": record_table})
 
 # test_aug_dataloader = load_data(dataset='mnist_aug', root=root, batch_size=batch_size, input_size=input_size)
 # test_aug_acc, test_aug_loss = test(test_aug_dataloader, model, loss_fn)

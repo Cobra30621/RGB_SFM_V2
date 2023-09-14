@@ -17,6 +17,9 @@ from utils import _pair, get_rbf
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 root = os.path.dirname(__file__)
 
+'''
+    RM時序合併層
+'''
 class SFM(Module):
     
     def __init__(self, kernel_size: _size_2_t, shape: _size_2_t, filter: _size_2_t, alpha: float = 0.9, alpha_type: str = 'pow') -> None:
@@ -54,6 +57,9 @@ class SFM(Module):
         return f"kernel_size={self.kernel_size}, shape={self.shape}, filter={self.filter}, alpha={self.alpha_0}"
 
 
+'''
+    論文model本體
+'''
 class SOMNetwork(nn.Module):
     def __init__(self, 
                  stride: int = 1, 
@@ -136,8 +142,10 @@ class cReLU(nn.Module):
     
     def extra_repr(self) -> str:
         return f"bias={self.bias}"
-    
-    
+
+'''
+    高斯卷積層
+''' 
 class RBFConv2d(nn.Module):
     def __init__(self, 
                  in_channels: int,
@@ -178,21 +186,28 @@ class RBFConv2d(nn.Module):
         self.weight = nn.Parameter(self.weight)
 
         
+    '''
+        初始化原SFMNetwork前面的filter
+    '''
     def color_init(self) -> None:
         max_color = 1
         min_color = 0
         
         self.rgb_out_channels = 19
+        #由19種顏色之filter來找出區塊對應之顏色(每個filter代表一個顏色)
         self.rgb_weight = torch.linspace(max_color, min_color, int((max_color - min_color) / (max_color / self.rgb_out_channels)))[:, None].repeat(1, 3)
         self.rgb_weight = nn.Parameter(self.rgb_weight)
         
+        #初始化灰階前面的filter
         self.gray_weight = torch.empty((self.out_channels - self.rgb_out_channels, 1, *self.kernel_size)) 
         init.kaiming_uniform_(self.gray_weight, a=math.sqrt(5))
+
         if self.bias is not None:
             fan_in, _ = init._calculate_fan_in_and_fan_out(self.gray_weight)
             if fan_in != 0:
                 bound = 1 / math.sqrt(fan_in)
                 init.uniform_(self.bias, -bound, bound)
+
         self.gray_weight = nn.Parameter(self.gray_weight)
     
              
@@ -218,7 +233,7 @@ class RBFConv2d(nn.Module):
                     dist += torch.cdist(window[:, in_channel].reshape(batch_size, -1), weight[:, in_channel].reshape(weight.shape[0], -1))
                 result[:, :, k, l] = self.rbf(dist, self.std)
 
-    
+    # RGB 前處理
     def _rgb_forward(self, input: Tensor, gray_weight: Tensor, rgb_weight: Tensor, std, stride) -> Tensor:        
         batch_size = input.shape[0]
         output_height = torch.div((input.shape[2] - self.kernel_size[0]),  stride, rounding_mode='floor') + 1
@@ -233,10 +248,12 @@ class RBFConv2d(nn.Module):
             self.conv(gray_result, Grayscale()(input), gray_weight, stride)
             return gray_result
         else:
+            # RGB forward + gray forward
             t = threading.Thread(target = self.conv, args = (gray_result, Grayscale()(input), gray_weight, stride,))
             t.start()
             self.conv(rgb_result, input, rgb_weight, stride)
             t.join()
+            # result合併
             return torch.concat((gray_result, rgb_result), dim=1)
     
     

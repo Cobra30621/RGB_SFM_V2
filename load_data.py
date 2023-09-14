@@ -154,10 +154,11 @@ def load_data(dataset: str = 'mnist', root: str = '.', batch_size: int = 256, in
             download=True,
             transform=ToTensor()
         )        
-        
-    train_dataloader = DataLoader(training_data, batch_size=batch_size, shuffle=True)
-    test_dataloader = DataLoader(test_data, batch_size=batch_size, shuffle=True)
+    
     if dataset == 'malaria':
         train_dataloader, valid_dataloader, test_dataloader = get_MalariaCellImagesDataset(root=f"{root}/data/cell_images/", resize=[*input_size], valid_size=0.0, test_size = 0.2, batch_size=batch_size, shuffle=True)
+    else:
+        train_dataloader = DataLoader(training_data, batch_size=batch_size, shuffle=True)
+        test_dataloader = DataLoader(test_data, batch_size=batch_size, shuffle=True)
     
     return train_dataloader, test_dataloader
