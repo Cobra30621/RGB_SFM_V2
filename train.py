@@ -164,6 +164,6 @@ wandb.log({"Test Table": record_table})
 
 torch.save(model.state_dict(), f'{root}/{run_name}/{current_model}_{epoch}_{test_acc}_{run_name}_final.pth')
 art = wandb.Artifact(f"{current_model}_{run_name}", type="model")
-art.add_file(f'{root}/{run_name}/{current_model}_{epoch}_{test_acc}_{run_name}_final.pth')
+art.add_file(f'{root}/result/{run_name}/{current_model}_{epoch}_{test_acc}_{run_name}_final.pth')
 wandb.log_artifact(art, aliases = ["latest"])
 wandb.finish()

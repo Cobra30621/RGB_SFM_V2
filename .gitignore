@@ -1,3 +1,4 @@
+./gitignore
 __pycache__/
 data/
 wandb/
@@ -5,3 +6,4 @@ output_img/
 ibug_300W_large_face_landmark_dataset/
 Result/
 result_pth/
+result/
