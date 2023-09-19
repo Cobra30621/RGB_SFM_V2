@@ -24,6 +24,9 @@ def _ntuple(n, name="parse"):
 _pair = _ntuple(2, "_pair")
 
 
+def get_RM(input, shape):
+    return input.permute(0, 2, 3, 1).reshape(-1, *shape)
+
 def get_rbf(rbf):
     if rbf == 'gauss':
         return gaussian

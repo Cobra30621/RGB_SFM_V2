@@ -65,15 +65,15 @@ class SOMNetwork(nn.Module):
                  stride: int = 1, 
                  in_channels: int = 1, 
                  out_channels: int = 10,
-                 kernel_size: _size_2_t = (5, 5), 
+                 first_kernel_size: _size_2_t = (5, 5), 
                  input_size: _size_2_t = (28, 28),
                  rbf: str = 'gauss',
                  kernels: list = [(10, 10), (15, 15), (25, 25), (35, 35)],
                  filters:list = None,):
         super().__init__()
         
-        height = (input_size[0] - kernel_size[0]) // stride + 1
-        width = (input_size[1] - kernel_size[1]) // stride + 1
+        height = (input_size[0] - first_kernel_size[0]) // stride + 1
+        width = (input_size[1] - first_kernel_size[1]) // stride + 1
         if filters is None:
             if stride == 1:
                 filters = [(1, width), (6, 1), (4, 1), (1, 1)] # filters that stride = 1
@@ -93,8 +93,10 @@ class SOMNetwork(nn.Module):
         for i in range(3):
             shapes.append((int(shapes[i][0] / filters[i][0]), int(shapes[i][1] / filters[i][1])))
         
-        self.RGB_forward_layer = RGB_Conv2d(self.in_channels, math.prod(kernels[0]), kernel_size, stride=stride, rbf=rbf)
-        self.GRAY_forward_layer = RBFConv2d(1, math.prod(kernels[0]) - 19, kernel_size, stride=stride, rbf=rbf)
+        self.RGB_forward_layer = RGB_Conv2d(self.in_channels, 19, first_kernel_size, stride=stride, rbf=rbf)
+        self.GRAY_forward_layer = RBFConv2d(1, math.prod(kernels[0]), first_kernel_size, stride=stride, rbf=rbf)
+
+        self.Combine_layer = Combine_Conv2d(math.prod(kernels[0]), shapes, (10,10), stride = stride, rbf=rbf)
 
         if self.in_channels == 3:
             self.layer1 = nn.Sequential(         
@@ -103,7 +105,7 @@ class SOMNetwork(nn.Module):
             )
         else:
             self.layer1 = nn.Sequential(         
-                RBFConv2d(self.in_channels, math.prod(kernels[0]), kernel_size, stride=stride, rbf=rbf),
+                RBFConv2d(self.in_channels, math.prod(kernels[0]), first_kernel_size, stride=stride, rbf=rbf),
                 cReLU(0.4),
                 SFM(kernel_size=kernels[0], shape=shapes[0], filter=filters[0])
             )
@@ -133,8 +135,8 @@ class SOMNetwork(nn.Module):
         if self.in_channels == 3:
             gray_out = self.GRAY_forward_layer(x)
             rgb_out = self.RGB_forward_layer(x)
-            # print(gray_out.shape)
-            # print(rgb_out.shape)
+            print(gray_out.shape)
+            print(rgb_out.shape)
             out = torch.concat((gray_out, rgb_out), dim=1)
         else:
             out = x
@@ -270,16 +272,10 @@ class RGB_Conv2d(nn.Module):
     def color_init(self) -> None:
         max_color = 1
         min_color = 0
-        
-        self.rgb_out_channels = 19
+
         #由19種顏色之filter來找出區塊對應之顏色(每個filter代表一個顏色)
-        self.rgb_weight = torch.linspace(max_color, min_color, int((max_color - min_color) / (max_color / self.rgb_out_channels)))[:, None].repeat(1, 3)
+        self.rgb_weight = torch.linspace(max_color, min_color, int((max_color - min_color) / (max_color / self.out_channels)))[:, None].repeat(1, 3)
         self.rgb_weight = nn.Parameter(self.rgb_weight)
-        if self.bias is not None:
-            fan_in, _ = init._calculate_fan_in_and_fan_out(self.gray_weight)
-            if fan_in != 0:
-                bound = 1 / math.sqrt(fan_in)
-                init.uniform_(self.bias, -bound, bound)
 
 
     def conv(self, result, input, weight, stride):
@@ -296,14 +292,84 @@ class RGB_Conv2d(nn.Module):
         batch_size = input.shape[0]
         output_height = torch.div((input.shape[2] - self.kernel_size[0]),  stride, rounding_mode='floor') + 1
         output_width = torch.div((input.shape[3] - self.kernel_size[1]),  stride, rounding_mode='floor') + 1
-        rgb_result = torch.zeros((batch_size, self.rgb_out_channels, output_height, output_width)).to(input.device)
+        rgb_result = torch.zeros((batch_size, self.out_channels, output_height, output_width)).to(input.device)
         self.conv(rgb_result, input, rgb_weight, stride)
         return rgb_result
     
     
     def forward(self, input: Tensor) -> Tensor:
-        rgb_weight = torch.repeat_interleave(torch.repeat_interleave(self.rgb_weight.reshape(self.rgb_out_channels, self.in_channels, 1, 1), self.kernel_size[0], dim=2), self.kernel_size[1], dim=3)
+        rgb_weight = torch.repeat_interleave(torch.repeat_interleave(self.rgb_weight.reshape(self.out_channels, self.in_channels, 1, 1), self.kernel_size[0], dim=2), self.kernel_size[1], dim=3)
         return self._rgb_forward(input, rgb_weight, self.std, torch.tensor(self.stride[0]))
+
+        
+    def extra_repr(self) -> str:
+        return f"std={self.std}, weight shape={self.weight.shape}, kernel size={self.kernel_size}"
+
+'''
+    RGB和灰階卷積加總後進行rbf
+'''
+class Combine_Conv2d(nn.Module):
+    def __init__(self, 
+                 out_channels: int,
+                 shapes: _size_2_t, 
+                 kernel_size: _size_2_t,
+                 stride: _size_2_t = 1,
+                 std: float = 2.0,
+                 rbf: str = 'gauss',
+                 color_init: bool = False,
+                 device=None,
+                 dtype=None) -> None:
+        super().__init__()
+        self.shape = _pair(shape)
+        self.kernel_size = _pair(kernel_size)
+        self.stride = _pair(stride)
+        self.std = torch.nn.Parameter(torch.tensor(std))
+        # self.std = torch.nn.Parameter(torch.full((out_channels, 1), std))
+        factory_kwargs = {'device': device, 'dtype': dtype}
+        self.out_channels = out_channels
+        self.color = color_init
+        self.rbf = get_rbf(rbf)
+        
+        self.gray_weight = torch.empty((out_channels, 1, *self.kernel_size), **factory_kwargs)
+        self.rgb_weight = torch.empty((out_channels, 1, *self.kernel_size), **factory_kwargs) 
+        self.register_parameter('bias', None)
+        self.reset_parameters()
+ 
+ 
+    def reset_parameters(self) -> None:
+        init.kaiming_uniform_(self.gray_weight, a=math.sqrt(5))
+        self.gray_weight[0] = torch.zeros_like(self.gray_weight[0])
+        self.gray_weight = nn.Parameter(self.gray_weight)
+
+        init.kaiming_uniform_(self.rgb_weight, a=math.sqrt(5))
+        self.rgb_weight[0] = torch.zeros_like(self.rgb_weight[0])
+        self.rgb_weight = nn.Parameter(self.rgb_weight)
+
+    def conv(self, result, input, weight, stride):
+        batch_size = input.shape[0]
+        for k in range(result.shape[2]):
+            for l in range(result.shape[3]):   
+                window = input[:, :, k*stride:k*stride+self.kernel_size[0], l*stride:l*stride+self.kernel_size[1]]
+                dist = torch.zeros((batch_size, weight.shape[0])).to(input.device)
+                dist = torch.cdist(window.reshape(input.shape[0], -1), weight.reshape(-1, self.in_channels*math.prod(self.kernel_size)))
+                result = dist
+    
+    def forward(self, gray_input: Tensor, rgb_input: Tensor) -> Tensor:
+        output_height = torch.div((gray_input.shape[2] - self.kernel_size[0]),  stride, rounding_mode='floor') + 1
+        output_width = torch.div((gray_input.shape[3] - self.kernel_size[1]),  stride, rounding_mode='floor') + 1
+        gray_dist = torch.zeros((gray_input.shape[0], self.out_channels, output_height, output_width)).to(input.device)
+        rgb_dist = torch.zeros((gray_input.shape[0], self.out_channels, output_height, output_width)).to(input.device)
+
+        gray_input = gray_input.permute(0, 2, 3, 1).reshape(-1, *self.shape, math.prod(self.kernel_size))
+        rgb_input = rgb_input.permute(0, 2, 3, 1).reshape(-1, *self.shape, math.prod(self.kernel_size))
+        
+        # RGB forward + gray forward
+        t = threading.Thread(target = self.conv, args = (gray_dist, gray_input, self.gray_weight, self.stride,))
+        t.start()
+        self.conv(rgb_dist, rgb_input, self.rgb_weight, self.stride)
+        t.join()
+        # result合併
+        return self.rbf(gray_dist + rgb_dist, self.std)
 
         
     def extra_repr(self) -> str:

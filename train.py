@@ -6,7 +6,8 @@ from torch import nn
 from tqdm.autonotebook import tqdm
 from torch.utils.data import DataLoader
 
-from models import SOMNetwork, CNN, ResNet, AlexNet, LeNet, GoogLeNet, MLP
+from models import CNN, ResNet, AlexNet, LeNet, GoogLeNet, MLP
+from models_new import SOMNetwork
 from load_data import load_data
 
 import numpy as np
@@ -49,7 +50,7 @@ wandb.init(
 
 
 if current_model == 'SFM': 
-    model = SOMNetwork(stride=stride, in_channels=in_channels, input_size=input_size, kernel_size=kernel_size, kernels=kernels, rbf=rbf).to(device)
+    model = SOMNetwork(in_channels=in_channels, out_channels=10)
 elif current_model == 'cnn':
     model = CNN(in_channels=in_channels).to(device)
 elif current_model == 'mlp':
@@ -71,10 +72,7 @@ elif current_model == 'lenet':
 elif current_model == 'googlenet':
     model = GoogLeNet().to(device)
     
-# model.load_state_dict(torch.load(f'{root}/result_pth/SFM_2000_85.44728724369442_malaria_4layer_4stride_22133111_15253045.pth'))
-# model = torch.load(f'{root}/result_pth/SFM_2000_85.44728724369442_malaria_4layer_4stride_22133111_15253045.pth').to(device)
-
-run_name = f"{dataset}_{layer}layer_{stride}stride_{''.join(str(x) + str(y) for x, y in model.filters)}_{rbf}" if current_model == 'SFM' else f"{dataset}_{current_model}"
+run_name = f"{dataset}_{layer}layer_{stride}stride_{rbf}" if current_model == 'SFM' else f"{dataset}_{current_model}"
 if not os.path.exists(f"{root}/result/{run_name}"):
    os.makedirs(f"{root}/result/{run_name}")
 
@@ -127,11 +125,17 @@ def test(dataloader: DataLoader, model: nn.Module, loss_fn):
         y = y.cpu()
         
         # sample first image in batch 
-        table.append([wandb.Image(np.array(X[0])), y[0], pred[0].argmax(), loss, c])
+        if X[0].shape[0] == 3:
+            X = np.transpose(np.array(X[0]), (1, 2, 0))
+        else:
+            X = np.array(X[0])
+        table.append([wandb.Image(X), y[0], pred[0].argmax(), loss, c])
 
     test_loss /= num_batches
     correct = (correct / size) * 100
     return correct, test_loss, table
+
+print(model)
 
 
 train_dataloader, test_dataloader = load_data(dataset=dataset, root=root, batch_size=batch_size, input_size=input_size)
