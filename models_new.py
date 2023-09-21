@@ -23,58 +23,62 @@ class SOMNetwork(nn.Module):
         Conv2d_kernel = [(5, 5), (10, 10), (15, 15), (25, 25), (35, 35)]
 
         self.RGB_preprocess = RGB_Conv2d(3, 36, kernel_size=(5, 5), stride=stride)
-        self.GRAY_preprocess = RBF_Conv2d(1, 10*10, kernel_size=(5, 5), stride=stride)
-        self.combine_layer = Combine_Conv2d(1, 10*10, kernel_size=[(10,10), (6, 6)], stride=stride)
+        self.GRAY_preprocess = RBF_Conv2d(1, 10*10 - 36, kernel_size=(5, 5), stride=stride)
+        # self.combine_layer = Combine_Conv2d(1, 10*10, kernel_size=[(8, 8), (6, 6)], stride=stride)
 
-        self.layers = [
+        self.layer1 = [
             cReLU(0.4),
             SFM(kernel_size=(10, 10), shape=(6, 6), filter=(2, 2)),
+        ]
+        if self.in_channels == 1:
+            self.layer1 = [RBF_Conv2d(in_channels, 10*10, kernel_size=(5, 5), stride=stride)] + self.layer1
+        self.layer1 = nn.Sequential(*self.layer1)
 
+        self.layer2 = nn.Sequential(
             RBF_Conv2d(1, 15*15, kernel_size=(10, 10), stride=stride),
             cReLU(0.1),
             SFM(kernel_size=(15, 15), shape=(3,  3), filter=(1, 3)),
+        )
 
+        self.layer3 = nn.Sequential(
             RBF_Conv2d(1, 25*25, kernel_size=(15, 15), stride=stride),
             cReLU(0.01),
             SFM(kernel_size=(25, 25), shape=(3, 1), filter=(3, 1)),
+        )
 
+        self.layer4 = nn.Sequential(
             RBF_Conv2d(1, 35*35, kernel_size=(25, 25), stride=stride),
             cReLU(0.01),
             SFM(kernel_size=(35, 35), shape=(1, 1), filter=(1, 1)),
-        ]
-
-        if self.in_channels == 3:
-            pass
-        else:
-            self.layers = [RBF_Conv2d(in_channels, 10*10, kernel_size=(5, 5), stride=stride)] + self.layers
-
-        self.layers = nn.Sequential(*self.layers)
-
-        self.linear = nn.Sequential(
-            nn.Linear(35*35, self.out_channels, device='cuda'),
-            nn.Softmax(dim=-1)
         )
+
+        self.fc1 = nn.Linear(35*35, self.out_channels, device='cuda')
+        self.softmax = nn.Softmax(dim=-1)
 
     def forward(self, x):
         out: Tensor
         if self.in_channels == 3:
             x = x.to("cuda")
             # RGB Plan 1
-            # RGB_output = self.RGB_preprocess(x)
-            # GRAY_output = self.GRAY_preprocess(Grayscale()(x))
-            # input = torch.concat((RGB_output, GRAY_output), dim=1)
+            RGB_output = self.RGB_preprocess(x)
+            GRAY_output = self.GRAY_preprocess(Grayscale()(x))
+            input = torch.concat((RGB_output, GRAY_output), dim=1)
 
             # RGB Plan 2
-            RGB_output = self.RGB_preprocess(x)
-            RGB_output = get_RM(RGB_output, (6, 6, 6*6)).reshape(-1, 1, 6, 6)
-            GRAY_output = self.GRAY_preprocess(Grayscale()(x))
-            GRAY_output = get_RM(GRAY_output, (6, 6, 10*10)).reshape(-1, 1, 10, 10)
-            input = self.combine_layer(GRAY_output, RGB_output)
+            # RGB_output = self.RGB_preprocess(x)
+            # RGB_output = get_RM(RGB_output, (6, 6, 6*6)).reshape(-1, 1, 6, 6)
+            # GRAY_output = self.GRAY_preprocess(Grayscale()(x))
+            # GRAY_output = get_RM(GRAY_output, (6, 6, 8*8)).reshape(-1, 1, 8, 8)
+            # input = self.combine_layer(GRAY_output, RGB_output)
         else:
             input = x.to("cuda")
-        output = self.layers(input)
-        # print(output.shape)
-        output = self.linear(output.reshape(x.shape[0], -1))
+        
+        output = self.layer1(input)
+        output = self.layer2(output)
+        output = self.layer3(output)
+        output = self.layer4(output)
+        output = self.fc1(output.reshape(x.shape[0], -1))
+        output = self.softmax(output)
         return output
 
 '''

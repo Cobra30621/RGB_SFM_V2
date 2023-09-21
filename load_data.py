@@ -83,20 +83,24 @@ def get_MalariaCellImagesDataset(root: str = f"{root}/data/cell_images/", resize
     train_transforms = transforms.Compose([
         transforms.Resize(resize),
         transforms.ToTensor(),
-    ])                                           
-    train_data = datasets.ImageFolder(root, transform=train_transforms)
+    ])
+
+    train_data = datasets.ImageFolder(root+'train/', transform=train_transforms)
+    test_data = datasets.ImageFolder(root+'test/', transform=train_transforms)
 
     num_train = len(train_data)
     indices = list(range(num_train))
     if shuffle:
         np.random.shuffle(indices)
     valid_split = int(np.floor((valid_size) * num_train))
-    test_split = int(np.floor((valid_size+test_size) * num_train))
-    valid_idx, test_idx, train_idx = indices[:valid_split], indices[valid_split:test_split], indices[test_split:]
+    # test_split = int(np.floor((valid_size+test_size) * num_train))
+    # valid_idx, test_idx, train_idx = indices[:valid_split], indices[valid_split:test_split], indices[test_split:]
+    valid_idx, train_idx = indices[:valid_split], indices[valid_split:]
+    test_idx = list(range(len(test_data)))
 
     train_loader = DataLoader(train_data, batch_size=batch_size, sampler=SubsetRandomSampler(train_idx))
     valid_loader = DataLoader(train_data, batch_size=batch_size, sampler=SubsetRandomSampler(valid_idx))
-    test_loader = DataLoader(train_data, batch_size=batch_size, sampler=SubsetRandomSampler(test_idx))
+    test_loader = DataLoader(test_data, batch_size=batch_size, sampler=SubsetRandomSampler(test_idx))
     return train_loader, valid_loader, test_loader
 
 

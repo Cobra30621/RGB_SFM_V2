@@ -11,6 +11,7 @@ from models_new import SOMNetwork
 from load_data import load_data
 
 import numpy as np
+from torch.optim.lr_scheduler import ReduceLROnPlateau
 
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -25,29 +26,11 @@ in_channels = 3 # 1, 3
 rbf = 'gauss' # gauss, triangle
 
 batch_size = 256
-epoch = 200
-lr = 1e-3
+epoch = 2000
+lr = 0.1
 layer = 4
 stride = 4
 description = f"test"
-
-# start a new wandb run to track this script
-wandb.init(
-    # set the wandb project where this run will be logged
-    project="paper experiment",
-    
-    # track hyperparameters and run metadata
-    config={
-    "learning_rate": lr,
-    "architecture": current_model,
-    "dataset": dataset,
-    "batch_size": batch_size,
-    "layer": layer,
-    "stride": stride,
-    "epochs": epoch,
-    }
-)
-
 
 if current_model == 'SFM': 
     model = SOMNetwork(in_channels=in_channels, out_channels=10)
@@ -76,17 +59,22 @@ run_name = f"{dataset}_{layer}layer_{stride}stride_{rbf}" if current_model == 'S
 if not os.path.exists(f"{root}/result/{run_name}"):
    os.makedirs(f"{root}/result/{run_name}")
 
-def train(train_dataloader: DataLoader, model: nn.Module, loss_fn, optimizer, epoch):
-    example_ct = 0 # number of examples seen
+def train(train_dataloader: DataLoader, test_dataloader: DataLoader, model: nn.Module, loss_fn, optimizer, scheduler, epoch):
+    min_loss = float('inf')
+    count = 0
+    patience = 10
     with torch.autograd.set_detect_anomaly(True):
         for e in range(epoch):
             print(f"------------------------------EPOCH {e}------------------------------")
             model.train()
             progress = tqdm(enumerate(train_dataloader), desc="Loss: ", total=len(train_dataloader))
             losses = 0
+            correct = 0
+            size = 0
             for batch, (X, y) in progress:
                 X = X.to(device); y= y.to(device)
                 pred = model(X)
+                correct += (pred.argmax(1) == y).type(torch.float).sum().item()
                 loss = loss_fn(pred, y)
                 
                 optimizer.zero_grad()
@@ -94,17 +82,33 @@ def train(train_dataloader: DataLoader, model: nn.Module, loss_fn, optimizer, ep
                 optimizer.step()
                 
                 losses += loss.item()
-                example_ct += len(X)
-                progress.set_description("Loss: {:.7f}".format(losses/(batch+1)))
+                size += len(X)
+                progress.set_description("Loss: {:.7f}, Accuracy: {:.7f}".format(losses/(batch+1), correct/size))
+
+            test_acc, test_loss, _ = test(test_dataloader, model, loss_fn, False)
+            print(f"Test Accuracy: {test_acc}%, Test Loss: {test_loss}")
+            scheduler.step(test_loss)
+
             metrics = {
                 "train/loss": losses/(batch+1),
                 "train/epoch": e,
+                "train/accuracy": correct/size,
+                "train/learnrate": optimizer.param_groups[0]['lr'],
+                "test/loss": test_loss,
+                "test/accuracy": test_acc
             }
             wandb.log(metrics, step=e)
+
+            # early stopping 
+            if test_loss >= min_loss:
+                count += 1
+                if count >= patience:
+                    break
+            else:
+                count = 0
+                max_accuracy = test_loss
             
-    
-    
-def test(dataloader: DataLoader, model: nn.Module, loss_fn):
+def test(dataloader: DataLoader, model: nn.Module, loss_fn, need_table = True):
     size = 0
     num_batches = len(dataloader)
     test_loss, correct = 0, 0
@@ -118,18 +122,19 @@ def test(dataloader: DataLoader, model: nn.Module, loss_fn):
         correct += (pred.argmax(1) == y).type(torch.float).sum().item()
         size += len(X)
 
-        # tensor to cpu
-        loss = loss_fn(pred, y).item()
-        c = (pred.argmax(1) == y).type(torch.float).sum().item() / len(X)
-        X = X.cpu()
-        y = y.cpu()
-        
-        # sample first image in batch 
-        if X[0].shape[0] == 3:
-            X = np.transpose(np.array(X[0]), (1, 2, 0))
-        else:
-            X = np.array(X[0])
-        table.append([wandb.Image(X), y[0], pred[0].argmax(), loss, c])
+        if need_table:
+            # tensor to cpu
+            loss = loss_fn(pred, y).item()
+            c = (pred.argmax(1) == y).type(torch.float).sum().item() / len(X)
+            X = X.cpu()
+            y = y.cpu()
+            
+            # sample first image in batch 
+            if X[0].shape[0] == 3:
+                X = np.transpose(np.array(X[0]), (1, 2, 0))
+            else:
+                X = np.array(X[0])
+            table.append([wandb.Image(X), y[0], pred[0].argmax(), loss, c])
 
     test_loss /= num_batches
     correct = (correct / size) * 100
@@ -137,14 +142,37 @@ def test(dataloader: DataLoader, model: nn.Module, loss_fn):
 
 print(model)
 
-
 train_dataloader, test_dataloader = load_data(dataset=dataset, root=root, batch_size=batch_size, input_size=input_size)
+
+# start a new wandb run to track this script
+wandb.init(
+    # set the wandb project where this run will be logged
+    project="paper experiment",
+
+    name = f"{dataset}_{current_model}_data{len(train_dataloader.sampler) + len(test_dataloader.sampler)}",
+    
+    # track hyperparameters and run metadata
+    config={
+    "learning_rate": lr,
+    "architecture": current_model,
+    "dataset": dataset,
+    "train_data_num": len(train_dataloader.sampler),
+    "test_data_num": len(test_dataloader.sampler),
+    "total_data_num": len(train_dataloader.sampler) + len(test_dataloader.sampler),
+    "batch_size": batch_size,
+    "layer": layer,
+    "stride": stride,
+    "epochs": epoch,
+    "description": description
+    }
+)
 
 loss_fn = nn.CrossEntropyLoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=5)
 
 wandb.watch(model, loss_fn, log="all", log_freq=1)
-train(train_dataloader, model, loss_fn, optimizer, epoch)
+train(train_dataloader, test_dataloader, model, loss_fn, optimizer, scheduler, epoch)
 
 # Train model
 train_acc, train_loss, train_table = test(train_dataloader, model, loss_fn)
@@ -166,8 +194,14 @@ wandb.log({"Test Table": record_table})
 # test_aug_acc, test_aug_loss = test(test_aug_dataloader, model, loss_fn)
 # print("Test(AUG): \n\tAccuracy: {}, Avg loss: {} \n".format(test_aug_acc, test_aug_loss))
 
-torch.save(model.state_dict(), f'{root}/result/{run_name}/{current_model}_{epoch}_{test_acc}_{run_name}_final.pth')
+checkpoint = {'model': SOMNetwork(in_channels=in_channels, out_channels=10),
+          'state_dict': model.state_dict(),
+          'optimizer' : optimizer.state_dict(),
+          'scheduler': scheduler.state_dict()}
+
+torch.save(checkpoint, f'{root}/result/{run_name}/{current_model}_{epoch}_{run_name}_final.pth')
 art = wandb.Artifact(f"{current_model}_{run_name}", type="model")
-art.add_file(f'{root}/result/{run_name}/{current_model}_{epoch}_{test_acc}_{run_name}_final.pth')
+art.add_file(f'{root}/result/{run_name}/{current_model}_{epoch}_{run_name}_final.pth')
+art.add_file(f'{root}/models_new.py')
 wandb.log_artifact(art, aliases = ["latest"])
 wandb.finish()
