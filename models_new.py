@@ -20,36 +20,47 @@ class SOMNetwork(nn.Module):
 
         stride = 4
         SFM_combine_filters = [(2, 2), (1, 3), (3, 1), (1, 1)]
+        # SFM_combine_filters = [(1, 6), (3, 1), (2, 1), (1, 1)]
         Conv2d_kernel = [(5, 5), (10, 10), (15, 15), (25, 25), (35, 35)]
 
-        self.RGB_preprocess = RGB_Conv2d(3, 36, kernel_size=(5, 5), stride=stride)
-        self.GRAY_preprocess = RBF_Conv2d(1, 10*10 - 36, kernel_size=(5, 5), stride=stride)
+        self.shape = [(6, 6)]
+        for i in range(3):
+            self.shape.append((int(self.shape[i][0] / SFM_combine_filters[i][0]), int(self.shape[i][1] / SFM_combine_filters[i][1])))
+
+        self.RGB_preprocess = nn.Sequential(
+            RGB_Conv2d(3, 36, kernel_size=Conv2d_kernel[0], stride=stride),
+            cReLU(0.4)
+        )
+        self.GRAY_preprocess = nn.Sequential(
+            RBF_Conv2d(1, 10*10 - 36, kernel_size=Conv2d_kernel[0], stride=stride),
+            cReLU(0.4)
+        )
         # self.combine_layer = Combine_Conv2d(1, 10*10, kernel_size=[(8, 8), (6, 6)], stride=stride)
 
         self.layer1 = [
-            cReLU(0.4),
-            SFM(kernel_size=(10, 10), shape=(6, 6), filter=(2, 2)),
+            # cReLU(0.1),
+            SFM(kernel_size=Conv2d_kernel[1], shape=self.shape[0], filter=SFM_combine_filters[0]),
         ]
         if self.in_channels == 1:
-            self.layer1 = [RBF_Conv2d(in_channels, 10*10, kernel_size=(5, 5), stride=stride)] + self.layer1
+            self.layer1 = [RBF_Conv2d(in_channels, math.prod(Conv2d_kernel[1]), kernel_size=Conv2d_kernel[0], stride=stride)] + self.layer1
         self.layer1 = nn.Sequential(*self.layer1)
 
         self.layer2 = nn.Sequential(
-            RBF_Conv2d(1, 15*15, kernel_size=(10, 10), stride=stride),
+            RBF_Conv2d(1, math.prod(Conv2d_kernel[2]), kernel_size=Conv2d_kernel[1], stride=stride),
             cReLU(0.1),
-            SFM(kernel_size=(15, 15), shape=(3,  3), filter=(1, 3)),
+            SFM(kernel_size=Conv2d_kernel[2], shape=self.shape[1], filter=SFM_combine_filters[1]),
         )
 
         self.layer3 = nn.Sequential(
-            RBF_Conv2d(1, 25*25, kernel_size=(15, 15), stride=stride),
+            RBF_Conv2d(1, math.prod(Conv2d_kernel[3]), kernel_size=Conv2d_kernel[2], stride=stride),
             cReLU(0.01),
-            SFM(kernel_size=(25, 25), shape=(3, 1), filter=(3, 1)),
+            SFM(kernel_size=Conv2d_kernel[3], shape=self.shape[2], filter=SFM_combine_filters[2]),
         )
 
         self.layer4 = nn.Sequential(
-            RBF_Conv2d(1, 35*35, kernel_size=(25, 25), stride=stride),
+            RBF_Conv2d(1, math.prod(Conv2d_kernel[4]), kernel_size=Conv2d_kernel[3], stride=stride),
             cReLU(0.01),
-            SFM(kernel_size=(35, 35), shape=(1, 1), filter=(1, 1)),
+            # SFM(kernel_size=Conv2d_kernel[4], shape=self.shape[3], filter=SFM_combine_filters[3]),
         )
 
         self.fc1 = nn.Linear(35*35, self.out_channels, device='cuda')
@@ -58,7 +69,6 @@ class SOMNetwork(nn.Module):
     def forward(self, x):
         out: Tensor
         if self.in_channels == 3:
-            x = x.to("cuda")
             # RGB Plan 1
             RGB_output = self.RGB_preprocess(x)
             GRAY_output = self.GRAY_preprocess(Grayscale()(x))
@@ -72,7 +82,6 @@ class SOMNetwork(nn.Module):
             # input = self.combine_layer(GRAY_output, RGB_output)
         else:
             input = x.to("cuda")
-        
         output = self.layer1(input)
         output = self.layer2(output)
         output = self.layer3(output)
@@ -97,7 +106,7 @@ class RBF_Conv2d(nn.Module):
         super().__init__()
         self.kernel_size = _pair(kernel_size)
         self.stride = _pair(stride)
-        self.std = torch.nn.Parameter(torch.tensor(std))
+        self.std = torch.tensor(std)
         factory_kwargs = {'device': device, 'dtype': dtype}
         self.out_channels = out_channels
         self.in_channels = in_channels
@@ -117,10 +126,12 @@ class RBF_Conv2d(nn.Module):
         output_height = torch.div((input.shape[2] - self.kernel_size[0]),  stride, rounding_mode='floor') + 1
         output_width = torch.div((input.shape[3] - self.kernel_size[1]),  stride, rounding_mode='floor') + 1
         result = torch.zeros((batch_size, self.out_channels, output_height, output_width)).to(input.device)
+
         for k in range(result.shape[2]):
             for l in range(result.shape[3]):  
                 window = input[:, :, k*stride:k*stride+self.kernel_size[0], l*stride:l*stride+self.kernel_size[1]]
-                dist = torch.cdist(window.reshape(batch_size, -1), self.weight.reshape(-1, self.in_channels*math.prod(self.kernel_size)))      
+                dist = torch.cdist(window.reshape(batch_size, -1), self.weight.reshape(-1, self.in_channels*math.prod(self.kernel_size)))
+                self.std = torch.std(dist)      
                 result[:, :, k, l] = self.rbf(dist, self.std)
         return result
 
@@ -143,7 +154,7 @@ class RGB_Conv2d(nn.Module):
         super().__init__()
         self.kernel_size = _pair(kernel_size)
         self.stride = _pair(stride)
-        self.std = torch.nn.Parameter(torch.tensor(std))
+        self.std = torch.tensor(std)
         factory_kwargs = {'device': device, 'dtype': dtype}
         self.out_channels = out_channels
         self.in_channels = in_channels
@@ -169,15 +180,17 @@ class RGB_Conv2d(nn.Module):
         batch_size = input.shape[0]
         output_height = torch.div((input.shape[2] - self.kernel_size[0]),  stride, rounding_mode='floor') + 1
         output_width = torch.div((input.shape[3] - self.kernel_size[1]),  stride, rounding_mode='floor') + 1
-        rgb_result = torch.zeros((batch_size, self.out_channels, output_height, output_width)).to(input.device)
+        rgb_result = torch.zeros((batch_size, self.out_channels, output_height, output_width), device = input.device)
+        dist = torch.zeros((input.shape[0], rgb_weight_expand.shape[0]), device = input.device)
         
         # RBF
         for k in range(rgb_result.shape[2]):
             for l in range(rgb_result.shape[3]):   
                 window = input[:, :, k*stride:k*stride+self.kernel_size[0], l*stride:l*stride+self.kernel_size[1]]
-                dist = torch.zeros((input.shape[0], rgb_weight_expand.shape[0])).to(input.device)
+                dist = torch.zeros((input.shape[0], rgb_weight_expand.shape[0]), device = input.device)
                 for in_channel in range(input.shape[1]):
                     dist += torch.cdist(window[:, in_channel].reshape(batch_size, -1), rgb_weight_expand[:, in_channel].reshape(rgb_weight_expand.shape[0], -1))
+                self.std = torch.std(dist)
                 rgb_result[:, :, k, l] = self.rbf(dist, self.std)
         return rgb_result
 
@@ -225,7 +238,8 @@ class Combine_Conv2d(nn.Module):
         batch_size = gray_input.shape[0]
         output_height = torch.div((gray_input.shape[2] - self.kernel_size[0][0]),  stride, rounding_mode='floor') + 1
         output_width = torch.div((gray_input.shape[3] - self.kernel_size[0][1]),  stride, rounding_mode='floor') + 1
-        result = torch.zeros((batch_size, self.out_channels, output_height, output_width)).to("cuda")
+        result = torch.zeros((batch_size, self.out_channels, output_height, output_width), device = "cuda")
+
         for k in range(result.shape[2]):
             for l in range(result.shape[3]):
                 gray_window = gray_input[:, :, k*stride:k*stride+self.kernel_size[0][0], l*stride:l*stride+self.kernel_size[0][1]]

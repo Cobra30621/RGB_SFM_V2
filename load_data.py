@@ -83,6 +83,26 @@ def get_MalariaCellImagesDataset(root: str = f"{root}/data/cell_images/", resize
     train_transforms = transforms.Compose([
         transforms.Resize(resize),
         transforms.ToTensor(),
+    ])                                           
+    train_data = datasets.ImageFolder(root, transform=train_transforms)
+
+    num_train = len(train_data)
+    indices = list(range(num_train))
+    if shuffle:
+        np.random.shuffle(indices)
+    valid_split = int(np.floor((valid_size) * num_train))
+    test_split = int(np.floor((valid_size+test_size) * num_train))
+    valid_idx, test_idx, train_idx = indices[:valid_split], indices[valid_split:test_split], indices[test_split:]
+
+    train_loader = DataLoader(train_data, batch_size=batch_size, sampler=SubsetRandomSampler(train_idx))
+    valid_loader = DataLoader(train_data, batch_size=batch_size, sampler=SubsetRandomSampler(valid_idx))
+    test_loader = DataLoader(train_data, batch_size=batch_size, sampler=SubsetRandomSampler(test_idx))
+    return train_loader, valid_loader, test_loader
+
+def get_MalariaCellImagesDataset_split(root: str = f"{root}/data/cell_images_split/", resize=[224, 224], valid_size=0.2, test_size = 0.1, batch_size=27558, shuffle=True):
+    train_transforms = transforms.Compose([
+        transforms.Resize(resize),
+        transforms.ToTensor(),
     ])
 
     train_data = datasets.ImageFolder(root+'train/', transform=train_transforms)
@@ -102,7 +122,6 @@ def get_MalariaCellImagesDataset(root: str = f"{root}/data/cell_images/", resize
     valid_loader = DataLoader(train_data, batch_size=batch_size, sampler=SubsetRandomSampler(valid_idx))
     test_loader = DataLoader(test_data, batch_size=batch_size, sampler=SubsetRandomSampler(test_idx))
     return train_loader, valid_loader, test_loader
-
 
 def load_data(dataset: str = 'mnist', root: str = '.', batch_size: int = 256, input_size: tuple = (28, 28)):
     if dataset == 'mnist_aug':
@@ -161,6 +180,8 @@ def load_data(dataset: str = 'mnist', root: str = '.', batch_size: int = 256, in
     
     if dataset == 'malaria':
         train_dataloader, valid_dataloader, test_dataloader = get_MalariaCellImagesDataset(root=f"{root}/data/cell_images/", resize=[*input_size], valid_size=0.0, test_size = 0.2, batch_size=batch_size, shuffle=True)
+    elif dataset == 'malaria_split':
+        train_dataloader, valid_dataloader, test_dataloader = get_MalariaCellImagesDataset_split(root=f"{root}/data/cell_images_split/", resize=[*input_size], valid_size=0.0, test_size = 0.2, batch_size=batch_size, shuffle=True)
     else:
         train_dataloader = DataLoader(training_data, batch_size=batch_size, shuffle=True)
         test_dataloader = DataLoader(test_data, batch_size=batch_size, shuffle=True)

@@ -18,22 +18,20 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print(f"Using {device} device")
 root = os.path.dirname(__file__)
 current_model = 'SFM' # SFM, mlp, cnn, resnet50, alexnet, lenet, googlenet
-dataset = 'malaria' # mnist, fashion, cifar10, malaria
+dataset = 'malaria' # mnist, fashion, cifar10, malaria, malaria_split
 input_size = (28, 28)
-kernel_size = (5, 5)
-kernels = [(10, 10), (15, 15), (25, 25), (35, 35)]
 in_channels = 3 # 1, 3
 rbf = 'gauss' # gauss, triangle
 
 batch_size = 256
-epoch = 2000
-lr = 0.1
+epoch = 200
+lr = 1e-3
 layer = 4
 stride = 4
-description = f"test"
+description = f"try remove SFM block in layer4 with early stop and lr scheduler, no change std, lr = 1e-3, SFM combine filter = (2, 2)"
 
 if current_model == 'SFM': 
-    model = SOMNetwork(in_channels=in_channels, out_channels=10)
+    model = SOMNetwork(in_channels=in_channels, out_channels=10).to("cuda")
 elif current_model == 'cnn':
     model = CNN(in_channels=in_channels).to(device)
 elif current_model == 'mlp':
@@ -139,9 +137,6 @@ def test(dataloader: DataLoader, model: nn.Module, loss_fn, need_table = True):
     test_loss /= num_batches
     correct = (correct / size) * 100
     return correct, test_loss, table
-
-print(model)
-
 train_dataloader, test_dataloader = load_data(dataset=dataset, root=root, batch_size=batch_size, input_size=input_size)
 
 # start a new wandb run to track this script
@@ -150,6 +145,8 @@ wandb.init(
     project="paper experiment",
 
     name = f"{dataset}_{current_model}_data{len(train_dataloader.sampler) + len(test_dataloader.sampler)}",
+
+    notes = description,
     
     # track hyperparameters and run metadata
     config={
@@ -163,12 +160,17 @@ wandb.init(
     "layer": layer,
     "stride": stride,
     "epochs": epoch,
-    "description": description
     }
 )
 
+print(model)
+
+art = wandb.Artifact(f"{current_model}_{run_name}", type="model")
+art.add_file(f'{root}/models_new.py')
+
 loss_fn = nn.CrossEntropyLoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+# optimizer = torch.optim.SGD(model.parameters(), lr=lr, momentum=0.9)
 scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=5)
 
 wandb.watch(model, loss_fn, log="all", log_freq=1)
@@ -190,18 +192,12 @@ wandb.summary['test_avg_loss'] = test_loss
 record_table = wandb.Table(columns=["Image", "Answer", "Predict", "batch_Loss", "batch_Correct"], data = test_table)
 wandb.log({"Test Table": record_table})
 
-# test_aug_dataloader = load_data(dataset='mnist_aug', root=root, batch_size=batch_size, input_size=input_size)
-# test_aug_acc, test_aug_loss = test(test_aug_dataloader, model, loss_fn)
-# print("Test(AUG): \n\tAccuracy: {}, Avg loss: {} \n".format(test_aug_acc, test_aug_loss))
-
 checkpoint = {'model': SOMNetwork(in_channels=in_channels, out_channels=10),
           'state_dict': model.state_dict(),
           'optimizer' : optimizer.state_dict(),
           'scheduler': scheduler.state_dict()}
 
 torch.save(checkpoint, f'{root}/result/{run_name}/{current_model}_{epoch}_{run_name}_final.pth')
-art = wandb.Artifact(f"{current_model}_{run_name}", type="model")
 art.add_file(f'{root}/result/{run_name}/{current_model}_{epoch}_{run_name}_final.pth')
-art.add_file(f'{root}/models_new.py')
 wandb.log_artifact(art, aliases = ["latest"])
 wandb.finish()
