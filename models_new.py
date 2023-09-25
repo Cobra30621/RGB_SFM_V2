@@ -37,12 +37,16 @@ class SOMNetwork(nn.Module):
         )
         # self.combine_layer = Combine_Conv2d(1, 10*10, kernel_size=[(8, 8), (6, 6)], stride=stride)
 
-        self.layer1 = [
-            # cReLU(0.1),
+        if self.in_channels == 1:
+            self.layer1 = [
+                RBF_Conv2d(in_channels, math.prod(Conv2d_kernel[1]), kernel_size=Conv2d_kernel[0], stride=stride),
+                cReLU(0.4),
+            ]
+        else:
+            self.layer1 = []
+        self.layer1 += [
             SFM(kernel_size=Conv2d_kernel[1], shape=self.shape[0], filter=SFM_combine_filters[0]),
         ]
-        if self.in_channels == 1:
-            self.layer1 = [RBF_Conv2d(in_channels, math.prod(Conv2d_kernel[1]), kernel_size=Conv2d_kernel[0], stride=stride)] + self.layer1
         self.layer1 = nn.Sequential(*self.layer1)
 
         self.layer2 = nn.Sequential(
@@ -63,7 +67,7 @@ class SOMNetwork(nn.Module):
             # SFM(kernel_size=Conv2d_kernel[4], shape=self.shape[3], filter=SFM_combine_filters[3]),
         )
 
-        self.fc1 = nn.Linear(35*35, self.out_channels, device='cuda')
+        self.fc1 = nn.Linear(math.prod(Conv2d_kernel[4]), self.out_channels, device='cuda')
         self.softmax = nn.Softmax(dim=-1)
 
     def forward(self, x):
@@ -80,8 +84,7 @@ class SOMNetwork(nn.Module):
             # GRAY_output = self.GRAY_preprocess(Grayscale()(x))
             # GRAY_output = get_RM(GRAY_output, (6, 6, 8*8)).reshape(-1, 1, 8, 8)
             # input = self.combine_layer(GRAY_output, RGB_output)
-        else:
-            input = x.to("cuda")
+            
         output = self.layer1(input)
         output = self.layer2(output)
         output = self.layer3(output)
