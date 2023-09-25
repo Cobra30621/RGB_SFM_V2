@@ -1,18 +1,17 @@
 import os
 import torch
 import wandb
+import numpy as np
 
 from torch import nn
 from tqdm.autonotebook import tqdm
 from torch.utils.data import DataLoader
+from torch.optim.lr_scheduler import ReduceLROnPlateau
+from torchsummary import summary
 
 from models import CNN, ResNet, AlexNet, LeNet, GoogLeNet, MLP
 from models_new import SOMNetwork
 from load_data import load_data
-
-import numpy as np
-from torch.optim.lr_scheduler import ReduceLROnPlateau
-
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print(f"Using {device} device")
@@ -164,6 +163,7 @@ wandb.init(
 )
 
 print(model)
+summary(model, input_size = (in_channels, *input_size))
 
 art = wandb.Artifact(f"{current_model}_{run_name}", type="model")
 art.add_file(f'{root}/models_new.py')
