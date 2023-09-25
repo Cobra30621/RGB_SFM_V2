@@ -81,6 +81,12 @@ class CustomMNISTDataset(Dataset):
 
 def get_MalariaCellImagesDataset(root: str = f"{root}/data/cell_images/", resize=[224, 224], valid_size=0.2, test_size = 0.1, batch_size=27558, shuffle=True):
     train_transforms = transforms.Compose([
+        transforms.ColorJitter(brightness=0.5),  # 更改明亮度
+        transforms.RandomRotation(
+            degrees=45, expand = True
+        ),
+        transforms.RandomHorizontalFlip(p=0.3),
+        transforms.RandomVerticalFlip(p=0.3),
         transforms.Resize(resize),
         transforms.ToTensor(),
     ])                                           
@@ -101,6 +107,12 @@ def get_MalariaCellImagesDataset(root: str = f"{root}/data/cell_images/", resize
 
 def get_MalariaCellImagesDataset_split(root: str = f"{root}/data/cell_images_split/", resize=[224, 224], valid_size=0.2, test_size = 0.1, batch_size=27558, shuffle=True):
     train_transforms = transforms.Compose([
+        transforms.ColorJitter(brightness=0.5),  # 更改明亮度
+        transforms.RandomRotation(
+            degrees=45, expand = True
+        ),
+        transforms.RandomHorizontalFlip(p=0.3),
+        transforms.RandomVerticalFlip(p=0.3),
         transforms.Resize(resize),
         transforms.ToTensor(),
     ])
