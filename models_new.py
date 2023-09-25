@@ -130,7 +130,9 @@ class RBF_Conv2d(nn.Module):
         for k in range(result.shape[2]):
             for l in range(result.shape[3]):  
                 window = input[:, :, k*stride:k*stride+self.kernel_size[0], l*stride:l*stride+self.kernel_size[1]]
-                dist = torch.cdist(window.reshape(batch_size, -1), self.weight.reshape(-1, self.in_channels*math.prod(self.kernel_size)))
+                dist = torch.zeros((input.shape[0], self.weight.shape[0]), device = input.device)
+                for in_channel in range(input.shape[1]):
+                    dist += torch.cdist(window[:, in_channel].reshape(batch_size, -1), self.weight.reshape(self.weight.shape[0], -1))
                 self.std = torch.std(dist)      
                 result[:, :, k, l] = self.rbf(dist, self.std)
         return result
