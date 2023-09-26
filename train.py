@@ -27,7 +27,7 @@ epoch = 200
 lr = 1e-3
 layer = 4
 stride = 4
-description = f"try remove SFM block in layer4 with early stop and lr scheduler, no change std, lr = 1e-3, SFM combine filter = (2, 2)"
+description = f"try add data argumentation with early stop and lr scheduler, no change std, lr = 1e-3, SFM combine filter = (2, 2)"
 
 if current_model == 'SFM': 
     model = SOMNetwork(in_channels=in_channels, out_channels=10).to("cuda")
@@ -146,6 +146,8 @@ wandb.init(
     name = f"{dataset}_{current_model}_data{len(train_dataloader.sampler) + len(test_dataloader.sampler)}",
 
     notes = description,
+
+    group = "RGB_Plan_v1",
     
     # track hyperparameters and run metadata
     config={
