@@ -7,6 +7,7 @@ from torch.utils.data import Dataset
 from torch.utils.data import DataLoader
 from torchvision.transforms import ToTensor
 from torch.utils.data.sampler import SubsetRandomSampler
+from torchvision.io import read_image
 
 root = os.path.dirname(__file__)
 
@@ -77,6 +78,69 @@ class CustomMNISTDataset(Dataset):
 
     def __len__(self) -> int:
         return len(self.data)
+
+class RGBSimpleShapeDataset(Dataset):
+    def __init__(self,
+        root: str,
+        train: bool = True,
+        augmentation: bool = False,
+        transform: Optional[Callable] = None,
+        target_transform: Optional[Callable] = None,
+    ) -> None:
+        self.root = root
+        self.transform = transform
+        self.target_transform = target_transform
+        
+        self.train = train
+        self.augmentation = augmentation
+        self.data, self.targets = self._load_data()
+
+    def _load_data(self):
+        image_file = f'{self.root}/{'train' if self.train else 'test'}'
+        image_dataset = []
+        label_dataset = []
+        for root, dirs, files in os.walk(image_file):
+            for name in files:
+                name_split = name.split('_')
+                if name_split[0] == 'red':
+                    color = 0
+                elif name_split[0] == 'green':
+                    color = 1
+                elif name_split[0] == 'blue':
+                    color = 2
+
+                if name_split[1] == 'circle':
+                    shape = 0
+                elif name_split[1] == 'ellipse':
+                    shape = 1
+                elif name_split[1] == 'rectangle':
+                    shape = 2
+                elif name_split[1] == 'square':
+                    shape = 3
+                elif name_split[1] == 'triangle':
+                    shape = 4
+                label_dataset.append([name_split[0], name_split[1]])
+                image = read_image(os.path.join(root, name))
+                image_dataset.append(image)
+
+        return image_dataset, label_dataset
+        
+    def __getitem__(self, index: int) -> Tuple[Any, Any]:
+
+        img, color, shape = self.data[index], self.targets[index][0], self.targets[index][1]
+        
+        if self.transform is not None:
+            img = self.transform(img)
+
+        if self.target_transform is not None:
+            color = self.target_transform(color)
+            shape = self.target_transform(shape)
+
+        return img, color, shape
+    
+    def __len__(self):
+        return len(self.data)
+
     
 
 def get_MalariaCellImagesDataset(root: str = f"{root}/data/cell_images/", resize=[224, 224], valid_size=0.2, test_size = 0.1, batch_size=27558, shuffle=True):
@@ -188,7 +252,19 @@ def load_data(dataset: str = 'mnist', root: str = '.', batch_size: int = 256, in
             train=False,
             download=True,
             transform=ToTensor()
-        )        
+        )
+    elif dataset == 'rgb_simple_shape':
+        training_data = RGBSimpleShapeDataset(
+            root=f"{root}/data/rgb-simple-shape",
+            train=True,
+            transform=ToTensor()
+        )
+
+        test_data = RGBSimpleShapeDataset(
+            root=f"{root}/data",
+            train=False,
+            transform=ToTensor()
+        )
     
     if dataset == 'malaria':
         train_dataloader, valid_dataloader, test_dataloader = get_MalariaCellImagesDataset(root=f"{root}/data/cell_images/", resize=[*input_size], valid_size=0.0, test_size = 0.2, batch_size=batch_size, shuffle=True)
