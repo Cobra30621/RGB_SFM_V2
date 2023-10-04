@@ -13,6 +13,7 @@ from models import CNN, ResNet, AlexNet, LeNet, GoogLeNet, MLP
 from models_new import SOMNetwork
 from load_data import load_data
 
+os.environ["CUDA_VISIBLE_DEVICES"] = "1,0"
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print(f"Using {device} device")
 root = os.path.dirname(__file__)
@@ -30,7 +31,7 @@ stride = 4
 description = f"try add data argumentation with early stop and lr scheduler, no change std, lr = 1e-3, SFM combine filter = (2, 2)"
 
 if current_model == 'SFM': 
-    model = SOMNetwork(in_channels=in_channels, out_channels=10).to("cuda")
+    model = SOMNetwork(in_channels=in_channels, out_channels=8).to("cuda")
 elif current_model == 'cnn':
     model = CNN(in_channels=in_channels).to(device)
 elif current_model == 'mlp':

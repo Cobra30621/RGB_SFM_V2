@@ -110,16 +110,16 @@ class RGBSimpleShapeDataset(Dataset):
                     color = 2
 
                 if name_split[1] == 'circle':
-                    shape = 0
-                elif name_split[1] == 'ellipse':
-                    shape = 1
-                elif name_split[1] == 'rectangle':
-                    shape = 2
-                elif name_split[1] == 'square':
                     shape = 3
-                elif name_split[1] == 'triangle':
+                elif name_split[1] == 'ellipse':
                     shape = 4
-                label_dataset.append([name_split[0], name_split[1]])
+                elif name_split[1] == 'rectangle':
+                    shape = 5
+                elif name_split[1] == 'square':
+                    shape = 6
+                elif name_split[1] == 'triangle':
+                    shape = 7
+                label_dataset.append([color, shape])
                 image = read_image(os.path.join(root, name))
                 image_dataset.append(image)
 
@@ -127,7 +127,7 @@ class RGBSimpleShapeDataset(Dataset):
         
     def __getitem__(self, index: int) -> Tuple[Any, Any]:
 
-        img, color, shape = self.data[index], self.targets[index][0], self.targets[index][1]
+        img, color, shape = self.data[index], int(self.targets[index][0]), int(self.targets[index][1])
         
         if self.transform is not None:
             img = self.transform(img)
@@ -136,7 +136,7 @@ class RGBSimpleShapeDataset(Dataset):
             color = self.target_transform(color)
             shape = self.target_transform(shape)
 
-        return img, color, shape
+        return img, [color, shape]
     
     def __len__(self):
         return len(self.data)
