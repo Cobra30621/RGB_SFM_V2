@@ -27,10 +27,10 @@ epoch = 200
 lr = 1e-3
 layer = 4
 stride = 4
-description = f"try add data argumentation with early stop and lr scheduler, no change std, lr = 1e-3, SFM combine filter = (2, 2)"
+description = f"try change out_channels to 2 with early stop and lr scheduler, no change std, lr = 1e-3, SFM combine filter = (2, 2)"
 
 if current_model == 'SFM': 
-    model = SOMNetwork(in_channels=in_channels, out_channels=10).to("cuda")
+    model = SOMNetwork(in_channels=in_channels, out_channels=2).to("cuda")
 elif current_model == 'cnn':
     model = CNN(in_channels=in_channels).to(device)
 elif current_model == 'mlp':
@@ -194,7 +194,7 @@ wandb.summary['test_avg_loss'] = test_loss
 record_table = wandb.Table(columns=["Image", "Answer", "Predict", "batch_Loss", "batch_Correct"], data = test_table)
 wandb.log({"Test Table": record_table})
 
-checkpoint = {'model': SOMNetwork(in_channels=in_channels, out_channels=10),
+checkpoint = {'model': SOMNetwork(in_channels=in_channels, out_channels=2),
           'state_dict': model.state_dict(),
           'optimizer' : optimizer.state_dict(),
           'scheduler': scheduler.state_dict()}
