@@ -13,49 +13,6 @@ from models import CNN, ResNet, AlexNet, LeNet, GoogLeNet, MLP
 from models_new import SOMNetwork
 from load_data import load_data
 
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-print(f"Using {device} device")
-root = os.path.dirname(__file__)
-current_model = 'SFM' # SFM, mlp, cnn, resnet50, alexnet, lenet, googlenet
-dataset = 'malaria' # mnist, fashion, cifar10, malaria, malaria_split
-input_size = (28, 28)
-in_channels = 3 # 1, 3
-rbf = 'gauss' # gauss, triangle
-
-batch_size = 256
-epoch = 200
-lr = 1e-3
-layer = 4
-stride = 4
-description = f"try change out_channels to 2 with early stop and lr scheduler, no change std, lr = 1e-3, SFM combine filter = (2, 2)"
-
-if current_model == 'SFM': 
-    model = SOMNetwork(in_channels=in_channels, out_channels=2).to("cuda")
-elif current_model == 'cnn':
-    model = CNN(in_channels=in_channels).to(device)
-elif current_model == 'mlp':
-    model = MLP().to(device)
-elif current_model == 'resnet18':
-    model = ResNet().to(device)
-elif current_model == 'resnet34':
-    model = ResNet(layers=34).to(device)
-elif current_model == 'resnet50':
-    model = ResNet(layers=50).to(device)
-elif current_model == 'resnet101':
-    model = ResNet(layers=101).to(device)
-elif current_model == 'resnet152':
-    model = ResNet(layers=152).to(device)
-elif current_model == 'alexnet':
-    model = AlexNet().to(device)
-elif current_model == 'lenet':
-    model = LeNet().to(device)
-elif current_model == 'googlenet':
-    model = GoogLeNet().to(device)
-    
-run_name = f"{dataset}_{layer}layer_{stride}stride_{rbf}" if current_model == 'SFM' else f"{dataset}_{current_model}"
-if not os.path.exists(f"{root}/result/{run_name}"):
-   os.makedirs(f"{root}/result/{run_name}")
-
 def train(train_dataloader: DataLoader, test_dataloader: DataLoader, model: nn.Module, loss_fn, optimizer, scheduler, epoch):
     min_loss = float('inf')
     count = 0
@@ -136,6 +93,51 @@ def test(dataloader: DataLoader, model: nn.Module, loss_fn, need_table = True):
     test_loss /= num_batches
     correct = (correct / size) * 100
     return correct, test_loss, table
+
+
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+print(f"Using {device} device")
+root = os.path.dirname(__file__)
+current_model = 'SFM' # SFM, mlp, cnn, resnet50, alexnet, lenet, googlenet
+dataset = 'malaria' # mnist, fashion, cifar10, malaria, malaria_split
+input_size = (28, 28)
+in_channels = 3 # 1, 3
+rbf = 'guass' # gauss, triangle
+
+batch_size = 256
+epoch = 200
+lr = 1e-3
+layer = 4
+stride = 4
+description = f"try change rbf to triangle with early stop and lr scheduler, no change std, lr = 1e-3, SFM combine filter = (2, 2)"
+
+if current_model == 'SFM': 
+    model = SOMNetwork(in_channels=in_channels, out_channels=2).to("cuda")
+elif current_model == 'cnn':
+    model = CNN(in_channels=in_channels).to(device)
+elif current_model == 'mlp':
+    model = MLP().to(device)
+elif current_model == 'resnet18':
+    model = ResNet().to(device)
+elif current_model == 'resnet34':
+    model = ResNet(layers=34).to(device)
+elif current_model == 'resnet50':
+    model = ResNet(layers=50).to(device)
+elif current_model == 'resnet101':
+    model = ResNet(layers=101).to(device)
+elif current_model == 'resnet152':
+    model = ResNet(layers=152).to(device)
+elif current_model == 'alexnet':
+    model = AlexNet().to(device)
+elif current_model == 'lenet':
+    model = LeNet().to(device)
+elif current_model == 'googlenet':
+    model = GoogLeNet().to(device)
+    
+run_name = f"{dataset}_{layer}layer_{stride}stride_{rbf}" if current_model == 'SFM' else f"{dataset}_{current_model}"
+if not os.path.exists(f"{root}/result/{run_name}"):
+   os.makedirs(f"{root}/result/{run_name}")
+
 train_dataloader, test_dataloader = load_data(dataset=dataset, root=root, batch_size=batch_size, input_size=input_size)
 
 # start a new wandb run to track this script
@@ -152,15 +154,19 @@ wandb.init(
     # track hyperparameters and run metadata
     config={
     "learning_rate": lr,
+    "layer": layer,
+    "stride": stride,
+    "epochs": epoch,
     "architecture": current_model,
     "dataset": dataset,
     "train_data_num": len(train_dataloader.sampler),
     "test_data_num": len(test_dataloader.sampler),
     "total_data_num": len(train_dataloader.sampler) + len(test_dataloader.sampler),
     "batch_size": batch_size,
-    "layer": layer,
-    "stride": stride,
-    "epochs": epoch,
+    "SFM filter": "(2, 2)",
+    "lr scheduler": "ReduceLROnPlateau",
+    "optimizer": "Adam",
+    "loss_fn": "CrossEntropyLoss"
     }
 )
 
