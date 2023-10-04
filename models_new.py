@@ -35,14 +35,17 @@ class SOMNetwork(nn.Module):
             RBF_Conv2d(1, 10*10 - 36, kernel_size=Conv2d_kernel[0], stride=stride),
             cReLU(0.4)
         )
-        # self.combine_layer = Combine_Conv2d(1, 10*10, kernel_size=[(8, 8), (6, 6)], stride=stride)
 
-        self.layer1 = [
-            # cReLU(0.1),
+        if self.in_channels == 1:
+            self.layer1 = [
+                RBF_Conv2d(in_channels, math.prod(Conv2d_kernel[1]), kernel_size=Conv2d_kernel[0], stride=stride),
+                cReLU(0.4),
+            ]
+        else:
+            self.layer1 = []
+        self.layer1 += [
             SFM(kernel_size=Conv2d_kernel[1], shape=self.shape[0], filter=SFM_combine_filters[0]),
         ]
-        if self.in_channels == 1:
-            self.layer1 = [RBF_Conv2d(in_channels, math.prod(Conv2d_kernel[1]), kernel_size=Conv2d_kernel[0], stride=stride)] + self.layer1
         self.layer1 = nn.Sequential(*self.layer1)
 
         self.layer2 = nn.Sequential(
@@ -63,7 +66,7 @@ class SOMNetwork(nn.Module):
             # SFM(kernel_size=Conv2d_kernel[4], shape=self.shape[3], filter=SFM_combine_filters[3]),
         )
 
-        self.fc1 = nn.Linear(35*35, self.out_channels, device='cuda')
+        self.fc1 = nn.Linear(math.prod(Conv2d_kernel[4]), self.out_channels, device='cuda')
         self.softmax = nn.Softmax(dim=-1)
 
     def forward(self, x):
@@ -73,15 +76,7 @@ class SOMNetwork(nn.Module):
             RGB_output = self.RGB_preprocess(x)
             GRAY_output = self.GRAY_preprocess(Grayscale()(x))
             input = torch.concat((RGB_output, GRAY_output), dim=1)
-
-            # RGB Plan 2
-            # RGB_output = self.RGB_preprocess(x)
-            # RGB_output = get_RM(RGB_output, (6, 6, 6*6)).reshape(-1, 1, 6, 6)
-            # GRAY_output = self.GRAY_preprocess(Grayscale()(x))
-            # GRAY_output = get_RM(GRAY_output, (6, 6, 8*8)).reshape(-1, 1, 8, 8)
-            # input = self.combine_layer(GRAY_output, RGB_output)
-        else:
-            input = x.to("cuda")
+            
         output = self.layer1(input)
         output = self.layer2(output)
         output = self.layer3(output)
@@ -199,64 +194,6 @@ class RGB_Conv2d(nn.Module):
         
     def extra_repr(self) -> str:
         return f"weight shape={self.rgb_weight.shape}, kernel size={self.kernel_size}"
-
-'''
-    將兩個input合併用RBF函數計算之層
-'''
-class Combine_Conv2d(nn.Module):
-    def __init__(self, 
-                in_channels:int, 
-                out_channels:int, 
-                kernel_size:_size_2_t, 
-                stride:int, 
-                rbf:str = "gauss",
-                std:float = 2.0,
-                device="cuda",
-                dtype=None) -> None:
-        super().__init__()
-        self.kernel_size = _pair(kernel_size)
-        self.stride = _pair(stride)
-        self.std = torch.nn.Parameter(torch.tensor(std))
-        factory_kwargs = {'device': device, 'dtype': dtype}
-        self.out_channels = out_channels
-        self.in_channels = in_channels
-        self.rbf = get_rbf(rbf)
-        
-        self.gray_weight = torch.empty((out_channels, 1, *self.kernel_size[0]), **factory_kwargs)
-        self.rgb_weight = torch.empty((out_channels, 1, *self.kernel_size[1]), **factory_kwargs) 
-        self.reset_parameters()
-    
-    def reset_parameters(self) -> None:
-        init.kaiming_uniform_(self.gray_weight, a=math.sqrt(5))
-        self.gray_weight[0] = torch.zeros_like(self.gray_weight[0])
-        self.gray_weight = nn.Parameter(self.gray_weight)
-
-        init.kaiming_uniform_(self.rgb_weight, a=math.sqrt(5))
-        self.rgb_weight[0] = torch.zeros_like(self.rgb_weight[0])
-        self.rgb_weight = nn.Parameter(self.rgb_weight)
-
-    def forward(self, gray_input: Tensor, rgb_input: Tensor) -> Tensor:
-        stride = torch.tensor(self.stride[0])
-        batch_size = gray_input.shape[0]
-        output_height = torch.div((gray_input.shape[2] - self.kernel_size[0][0]),  stride, rounding_mode='floor') + 1
-        output_width = torch.div((gray_input.shape[3] - self.kernel_size[0][1]),  stride, rounding_mode='floor') + 1
-        result = torch.zeros((batch_size, self.out_channels, output_height, output_width), device = "cuda")
-
-        for k in range(result.shape[2]):
-            for l in range(result.shape[3]):
-                gray_window = gray_input[:, :, k*stride:k*stride+self.kernel_size[0][0], l*stride:l*stride+self.kernel_size[0][1]]
-                gray_dist = torch.cdist(gray_window.reshape(batch_size, -1), self.gray_weight.reshape(-1, self.in_channels*math.prod(self.kernel_size[0])))    
-
-                rgb_window = rgb_input[:, :, k*stride:k*stride+self.kernel_size[1][0], l*stride:l*stride+self.kernel_size[1][1]]
-                rgb_dist = torch.cdist(rgb_window.reshape(batch_size, -1), self.rgb_weight.reshape(-1, self.in_channels*math.prod(self.kernel_size[1])))
-                
-                dist = gray_dist + rgb_dist
-
-                result[:, :, k, l] = self.rbf(dist, self.std)
-        return result
-
-    def extra_repr(self) -> str:
-        return f"std={self.std}, gray_weight shape={self.gray_weight.shape}, rgb_weight shape={self.rgb_weight.shape}, kernel size={self.kernel_size}"
 
 class cReLU(nn.Module):
     def __init__(self, bias: float = 0.7, requires_grad: bool = True) -> None:
