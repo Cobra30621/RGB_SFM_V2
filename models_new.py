@@ -63,11 +63,11 @@ class SOMNetwork(nn.Module):
         self.layer4 = nn.Sequential(
             RBF_Conv2d(1, math.prod(Conv2d_kernel[4]), kernel_size=Conv2d_kernel[3], stride=stride),
             cReLU(0.01),
-            # SFM(kernel_size=Conv2d_kernel[4], shape=self.shape[3], filter=SFM_combine_filters[3]),
+            SFM(kernel_size=Conv2d_kernel[4], shape=self.shape[3], filter=SFM_combine_filters[3]),
         )
 
         self.fc1 = nn.Linear(math.prod(Conv2d_kernel[4]), self.out_channels, device='cuda')
-        self.softmax = nn.Softmax(dim=-1)
+        self.sigmoid = nn.Sigmoid()
 
     def forward(self, x):
         out: Tensor
@@ -76,13 +76,13 @@ class SOMNetwork(nn.Module):
             RGB_output = self.RGB_preprocess(x)
             GRAY_output = self.GRAY_preprocess(Grayscale()(x))
             input = torch.concat((RGB_output, GRAY_output), dim=1)
-            
+        
         output = self.layer1(input)
         output = self.layer2(output)
         output = self.layer3(output)
         output = self.layer4(output)
         output = self.fc1(output.reshape(x.shape[0], -1))
-        output = self.softmax(output)
+        output = self.sigmoid(output)
         return output
 
 '''

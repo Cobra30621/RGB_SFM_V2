@@ -5,9 +5,11 @@ from typing import Any, Callable, Optional, Tuple
 from torchvision import transforms, datasets
 from torch.utils.data import Dataset
 from torch.utils.data import DataLoader
-from torchvision.transforms import ToTensor
+from torchvision.transforms import ToTensor, ConvertImageDtype
 from torch.utils.data.sampler import SubsetRandomSampler
 from torchvision.io import read_image
+from torch.nn.functional import one_hot
+import torch
 
 root = os.path.dirname(__file__)
 
@@ -96,7 +98,7 @@ class RGBSimpleShapeDataset(Dataset):
         self.data, self.targets = self._load_data()
 
     def _load_data(self):
-        image_file = f'{self.root}/{'train' if self.train else 'test'}'
+        image_file = f"{self.root}/{'train' if self.train else 'test'}/"
         image_dataset = []
         label_dataset = []
         for root, dirs, files in os.walk(image_file):
@@ -119,7 +121,11 @@ class RGBSimpleShapeDataset(Dataset):
                     shape = 6
                 elif name_split[1] == 'triangle':
                     shape = 7
-                label_dataset.append([color, shape])
+
+                onehot = np.array([0]*8)
+                onehot[color] = 1
+                onehot[shape] = 1
+                label_dataset.append(torch.from_numpy(onehot))
                 image = read_image(os.path.join(root, name))
                 image_dataset.append(image)
 
@@ -127,16 +133,15 @@ class RGBSimpleShapeDataset(Dataset):
         
     def __getitem__(self, index: int) -> Tuple[Any, Any]:
 
-        img, color, shape = self.data[index], int(self.targets[index][0]), int(self.targets[index][1])
+        img, target = self.data[index], self.targets[index]
         
         if self.transform is not None:
             img = self.transform(img)
 
         if self.target_transform is not None:
-            color = self.target_transform(color)
-            shape = self.target_transform(shape)
+            target = self.target_transform(target)
 
-        return img, [color, shape]
+        return img, target
     
     def __len__(self):
         return len(self.data)
@@ -255,15 +260,21 @@ def load_data(dataset: str = 'mnist', root: str = '.', batch_size: int = 256, in
         )
     elif dataset == 'rgb_simple_shape':
         training_data = RGBSimpleShapeDataset(
-            root=f"{root}/data/rgb-simple-shape",
+            root=f"{root}/data/rgb-simple-shapes",
             train=True,
-            transform=ToTensor()
+            transform = transforms.Compose([
+                transforms.Resize([*input_size]),
+                ConvertImageDtype(torch.float)
+            ]),
         )
 
         test_data = RGBSimpleShapeDataset(
-            root=f"{root}/data",
+            root=f"{root}/data/rgb-simple-shapes",
             train=False,
-            transform=ToTensor()
+            transform = transforms.Compose([
+                transforms.Resize([*input_size]),
+                ConvertImageDtype(torch.float)
+            ]),
         )
     
     if dataset == 'malaria':

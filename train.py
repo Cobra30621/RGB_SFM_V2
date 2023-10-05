@@ -28,8 +28,10 @@ def train(train_dataloader: DataLoader, test_dataloader: DataLoader, model: nn.M
             for batch, (X, y) in progress:
                 X = X.to(device); y= y.to(device)
                 pred = model(X)
-                correct += (pred.argmax(1) == y).type(torch.float).sum().item()
+                pred = pred.to(torch.float32)
+                y = y.to(torch.float32)
                 loss = loss_fn(pred, y)
+                
                 
                 optimizer.zero_grad()
                 loss.backward()
@@ -37,6 +39,8 @@ def train(train_dataloader: DataLoader, test_dataloader: DataLoader, model: nn.M
                 
                 losses += loss.item()
                 size += len(X)
+                pred[pred > 0.5] = 1
+                correct += (pred == y).sum().item()
                 progress.set_description("Loss: {:.7f}, Accuracy: {:.7f}".format(losses/(batch+1), correct/size))
 
             test_acc, test_loss, _ = test(test_dataloader, model, loss_fn, False)
@@ -72,14 +76,17 @@ def test(dataloader: DataLoader, model: nn.Module, loss_fn, need_table = True):
     for X, y in dataloader:
         X = X.to(device); y= y.to(device)
         pred = model(X)
-        test_loss += loss_fn(pred, y).item()
-        correct += (pred.argmax(1) == y).type(torch.float).sum().item()
+        pred = pred.to(torch.float32)
+        y = y.to(torch.float32)
+        test_loss += loss_fn(pred, y)
+        pred[pred > 0.5] = 1
+        correct += (pred == y).sum().item()
         size += len(X)
 
         if need_table:
             # tensor to cpu
-            loss = loss_fn(pred, y).item()
-            c = (pred.argmax(1) == y).type(torch.float).sum().item() / len(X)
+            loss = loss_fn(pred, y)
+            c = (pred == y).sum().item() / len(X)
             X = X.cpu()
             y = y.cpu()
             
@@ -94,25 +101,25 @@ def test(dataloader: DataLoader, model: nn.Module, loss_fn, need_table = True):
     correct = (correct / size) * 100
     return correct, test_loss, table
 
-
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print(f"Using {device} device")
 root = os.path.dirname(__file__)
 current_model = 'SFM' # SFM, mlp, cnn, resnet50, alexnet, lenet, googlenet
-dataset = 'malaria' # mnist, fashion, cifar10, malaria, malaria_split
+dataset = 'rgb_simple_shape' # mnist, fashion, cifar10, malaria, malaria_split, rgb_simple_shape
 input_size = (28, 28)
 in_channels = 3 # 1, 3
 rbf = 'guass' # gauss, triangle
-
-batch_size = 256
+batch_size = 64
 epoch = 200
 lr = 1e-3
 layer = 4
 stride = 4
-description = f"try change rbf to triangle with early stop and lr scheduler, no change std, lr = 1e-3, SFM combine filter = (2, 2)"
+out_channels = 8
+description = f""
 
 if current_model == 'SFM': 
-    model = SOMNetwork(in_channels=in_channels, out_channels=2).to("cuda")
+    model = SOMNetwork(in_channels=in_channels, out_channels=out_channels).to("cuda")
 elif current_model == 'cnn':
     model = CNN(in_channels=in_channels).to(device)
 elif current_model == 'mlp':
@@ -133,6 +140,7 @@ elif current_model == 'lenet':
     model = LeNet().to(device)
 elif current_model == 'googlenet':
     model = GoogLeNet().to(device)
+# model = nn.DataParallel(model, device_ids=[1])
     
 run_name = f"{dataset}_{layer}layer_{stride}stride_{rbf}" if current_model == 'SFM' else f"{dataset}_{current_model}"
 if not os.path.exists(f"{root}/result/{run_name}"):
@@ -145,11 +153,11 @@ wandb.init(
     # set the wandb project where this run will be logged
     project="paper experiment",
 
-    name = f"{dataset}_{current_model}_data{len(train_dataloader.sampler) + len(test_dataloader.sampler)}",
+    name = f"RGB_Plan_v4",
 
     notes = description,
 
-    group = "RGB_Plan_v1",
+    group = "RGB_Simple_shape_experiment",
     
     # track hyperparameters and run metadata
     config={
@@ -166,7 +174,7 @@ wandb.init(
     "SFM filter": "(2, 2)",
     "lr scheduler": "ReduceLROnPlateau",
     "optimizer": "Adam",
-    "loss_fn": "CrossEntropyLoss"
+    "loss_fn": "BCELoss"
     }
 )
 
@@ -176,7 +184,7 @@ summary(model, input_size = (in_channels, *input_size))
 art = wandb.Artifact(f"{current_model}_{run_name}", type="model")
 art.add_file(f'{root}/models_new.py')
 
-loss_fn = nn.CrossEntropyLoss()
+loss_fn = nn.BCELoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=lr)
 # optimizer = torch.optim.SGD(model.parameters(), lr=lr, momentum=0.9)
 scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=5)
@@ -200,7 +208,7 @@ wandb.summary['test_avg_loss'] = test_loss
 record_table = wandb.Table(columns=["Image", "Answer", "Predict", "batch_Loss", "batch_Correct"], data = test_table)
 wandb.log({"Test Table": record_table})
 
-checkpoint = {'model': SOMNetwork(in_channels=in_channels, out_channels=2),
+checkpoint = {'model': SOMNetwork(in_channels=in_channels, out_channels=out_channels),
           'state_dict': model.state_dict(),
           'optimizer' : optimizer.state_dict(),
           'scheduler': scheduler.state_dict()}
