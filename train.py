@@ -42,28 +42,28 @@ def train(train_dataloader: DataLoader, test_dataloader: DataLoader, model: nn.M
                 correct += torch.eq(maxk[:, 0], y[:, 0]).sum().item()
                 progress.set_description("Loss: {:.7f}, Accuracy: {:.7f}".format(losses/(batch+1), correct/size))
 
-            # test_acc, test_loss, _ = test(test_dataloader, model, loss_fn, False)
-            # print(f"Test Accuracy: {test_acc}%, Test Loss: {test_loss}")
-            # scheduler.step(test_loss)
+            test_acc, test_loss, _ = test(test_dataloader, model, loss_fn, False)
+            print(f"Test Accuracy: {test_acc}%, Test Loss: {test_loss}")
+            scheduler.step(test_loss)
 
             metrics = {
                 "train/loss": losses/(batch+1),
                 "train/epoch": e,
                 "train/accuracy": correct/size,
                 "train/learnrate": optimizer.param_groups[0]['lr'],
-                # "test/loss": test_loss,
-                # "test/accuracy": test_acc
+                "test/loss": test_loss,
+                "test/accuracy": test_acc
             }
             wandb.log(metrics, step=e)
 
             # early stopping 
-            # if test_loss >= min_loss:
-            #     count += 1
-            #     if count >= patience:
-            #         break
-            # else:
-            #     count = 0
-            #     min_loss = test_loss
+            if test_loss >= min_loss:
+                count += 1
+                if count >= patience:
+                    break
+            else:
+                count = 0
+                min_loss = test_loss
             
 def test(dataloader: DataLoader, model: nn.Module, loss_fn, need_table = True):
     size = 0

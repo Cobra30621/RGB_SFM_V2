@@ -28,22 +28,11 @@ class SOMNetwork(nn.Module):
             self.shape.append((int(self.shape[i][0] / SFM_combine_filters[i][0]), int(self.shape[i][1] / SFM_combine_filters[i][1])))
 
         self.RGB_preprocess = nn.Sequential(
-            RGB_Conv2d(3, 36, kernel_size=Conv2d_kernel[0], stride=stride),
-            cReLU(0.4)
-        )
-        self.GRAY_preprocess = nn.Sequential(
-            RBF_Conv2d(1, 10*10 - 36, kernel_size=Conv2d_kernel[0], stride=stride),
+            RGB_Conv2d(3, 100, kernel_size=Conv2d_kernel[0], stride=stride),
             cReLU(0.4)
         )
 
-        if self.in_channels == 1:
-            self.layer1 = [
-                RBF_Conv2d(in_channels, math.prod(Conv2d_kernel[1]), kernel_size=Conv2d_kernel[0], stride=stride),
-                cReLU(0.4),
-            ]
-        else:
-            self.layer1 = []
-        self.layer1 += [
+        self.layer1 = [
             SFM(kernel_size=Conv2d_kernel[1], shape=self.shape[0], filter=SFM_combine_filters[0]),
         ]
         self.layer1 = nn.Sequential(*self.layer1)
@@ -66,21 +55,47 @@ class SOMNetwork(nn.Module):
             SFM(kernel_size=Conv2d_kernel[4], shape=self.shape[3], filter=SFM_combine_filters[3]),
         )
 
-        self.fc1 = nn.Linear(math.prod(Conv2d_kernel[4]), self.out_channels, device='cuda')
+        self.layer5 = nn.Sequential(
+            RBF_Conv2d(1, math.prod(Conv2d_kernel[1]), kernel_size=Conv2d_kernel[0], stride=stride),
+            cReLU(0.4),
+            SFM(kernel_size=Conv2d_kernel[1], shape=self.shape[0], filter=SFM_combine_filters[0]),
+        )
+
+        self.layer6 = nn.Sequential(
+            RBF_Conv2d(1, math.prod(Conv2d_kernel[2]), kernel_size=Conv2d_kernel[1], stride=stride),
+            cReLU(0.1),
+            SFM(kernel_size=Conv2d_kernel[2], shape=self.shape[1], filter=SFM_combine_filters[1]),
+        )
+
+        self.layer7 = nn.Sequential(
+            RBF_Conv2d(1, math.prod(Conv2d_kernel[3]), kernel_size=Conv2d_kernel[2], stride=stride),
+            cReLU(0.01),
+            SFM(kernel_size=Conv2d_kernel[3], shape=self.shape[2], filter=SFM_combine_filters[2]),
+        )
+
+        self.layer8 = nn.Sequential(
+            RBF_Conv2d(1, math.prod(Conv2d_kernel[4]), kernel_size=Conv2d_kernel[3], stride=stride),
+            cReLU(0.01),
+            SFM(kernel_size=Conv2d_kernel[4], shape=self.shape[3], filter=SFM_combine_filters[3]),
+        )
+
+        self.fc1 = nn.Linear(2450, self.out_channels, device='cuda')
         self.sigmoid = nn.Sigmoid()
 
     def forward(self, x):
         out: Tensor
-        if self.in_channels == 3:
-            # RGB Plan 1
-            RGB_output = self.RGB_preprocess(x)
-            GRAY_output = self.GRAY_preprocess(Grayscale()(x))
-            input = torch.concat((RGB_output, GRAY_output), dim=1)
-        
-        output = self.layer1(input)
-        output = self.layer2(output)
-        output = self.layer3(output)
-        output = self.layer4(output)
+        RGB_output = self.RGB_preprocess(x)
+        RGB_output = self.layer1(RGB_output)
+        RGB_output = self.layer2(RGB_output)
+        RGB_output = self.layer3(RGB_output)
+        RGB_output = self.layer4(RGB_output)
+
+        Gray_output = self.layer5(Grayscale()(x))
+        Gray_output = self.layer6(Gray_output)
+        Gray_output = self.layer7(Gray_output)
+        Gray_output = self.layer8(Gray_output)
+
+        output = torch.concat((RGB_output, Gray_output), dim=1)    
         output = self.fc1(output.reshape(x.shape[0], -1))
         output = self.sigmoid(output)
         return output
