@@ -28,43 +28,42 @@ def train(train_dataloader: DataLoader, test_dataloader: DataLoader, model: nn.M
             for batch, (X, y) in progress:
                 X = X.to(device); y= y.to(device)
                 pred = model(X)
-                pred = pred.to(torch.float32)
-                y = y.to(torch.float32)
                 loss = loss_fn(pred, y)
-                
-                
+
                 optimizer.zero_grad()
                 loss.backward()
                 optimizer.step()
                 
                 losses += loss.item()
                 size += len(X)
-                pred[pred > 0.5] = 1
-                correct += (pred == y).sum().item()
+                
+                _, maxk = torch.topk(pred, 1, dim = -1)
+                _, y = torch.topk(y, 1, dim=-1)
+                correct += torch.eq(maxk[:, 0], y[:, 0]).sum().item()
                 progress.set_description("Loss: {:.7f}, Accuracy: {:.7f}".format(losses/(batch+1), correct/size))
 
-            test_acc, test_loss, _ = test(test_dataloader, model, loss_fn, False)
-            print(f"Test Accuracy: {test_acc}%, Test Loss: {test_loss}")
-            scheduler.step(test_loss)
+            # test_acc, test_loss, _ = test(test_dataloader, model, loss_fn, False)
+            # print(f"Test Accuracy: {test_acc}%, Test Loss: {test_loss}")
+            # scheduler.step(test_loss)
 
             metrics = {
                 "train/loss": losses/(batch+1),
                 "train/epoch": e,
                 "train/accuracy": correct/size,
                 "train/learnrate": optimizer.param_groups[0]['lr'],
-                "test/loss": test_loss,
-                "test/accuracy": test_acc
+                # "test/loss": test_loss,
+                # "test/accuracy": test_acc
             }
             wandb.log(metrics, step=e)
 
             # early stopping 
-            if test_loss >= min_loss:
-                count += 1
-                if count >= patience:
-                    break
-            else:
-                count = 0
-                max_accuracy = test_loss
+            # if test_loss >= min_loss:
+            #     count += 1
+            #     if count >= patience:
+            #         break
+            # else:
+            #     count = 0
+            #     min_loss = test_loss
             
 def test(dataloader: DataLoader, model: nn.Module, loss_fn, need_table = True):
     size = 0
@@ -76,11 +75,12 @@ def test(dataloader: DataLoader, model: nn.Module, loss_fn, need_table = True):
     for X, y in dataloader:
         X = X.to(device); y= y.to(device)
         pred = model(X)
-        pred = pred.to(torch.float32)
-        y = y.to(torch.float32)
         test_loss += loss_fn(pred, y)
-        pred[pred > 0.5] = 1
-        correct += (pred == y).sum().item()
+        
+        _, maxk = torch.topk(pred, 1, dim = -1)
+        _, y = torch.topk(y, 1, dim=-1)
+        correct += torch.eq(maxk[:, 0], y[:, 0]).sum().item()
+        
         size += len(X)
 
         if need_table:
@@ -109,7 +109,7 @@ current_model = 'SFM' # SFM, mlp, cnn, resnet50, alexnet, lenet, googlenet
 dataset = 'rgb_simple_shape' # mnist, fashion, cifar10, malaria, malaria_split, rgb_simple_shape
 input_size = (28, 28)
 in_channels = 3 # 1, 3
-rbf = 'guass' # gauss, triangle
+rbf = 'triangle' # gauss, triangle
 batch_size = 64
 epoch = 200
 lr = 1e-3

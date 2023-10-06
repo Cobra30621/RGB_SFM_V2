@@ -122,10 +122,9 @@ class RGBSimpleShapeDataset(Dataset):
                 elif name_split[1] == 'triangle':
                     shape = 7
 
-                onehot = np.array([0]*8)
-                onehot[color] = 1
-                onehot[shape] = 1
-                label_dataset.append(torch.from_numpy(onehot))
+                y_onehot = one_hot(torch.LongTensor([color, shape]), num_classes = 8)
+                y_onehot = y_onehot.sum(dim=0).float()
+                label_dataset.append(y_onehot)
                 image = read_image(os.path.join(root, name))
                 image_dataset.append(image)
 
