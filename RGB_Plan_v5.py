@@ -18,12 +18,12 @@ class SOMNetwork(nn.Module):
         self.in_channels = in_channels
         self.out_channels = out_channels
 
-        stride = 4
-        SFM_combine_filters = [(2, 2), (1, 3), (3, 1), (1, 1)]
+        stride = 2
+        SFM_combine_filters = [(2, 2), (1, 5), (5, 1), (3, 3)]
         # SFM_combine_filters = [(1, 6), (3, 1), (2, 1), (1, 1)]
         Conv2d_kernel = [(5, 5), (10, 10), (15, 15), (25, 25), (35, 35)]
 
-        self.shape = [(6, 6)]
+        self.shape = [(int((64 - 5 + 1)//stride), int((64 - 5 + 1)//stride))]
         for i in range(3):
             self.shape.append((int(self.shape[i][0] / SFM_combine_filters[i][0]), int(self.shape[i][1] / SFM_combine_filters[i][1])))
 
@@ -33,7 +33,7 @@ class SOMNetwork(nn.Module):
         )
 
         self.GRAY_preprocess = nn.Sequential(
-            RBF_Conv2d(1, 10*10 - 36, kernel_size=Conv2d_kernel[0], stride=stride),
+            RBF_Conv2d(1, 10*10, kernel_size=Conv2d_kernel[0], stride=stride),
             cReLU(0.4)
         )
 
@@ -85,7 +85,7 @@ class SOMNetwork(nn.Module):
         )
 
         self.fc1 = nn.Sequential(
-            nn.Linear(2450, 1024),
+            nn.Linear(91225, 1024),
             nn.Linear(1024, 512),
             nn.Linear(512, self.out_channels)
         )
@@ -95,18 +95,16 @@ class SOMNetwork(nn.Module):
     def forward(self, x):
         out: Tensor
         RGB_output = self.RGB_preprocess(x)
-        RGB_output = self.layer1(RGB_output)
-        RGB_output = self.layer2(RGB_output)
-        RGB_output = self.layer3(RGB_output)
-        RGB_output = self.layer4(RGB_output)
+        RGB_output = RGB_output.reshape(x.shape[0], -1)
 
         Gray_output = self.layer5(Grayscale()(x))
         Gray_output = self.layer6(Gray_output)
         Gray_output = self.layer7(Gray_output)
         Gray_output = self.layer8(Gray_output)
+        Gray_output = Gray_output.reshape(x.shape[0], -1)
 
-        output = torch.concat((RGB_output, Gray_output), dim=1)    
-        output = self.fc1(output.reshape(x.shape[0], -1))
+        output = torch.concat((RGB_output, Gray_output), dim=-1)
+        output = self.fc1(output)
         output = self.sigmoid(output)
         return output
 

@@ -10,7 +10,7 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torchsummary import summary
 
 from models import CNN, ResNet, AlexNet, LeNet, GoogLeNet, MLP
-from models_new import SOMNetwork
+from RGB_Plan_v5 import SOMNetwork
 from load_data import load_data
 
 def train(train_dataloader: DataLoader, test_dataloader: DataLoader, model: nn.Module, loss_fn, optimizer, scheduler, epoch):
@@ -120,7 +120,7 @@ out_channels = 8
 description = f""
 
 if current_model == 'SFM': 
-    model = SOMNetwork(in_channels=in_channels, out_channels=out_channels).to(device)
+    model = SOMNetwork(in_channels=in_channels, out_channels=out_channels, ).to(device)
 elif current_model == 'cnn':
     model = CNN(in_channels=in_channels, out_channels = out_channels).to(device)
 elif current_model == 'mlp':
@@ -154,7 +154,7 @@ wandb.init(
     # set the wandb project where this run will be logged
     project="paper experiment",
 
-    name = f"RGB_Plan_v4",
+    name = f"RGB_Plan_v5",
 
     notes = description,
 
@@ -172,6 +172,8 @@ wandb.init(
     "test_data_num": len(test_dataloader.sampler),
     "total_data_num": len(train_dataloader.sampler) + len(test_dataloader.sampler),
     "batch_size": batch_size,
+    "input shape": (in_channels, *input_size),
+    "out_channels": out_channels,
     "SFM filter": "(2, 2)",
     "lr scheduler": "ReduceLROnPlateau",
     "optimizer": "Adam",
@@ -183,7 +185,6 @@ print(model)
 summary(model, input_size = (in_channels, *input_size))
 
 art = wandb.Artifact(f"{current_model}_{run_name}", type="model")
-art.add_file(f'{root}/models_new.py')
 
 loss_fn = nn.BCELoss()
 # loss_fn = nn.CrossEntropyLoss()
