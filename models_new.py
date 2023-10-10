@@ -32,6 +32,11 @@ class SOMNetwork(nn.Module):
             cReLU(0.4)
         )
 
+        self.GRAY_preprocess = nn.Sequential(
+            RBF_Conv2d(1, 10*10 - 36, kernel_size=Conv2d_kernel[0], stride=stride),
+            cReLU(0.4)
+        )
+
         self.layer1 = [
             SFM(kernel_size=Conv2d_kernel[1], shape=self.shape[0], filter=SFM_combine_filters[0]),
         ]
@@ -79,7 +84,12 @@ class SOMNetwork(nn.Module):
             SFM(kernel_size=Conv2d_kernel[4], shape=self.shape[3], filter=SFM_combine_filters[3]),
         )
 
-        self.fc1 = nn.Linear(2450, self.out_channels, device='cuda')
+        self.fc1 = nn.Sequential(
+            nn.Linear(2450, 1024),
+            nn.Linear(1024, 512),
+            nn.Linear(512, self.out_channels)
+        )
+        
         self.sigmoid = nn.Sigmoid()
 
     def forward(self, x):

@@ -262,7 +262,6 @@ def load_data(dataset: str = 'mnist', root: str = '.', batch_size: int = 256, in
             root=f"{root}/data/rgb-simple-shapes",
             train=True,
             transform = transforms.Compose([
-                transforms.Resize([*input_size]),
                 ConvertImageDtype(torch.float)
             ]),
         )
@@ -271,7 +270,6 @@ def load_data(dataset: str = 'mnist', root: str = '.', batch_size: int = 256, in
             root=f"{root}/data/rgb-simple-shapes",
             train=False,
             transform = transforms.Compose([
-                transforms.Resize([*input_size]),
                 ConvertImageDtype(torch.float)
             ]),
         )

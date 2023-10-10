@@ -16,7 +16,7 @@ from load_data import load_data
 def train(train_dataloader: DataLoader, test_dataloader: DataLoader, model: nn.Module, loss_fn, optimizer, scheduler, epoch):
     min_loss = float('inf')
     count = 0
-    patience = 10
+    patience = 20
     with torch.autograd.set_detect_anomaly(True):
         for e in range(epoch):
             print(f"------------------------------EPOCH {e}------------------------------")
@@ -36,15 +36,16 @@ def train(train_dataloader: DataLoader, test_dataloader: DataLoader, model: nn.M
                 
                 losses += loss.item()
                 size += len(X)
-                
-                _, maxk = torch.topk(pred, 1, dim = -1)
-                _, y = torch.topk(y, 1, dim=-1)
-                correct += torch.eq(maxk[:, 0], y[:, 0]).sum().item()
+
+                _, maxk = torch.topk(pred, 2, dim = -1, sorted = False)
+                _, y = torch.topk(y, 2, dim=-1, sorted = False)
+                correct += torch.eq(maxk, y).all(dim=-1).sum().item()
                 progress.set_description("Loss: {:.7f}, Accuracy: {:.7f}".format(losses/(batch+1), correct/size))
 
             test_acc, test_loss, _ = test(test_dataloader, model, loss_fn, False)
             print(f"Test Accuracy: {test_acc}%, Test Loss: {test_loss}")
-            scheduler.step(test_loss)
+            if scheduler:
+                scheduler.step(test_loss)
 
             metrics = {
                 "train/loss": losses/(batch+1),
@@ -56,14 +57,15 @@ def train(train_dataloader: DataLoader, test_dataloader: DataLoader, model: nn.M
             }
             wandb.log(metrics, step=e)
 
-            # early stopping 
-            if test_loss >= min_loss:
-                count += 1
-                if count >= patience:
-                    break
-            else:
-                count = 0
-                min_loss = test_loss
+            #early stopping
+            if e > 50:
+                if test_loss >= min_loss:
+                    count += 1
+                    if count >= patience:
+                        break
+                else:
+                    count = 0
+                    min_loss = test_loss
             
 def test(dataloader: DataLoader, model: nn.Module, loss_fn, need_table = True):
     size = 0
@@ -75,18 +77,17 @@ def test(dataloader: DataLoader, model: nn.Module, loss_fn, need_table = True):
     for X, y in dataloader:
         X = X.to(device); y= y.to(device)
         pred = model(X)
-        test_loss += loss_fn(pred, y)
         
-        _, maxk = torch.topk(pred, 1, dim = -1)
-        _, y = torch.topk(y, 1, dim=-1)
-        correct += torch.eq(maxk[:, 0], y[:, 0]).sum().item()
-        
+        loss = loss_fn(pred, y)
+        test_loss += loss
+
+        _, maxk = torch.topk(pred, 2, dim = -1, sorted = False)
+        _, y = torch.topk(y, 2, dim=-1, sorted = False)
+        batch_correct = torch.eq(maxk, y).all(dim=-1).sum().item()
+        correct += batch_correct
         size += len(X)
 
         if need_table:
-            # tensor to cpu
-            loss = loss_fn(pred, y)
-            c = (pred == y).sum().item() / len(X)
             X = X.cpu()
             y = y.cpu()
             
@@ -95,7 +96,7 @@ def test(dataloader: DataLoader, model: nn.Module, loss_fn, need_table = True):
                 X = np.transpose(np.array(X[0]), (1, 2, 0))
             else:
                 X = np.array(X[0])
-            table.append([wandb.Image(X), y[0], pred[0].argmax(), loss, c])
+            table.append([wandb.Image(X), y[0], maxk[0], loss, batch_correct])
 
     test_loss /= num_batches
     correct = (correct / size) * 100
@@ -107,21 +108,21 @@ print(f"Using {device} device")
 root = os.path.dirname(__file__)
 current_model = 'SFM' # SFM, mlp, cnn, resnet50, alexnet, lenet, googlenet
 dataset = 'rgb_simple_shape' # mnist, fashion, cifar10, malaria, malaria_split, rgb_simple_shape
-input_size = (28, 28)
+input_size = (64, 64)
 in_channels = 3 # 1, 3
 rbf = 'triangle' # gauss, triangle
-batch_size = 64
+batch_size = 32
 epoch = 200
-lr = 1e-3
+lr = 0.001
 layer = 4
 stride = 4
 out_channels = 8
 description = f""
 
 if current_model == 'SFM': 
-    model = SOMNetwork(in_channels=in_channels, out_channels=out_channels).to("cuda")
+    model = SOMNetwork(in_channels=in_channels, out_channels=out_channels).to(device)
 elif current_model == 'cnn':
-    model = CNN(in_channels=in_channels).to(device)
+    model = CNN(in_channels=in_channels, out_channels = out_channels).to(device)
 elif current_model == 'mlp':
     model = MLP().to(device)
 elif current_model == 'resnet18':
@@ -185,6 +186,7 @@ art = wandb.Artifact(f"{current_model}_{run_name}", type="model")
 art.add_file(f'{root}/models_new.py')
 
 loss_fn = nn.BCELoss()
+# loss_fn = nn.CrossEntropyLoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=lr)
 # optimizer = torch.optim.SGD(model.parameters(), lr=lr, momentum=0.9)
 scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=5)
