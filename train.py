@@ -2,6 +2,7 @@ import os
 import torch
 import wandb
 import numpy as np
+import time
 
 from torch import nn
 from tqdm.autonotebook import tqdm
@@ -10,10 +11,10 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torchsummary import summary
 
 from models import CNN, ResNet, AlexNet, LeNet, GoogLeNet, MLP
-from RGB_Plan_v5 import SOMNetwork
+from RGB_Plan_v1 import SOMNetwork
 from load_data import load_data
 
-def train(train_dataloader: DataLoader, test_dataloader: DataLoader, model: nn.Module, loss_fn, optimizer, scheduler, epoch):
+def train(train_dataloader: DataLoader, test_dataloader: DataLoader, model: nn.Module, loss_fn, optimizer, scheduler, epoch, device):
     min_loss = float('inf')
     count = 0
     patience = 20
@@ -28,21 +29,26 @@ def train(train_dataloader: DataLoader, test_dataloader: DataLoader, model: nn.M
             for batch, (X, y) in progress:
                 X = X.to(device); y= y.to(device)
                 pred = model(X)
+                # time_start = time.time()
+                # print(pred[0])
+                # print(y[0])
                 loss = loss_fn(pred, y)
 
                 optimizer.zero_grad()
                 loss.backward()
                 optimizer.step()
                 
-                losses += loss.item()
+                losses += loss.detach().item()
                 size += len(X)
 
                 _, maxk = torch.topk(pred, 2, dim = -1, sorted = False)
                 _, y = torch.topk(y, 2, dim=-1, sorted = False)
-                correct += torch.eq(maxk, y).all(dim=-1).sum().item()
+                correct += torch.eq(maxk, y).all(dim=-1).sum().detach().item()
+                torch.cuda.synchronize()
+                # print(f'cal loss and accuracy: {time.time() - time_start}')
                 progress.set_description("Loss: {:.7f}, Accuracy: {:.7f}".format(losses/(batch+1), correct/size))
 
-            test_acc, test_loss, _ = test(test_dataloader, model, loss_fn, False)
+            test_acc, test_loss, _ = test(test_dataloader, model, loss_fn, False, device = device)
             print(f"Test Accuracy: {test_acc}%, Test Loss: {test_loss}")
             if scheduler:
                 scheduler.step(test_loss)
@@ -58,16 +64,16 @@ def train(train_dataloader: DataLoader, test_dataloader: DataLoader, model: nn.M
             wandb.log(metrics, step=e)
 
             #early stopping
-            if e > 50:
-                if test_loss >= min_loss:
-                    count += 1
-                    if count >= patience:
-                        break
-                else:
-                    count = 0
-                    min_loss = test_loss
+            # if e > 50:
+            #     if test_loss >= min_loss:
+            #         count += 1
+            #         if count >= patience:
+            #             break
+            #     else:
+            #         count = 0
+            #         min_loss = test_loss
             
-def test(dataloader: DataLoader, model: nn.Module, loss_fn, need_table = True):
+def test(dataloader: DataLoader, model: nn.Module, loss_fn, need_table = True, device=None):
     size = 0
     num_batches = len(dataloader)
     test_loss, correct = 0, 0
@@ -102,7 +108,7 @@ def test(dataloader: DataLoader, model: nn.Module, loss_fn, need_table = True):
     correct = (correct / size) * 100
     return correct, test_loss, table
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+os.environ["CUDA_VISIBLE_DEVICES"] = "0,1"
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print(f"Using {device} device")
 root = os.path.dirname(__file__)
@@ -141,7 +147,6 @@ elif current_model == 'lenet':
     model = LeNet().to(device)
 elif current_model == 'googlenet':
     model = GoogLeNet().to(device)
-# model = nn.DataParallel(model, device_ids=[1])
     
 run_name = f"{dataset}_{layer}layer_{stride}stride_{rbf}" if current_model == 'SFM' else f"{dataset}_{current_model}"
 if not os.path.exists(f"{root}/result/{run_name}"):
@@ -154,7 +159,7 @@ wandb.init(
     # set the wandb project where this run will be logged
     project="paper experiment",
 
-    name = f"RGB_Plan_v5",
+    name = f"RGB_Plan_v1",
 
     notes = description,
 
@@ -184,23 +189,21 @@ wandb.init(
 print(model)
 summary(model, input_size = (in_channels, *input_size))
 
-art = wandb.Artifact(f"{current_model}_{run_name}", type="model")
-
 loss_fn = nn.BCELoss()
 # loss_fn = nn.CrossEntropyLoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=lr)
 # optimizer = torch.optim.SGD(model.parameters(), lr=lr, momentum=0.9)
-scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=5)
+scheduler = ReduceLROnPlateau(optimizer)
 
 wandb.watch(model, loss_fn, log="all", log_freq=1)
-train(train_dataloader, test_dataloader, model, loss_fn, optimizer, scheduler, epoch)
+train(train_dataloader, test_dataloader, model, loss_fn, optimizer, scheduler, epoch, device = device)
 
 # Train model
-train_acc, train_loss, train_table = test(train_dataloader, model, loss_fn)
+train_acc, train_loss, train_table = test(train_dataloader, model, loss_fn, device = device)
 print("Train: \n\tAccuracy: {}, Avg loss: {} \n".format(train_acc, train_loss))
 
 # Test model
-test_acc, test_loss, test_table = test(test_dataloader, model, loss_fn)
+test_acc, test_loss, test_table = test(test_dataloader, model, loss_fn, device = device)
 print("Test: \n\tAccuracy: {}, Avg loss: {} \n".format(test_acc, test_loss))
 
 # Record result into Wandb
@@ -217,6 +220,7 @@ checkpoint = {'model': SOMNetwork(in_channels=in_channels, out_channels=out_chan
           'scheduler': scheduler.state_dict()}
 
 torch.save(checkpoint, f'{root}/result/{run_name}/{current_model}_{epoch}_{run_name}_final.pth')
+art = wandb.Artifact(f"{current_model}_{run_name}", type="model")
 art.add_file(f'{root}/result/{run_name}/{current_model}_{epoch}_{run_name}_final.pth')
 wandb.log_artifact(art, aliases = ["latest"])
 wandb.finish()
