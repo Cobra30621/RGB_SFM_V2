@@ -33,43 +33,27 @@ class CNN(nn.Module):
     def __init__(self, in_channels: int = 1, out_channels = 8):
         super(CNN, self).__init__()        
         self.conv1 = nn.Sequential(         
-            nn.Conv2d(in_channels=in_channels, out_channels=16, kernel_size=7),                              
-            nn.ReLU(),  
-        )
-        self.conv2 = nn.Sequential(
-            nn.Conv2d(in_channels=16, out_channels=32, kernel_size=5), 
-            nn.ReLU(), 
-        )
-        self.conv3 = nn.Sequential(
-            nn.Conv2d(in_channels=32, out_channels=64, kernel_size=5), 
+            nn.Conv2d(in_channels=in_channels, out_channels=16, kernel_size=5, padding=3),                              
+            nn.ReLU(),
+            nn.MaxPool2d(kernel_size=2),
+            nn.Conv2d(in_channels=16, out_channels=32, kernel_size=3, padding=3), 
+            nn.ReLU(),
+            nn.MaxPool2d(kernel_size=2),
+            nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3), 
             nn.ReLU(), 
             nn.MaxPool2d(kernel_size=2),
-        )
-        self.conv4 = nn.Sequential(
-            nn.Conv2d(in_channels=64, out_channels=128, kernel_size=3), 
+            nn.Conv2d(in_channels=64, out_channels=128, kernel_size=1), 
             nn.ReLU(),
-            nn.MaxPool2d(kernel_size=2), 
         )
-        self.conv5 = nn.Sequential(
-            nn.Conv2d(in_channels=128, out_channels=256, kernel_size=3), 
-            nn.ReLU(),
-            nn.MaxPool2d(kernel_size=2), 
-        )
+
         self.fc1 = nn.Sequential(
-            nn.Linear(4096, 1024),
-            nn.Linear(1024, 512),
-            nn.Linear(512, 8)
+            nn.Linear(1152, 512),
+            nn.Linear(512, out_channels)
         )
-        self.sigmoid = nn.Sigmoid() 
     def forward(self, x):
         x = self.conv1(x)
-        x = self.conv2(x)
-        x = self.conv3(x)
-        x = self.conv4(x)
-        x = self.conv5(x)
         x = x.view(x.size(0), -1) 
         x = self.fc1(x)
-        x = self.sigmoid(x)
         return x
     
     

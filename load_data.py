@@ -103,27 +103,41 @@ class RGBSimpleShapeDataset(Dataset):
         label_dataset = []
         for root, dirs, files in os.walk(image_file):
             for name in files:
-                name_split = name.split('_')
-                if name_split[0] == 'red':
-                    color = 0
-                elif name_split[0] == 'green':
-                    color = 1
-                elif name_split[0] == 'blue':
-                    color = 2
+                name_split = '_'.join(name.split('_')[:2])
+                label = -1
+                if name_split == 'red_circle':
+                    label = 0
+                elif name_split == 'green_circle':
+                    label = 1
+                elif name_split == 'blue_circle':
+                    label = 2
+                elif name_split == 'red_ellipse':
+                    label = 3
+                elif name_split == 'green_ellipse':
+                    label = 4
+                elif name_split == 'blue_ellipse':
+                    label = 5
+                elif name_split == 'red_rectangle':
+                    label = 6
+                elif name_split == 'green_rectangle':
+                    label = 7
+                elif name_split == 'blue_rectangle':
+                    label = 8
+                elif name_split == 'red_square':
+                    label = 9
+                elif name_split == 'green_square':
+                    label = 10
+                elif name_split == 'blue_square':
+                    label = 11
+                elif name_split == 'red_triangle':
+                    label = 12
+                elif name_split == 'green_triangle':
+                    label = 13
+                elif name_split == 'blue_triangle':
+                    label = 14
 
-                if name_split[1] == 'circle':
-                    shape = 3
-                elif name_split[1] == 'ellipse':
-                    shape = 4
-                elif name_split[1] == 'rectangle':
-                    shape = 5
-                elif name_split[1] == 'square':
-                    shape = 6
-                elif name_split[1] == 'triangle':
-                    shape = 7
-
-                y_onehot = one_hot(torch.LongTensor([color, shape]), num_classes = 8)
-                y_onehot = y_onehot.sum(dim=0).float()
+                y_onehot = np.eye(15)[label]
+                y_onehot = torch.from_numpy(y_onehot)
                 label_dataset.append(y_onehot)
                 image = read_image(os.path.join(root, name))
                 image_dataset.append(image)
