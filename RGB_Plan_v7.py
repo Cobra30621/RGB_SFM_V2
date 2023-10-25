@@ -19,7 +19,7 @@ class SOMNetwork(nn.Module):
         self.in_channels = in_channels
         self.out_channels = out_channels
 
-        stride = 4
+        stride = 2
         SFM_combine_filters = [(2, 2),  (1, 5), (5, 1), (1, 1)]
         # SFM_combine_filters = [(1, 6), (3, 1), (2, 1), (1, 1)]
         Conv2d_kernel = [(5, 5), (10, 10), (15, 15), (25, 25), (35, 35)]
@@ -68,7 +68,7 @@ class SOMNetwork(nn.Module):
         )
 
         self.fc1 = nn.Sequential(
-            nn.Linear(24500, 4096),
+            nn.Linear(220500, 4096),
             nn.Linear(4096, 1024),
             nn.Linear(1024, 512),
             nn.Linear(512, self.out_channels)

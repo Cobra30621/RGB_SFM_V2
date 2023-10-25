@@ -13,7 +13,7 @@ from torchsummary import summary
 
 from utils import increment_path
 from models import CNN, ResNet, AlexNet, LeNet, GoogLeNet, MLP
-from RGB_Plan_v1 import SOMNetwork
+from RGB_Plan_v4 import SOMNetwork
 from load_data import load_data
 
 def choose_model(current_model):
@@ -149,7 +149,7 @@ print(f"Using {device} device")
 root = os.path.dirname(__file__)
 current_model = 'SFM' # SFM, mlp, cnn, resnet50, alexnet, lenet, googlenet
 dataset = 'rgb_simple_shape' # mnist, fashion, cifar10, malaria, malaria_split, rgb_simple_shape
-input_size = (28, 28)
+input_size = (64, 64)
 in_channels = 3 # 1, 3
 rbf = 'triangle' # gauss, triangle
 batch_size = 32
@@ -158,7 +158,7 @@ lr = 0.001
 layer = 2
 stride = 4
 out_channels = 15
-description = f"RGB Plan v1 layer num = 2"
+description = f"RGB Plan v4 SFM both rgb and gray layer num = 1"
 
 save_dir = increment_path('./runs/exp', exist_ok = False)
 Path(save_dir).mkdir(parents=True, exist_ok=True)
@@ -172,11 +172,11 @@ wandb.init(
     # set the wandb project where this run will be logged
     project="paper experiment",
 
-    name = f"RGB Plan v1_{dataset}",
+    name = f"RGB Plan v4_{dataset}_both rgb and gray layer num = 1",
 
     notes = description,
     
-    tags = ["RGB_Plan_v1", "rgb-simple-shape-multiclass"],
+    tags = ["RGB_Plan_v4", "rgb-simple-shape-multiclass"],
 
     group = "RGB_Simple_shape_multiclass",
     

@@ -11,19 +11,18 @@ from operator import truediv
 from utils import get_rbf, get_RM
 
 class SOMNetwork(nn.Module):
-    def __init__(self, in_channels, out_channels)->None:
+    def __init__(self, in_channels, out_channels, stride)->None:
         super().__init__()
         # _log_api_usage_once(self)
 
         self.in_channels = in_channels
         self.out_channels = out_channels
 
-        stride = 2
-        SFM_combine_filters = [(2, 2),  (1, 5), (5, 1), (3, 3)]
+        SFM_combine_filters = [(2, 2),  (1, 3), (3, 1), (1, 1)]
         # SFM_combine_filters = [(1, 6), (3, 1), (2, 1), (1, 1)]
         Conv2d_kernel = [(5, 5), (10, 10), (15, 15), (25, 25), (35, 35)]
 
-        self.shape = [(int((64 - 5 + 1)//stride), int((64 - 5 + 1)//stride))]
+        self.shape = [(int((28 - 5 + 1)//stride), int((28 - 5 + 1)//stride))]
         for i in range(3):
             self.shape.append((int(self.shape[i][0] / SFM_combine_filters[i][0]), int(self.shape[i][1] / SFM_combine_filters[i][1])))
 
@@ -52,27 +51,19 @@ class SOMNetwork(nn.Module):
             RBF_Conv2d(1, math.prod(Conv2d_kernel[2]), kernel_size=Conv2d_kernel[1], stride=stride),
             cReLU(0.1),
             SFM(kernel_size=Conv2d_kernel[2], shape=self.shape[1], filter=SFM_combine_filters[1]),
-        )
-
-        self.layer3 = nn.Sequential(
             RBF_Conv2d(1, math.prod(Conv2d_kernel[3]), kernel_size=Conv2d_kernel[2], stride=stride),
             cReLU(0.01),
             SFM(kernel_size=Conv2d_kernel[3], shape=self.shape[2], filter=SFM_combine_filters[2]),
-        )
-
-        self.layer4 = nn.Sequential(
             RBF_Conv2d(1, math.prod(Conv2d_kernel[4]), kernel_size=Conv2d_kernel[3], stride=stride),
             cReLU(0.01),
-            # SFM(kernel_size=Conv2d_kernel[4], shape=self.shape[3], filter=SFM_combine_filters[3]),
+            SFM(kernel_size=Conv2d_kernel[3], shape=self.shape[2], filter=SFM_combine_filters[2]),
+            RBF_Conv2d(1, math.prod(Conv2d_kernel[4]), kernel_size=Conv2d_kernel[3], stride=stride),
+            cReLU(0.01),
         )
 
         self.fc1 = nn.Sequential(
-            nn.Linear(11025, 4096),
-            nn.Linear(4096, 1024),
-            nn.Linear(1024, 512),
-            nn.Linear(512, self.out_channels)
+            nn.Linear(1875, self.out_channels),
         )
-        self.sigmoid = nn.Sigmoid()
 
     def forward(self, x):
         out: Tensor
@@ -82,12 +73,9 @@ class SOMNetwork(nn.Module):
             GRAY_output = self.GRAY_preprocess(Grayscale()(x))
             input = torch.concat((RGB_output, GRAY_output), dim=1)
             
-        output = self.layer1(input)
-        output = self.layer2(output)
-        output = self.layer3(output)
-        output = self.layer4(output)
+        input = self.layer1(input)
+        output = self.layer2(input)
         output = self.fc1(output.reshape(x.shape[0], -1))
-        output = self.sigmoid(output)
         return output
 
 '''
