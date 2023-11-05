@@ -79,7 +79,7 @@ def plot_map(rm, grid_size=None, rowspan=None, colspan = None, cmap='viridis', p
     if path:
         plt.savefig(path, dpi=300, bbox_inches='tight')
     
-    plt.show()
+    # plt.show()
     plt.close()
     
     
@@ -88,8 +88,6 @@ def split(input, kernel_size = (5, 5), stride = 4):
     split_size = np.subtract(input.size()[2:], kernel_size) // stride + 1
     segments = F.unfold(input, kernel_size=kernel_size, stride=stride).reshape(batch, channel, *kernel_size, *split_size ).permute(0, 1, 4, 5, 2, 3)
     return segments
-
-
 
 
 def infer_data(image, model, rms, save=None):
@@ -157,16 +155,20 @@ def infer_data(image, model, rms, save=None):
         plot_map(rms[3][torch.topk(layer4_crelu_reshape.reshape(1, 1, -1), 10, dim=-1)[1]].mean(2)[:, :, :, :, None], grid_size=model.layer1[2].shape, path=paths[15])
         
 
-def get_ci(input, layer, sfm_filter=(1, 1), n_filters=100):
+def get_ci(origin, input, sfm_filter=(1, 1), n_filters=100):
     output: Tensor
-    segments = split(input)
+    segments = split(origin)
+    # print(segments.shape)
     with torch.no_grad():
-        output = layer(input)
+        # output = layer(input)
+        print(sfm_filter)
+        print(segments.shape)
         rm_h, rm_w, ci_h, ci_w = (int(segments.shape[2]/sfm_filter[0]), int(segments.shape[3]/sfm_filter[1]), int(segments.shape[4]*sfm_filter[0]), int(segments.shape[5]*sfm_filter[1]))
-        segments = segments.reshape(-1, input.shape[1], rm_h, sfm_filter[0], rm_w, sfm_filter[1], segments.shape[4], segments.shape[5]).permute(0, 2, 4, 3, 6, 5, 7, 1).reshape(-1, ci_h, ci_w, input.shape[1])
+        # print(segments.reshape(-1, origin.shape[1], rm_h, sfm_filter[0], rm_w, sfm_filter[1], segments.shape[4], segments.shape[5]).permute(0, 2, 4, 3, 6, 5, 7, 1).shape)
+        segments = segments.reshape(-1, origin.shape[1], rm_h, sfm_filter[0], rm_w, sfm_filter[1], segments.shape[4], segments.shape[5]).permute(0, 2, 4, 3, 6, 5, 7, 1).reshape(-1, ci_h, ci_w, origin.shape[1])
         segments = segments.permute(0, 3, 1, 2)
-        output = output.permute(0, 2, 3, 1).reshape(-1, n_filters)
-        CI = torch.empty(n_filters, input.shape[1], ci_h, ci_w)
+        output = input.permute(0, 2, 3, 1).reshape(-1, n_filters)
+        CI = torch.empty(n_filters, origin.shape[1], ci_h, ci_w)
         for i in range(n_filters):
             CI[i] = segments[output[:, i:i+1].argmax()]
     return CI
