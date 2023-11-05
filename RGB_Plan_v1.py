@@ -18,12 +18,12 @@ class SOMNetwork(nn.Module):
         self.in_channels = in_channels
         self.out_channels = out_channels
 
-        SFM_combine_filters = [(5, 5),  (2, 2), (1, 3), (3, 1)]
+        SFM_combine_filters = [(2, 2),  (1, 3), (3, 1), (1, 1)]
         # SFM_combine_filters = [(1, 6), (3, 1), (2, 1), (1, 1)]
-        Conv2d_kernel = [(5, 5), (10, 10), (15, 15), (25, 25), (35, 35), (45, 45)]
+        Conv2d_kernel = [(5, 5), (10, 10), (15, 15), (25, 25), (35, 35)]
 
-        self.shape = [(int((64 - 5 + 1)//stride), int((64 - 5 + 1)//stride))]
-        for i in range(4):
+        self.shape = [(int((28 - 5 + 1)//stride), int((28 - 5 + 1)//stride))]
+        for i in range(3):
             self.shape.append((int(self.shape[i][0] / SFM_combine_filters[i][0]), int(self.shape[i][1] / SFM_combine_filters[i][1])))
 
         self.RGB_preprocess = nn.Sequential(
@@ -56,22 +56,18 @@ class SOMNetwork(nn.Module):
             SFM(kernel_size=Conv2d_kernel[3], shape=self.shape[2], filter=SFM_combine_filters[2]),
             RBF_Conv2d(1, math.prod(Conv2d_kernel[4]), kernel_size=Conv2d_kernel[3], stride=stride),
             cReLU(0.01),
-            SFM(kernel_size=Conv2d_kernel[4], shape=self.shape[3], filter=SFM_combine_filters[3]),
-            RBF_Conv2d(1, math.prod(Conv2d_kernel[5]), kernel_size=Conv2d_kernel[4], stride=stride),
-            cReLU(0.01),
         )
 
         self.fc1 = nn.Sequential(
-            nn.Linear(2025, self.out_channels),
+            nn.Linear(1225, self.out_channels),
         )
 
     def forward(self, x):
         out: Tensor
-        if self.in_channels == 3:
-            # RGB Plan 1
-            RGB_output = self.RGB_preprocess(x)
-            GRAY_output = self.GRAY_preprocess(Grayscale()(x))
-            input = torch.concat((RGB_output, GRAY_output), dim=1)
+        # RGB Plan 1
+        RGB_output = self.RGB_preprocess(x)
+        GRAY_output = self.GRAY_preprocess(Grayscale()(x))
+        input = torch.concat((RGB_output, GRAY_output), dim=1)
             
         input = self.layer1(input)
         output = self.layer2(input)
