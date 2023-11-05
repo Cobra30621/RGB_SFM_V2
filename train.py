@@ -13,8 +13,9 @@ from torchsummary import summary
 
 from utils import increment_path
 from models import CNN, ResNet, AlexNet, LeNet, GoogLeNet, MLP
-from RGB_Plan_v4 import SOMNetwork
+from RGB_Plan_v1 import SOMNetwork
 from load_data import load_data
+from test import eval
 
 def choose_model(current_model):
     if current_model == 'SFM': 
@@ -68,6 +69,7 @@ def train(train_dataloader: DataLoader, valid_dataloader: DataLoader, model: nn.
                 losses += loss.detach().item()
                 size += len(X)
 
+                pred = nn.Softmax(dim=-1)(pred)
                 _, maxk = torch.topk(pred, 1, dim = -1, sorted = False)
                 _, y = torch.topk(y, 1, dim=-1, sorted = False)
                 correct += torch.eq(maxk, y).sum().detach().item()
@@ -107,41 +109,6 @@ def train(train_dataloader: DataLoader, valid_dataloader: DataLoader, model: nn.
                 checkpoint['scheduler'] = scheduler.state_dict()
                     
     return cur_train_loss, cur_train_acc, best_valid_loss, best_valid_acc, checkpoint
-            
-def eval(dataloader: DataLoader, model: nn.Module, loss_fn, need_table = True, device=None):
-    size = 0
-    num_batches = len(dataloader)
-    test_loss, correct = 0, 0
-
-    model.eval()
-    table = []
-    for X, y in dataloader:
-        X = X.to(device); y= y.to(device)
-        pred = model(X)
-        
-        loss = loss_fn(pred, y)
-        test_loss += loss
-
-        _, maxk = torch.topk(pred, 1, dim = -1, sorted = False)
-        _, y = torch.topk(y, 1, dim=-1, sorted = False)
-        batch_correct = torch.eq(maxk, y).sum().detach().item()
-        correct += batch_correct
-        size += len(X)
-
-        if need_table:
-            X = X.cpu()
-            y = y.cpu()
-            
-            # sample first image in batch 
-            if X[0].shape[0] == 3:
-                X = np.transpose(np.array(X[0]), (1, 2, 0))
-            else:
-                X = np.array(X[0])
-            table.append([wandb.Image(X), y[0], maxk[0], loss, batch_correct])
-
-    test_loss /= num_batches
-    correct = (correct / size) * 100
-    return correct, test_loss, table
 
 # os.environ["CUDA_VISIBLE_DEVICES"] = "0,1"
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -155,10 +122,10 @@ rbf = 'triangle' # gauss, triangle
 batch_size = 32
 epoch = 200
 lr = 0.001
-layer = 2
-stride = 4
+layer = 4
+stride = 2
 out_channels = 15
-description = f"RGB Plan v4 SFM both rgb and gray layer num = 1"
+description = f"RGB Plan v1 make input shape to (64, 64)"
 
 save_dir = increment_path('./runs/exp', exist_ok = False)
 Path(save_dir).mkdir(parents=True, exist_ok=True)
