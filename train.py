@@ -13,7 +13,7 @@ from torchsummary import summary
 
 from utils import increment_path
 from models import CNN, ResNet, AlexNet, LeNet, GoogLeNet, MLP
-from RGB_Plan_v1 import SOMNetwork
+from RGB_Plan_v3 import SOMNetwork
 from load_data import load_data
 from test import eval
 
@@ -65,6 +65,11 @@ def train(train_dataloader: DataLoader, valid_dataloader: DataLoader, model: nn.
                 optimizer.zero_grad()
                 loss.backward()
                 optimizer.step()
+
+                model.RGB_preprocess[0].rgb_weight.data = model.RGB_preprocess[0].rgb_weight.data.clamp(0.0, 1.0)
+
+                if count == patience - 1:
+                    print(model.RGB_preprocess[0].rgb_weight.data)
                 
                 losses += loss.detach().item()
                 size += len(X)
@@ -78,7 +83,7 @@ def train(train_dataloader: DataLoader, valid_dataloader: DataLoader, model: nn.
                 progress.set_description("Loss: {:.7f}, Accuracy: {:.7f}".format(train_loss, train_acc))
 
             valid_acc, valid_loss, _ = eval(valid_dataloader, model, loss_fn, False, device = device)
-            print(f"Test Accuracy: {valid_acc}%, Test Loss: {valid_loss}")
+            print(f"Test Loss: {valid_loss}, Test Accuracy: {valid_acc}%")
             if scheduler:
                 scheduler.step(valid_loss)
 
@@ -95,8 +100,8 @@ def train(train_dataloader: DataLoader, valid_dataloader: DataLoader, model: nn.
             #early stopping
             if valid_loss > best_valid_loss:
                 count += 1
-                # if count >= patience:
-                #     break
+                if count >= patience:
+                    break
             else:
                 count = 0
                 best_valid_loss = valid_loss
@@ -116,34 +121,27 @@ print(f"Using {device} device")
 root = os.path.dirname(__file__)
 current_model = 'SFM' # SFM, mlp, cnn, resnet50, alexnet, lenet, googlenet
 dataset = 'rgb_simple_shape' # mnist, fashion, cifar10, malaria, malaria_split, rgb_simple_shape
-input_size = (64, 64)
+input_size = (28, 28)
 in_channels = 3 # 1, 3
 rbf = 'triangle' # gauss, triangle
 batch_size = 32
 epoch = 200
 lr = 0.001
 layer = 4
-stride = 2
+stride = 4
 out_channels = 15
-description = f"RGB Plan v1 make input shape to (64, 64)"
-
-save_dir = increment_path('./runs/exp', exist_ok = False)
-Path(save_dir).mkdir(parents=True, exist_ok=True)
-
-model = choose_model(current_model)
-
-train_dataloader, test_dataloader = load_data(dataset=dataset, root=root, batch_size=batch_size, input_size=input_size)
+description = f"for visualize"
 
 # start a new wandb run to track this script
 wandb.init(
     # set the wandb project where this run will be logged
     project="paper experiment",
 
-    name = f"RGB Plan v4_{dataset}_both rgb and gray layer num = 1",
+    name = f"RGB_Plan_v3",
 
     notes = description,
     
-    tags = ["RGB_Plan_v4", "rgb-simple-shape-multiclass"],
+    tags = ["RGB_Plan_v3", "rgb-simple-shape-multiclass"],
 
     group = "RGB_Simple_shape_multiclass",
     
@@ -155,9 +153,9 @@ wandb.init(
     "epochs": epoch,
     "architecture": current_model,
     "dataset": dataset,
-    "train_data_num": len(train_dataloader.sampler),
-    "test_data_num": len(test_dataloader.sampler),
-    "total_data_num": len(train_dataloader.sampler) + len(test_dataloader.sampler),
+    # "train_data_num": len(train_dataloader.sampler),
+    # "test_data_num": len(test_dataloader.sampler),
+    # "total_data_num": len(train_dataloader.sampler) + len(test_dataloader.sampler),
     "batch_size": batch_size,
     "input shape": (in_channels, *input_size),
     "out_channels": out_channels,
@@ -168,6 +166,14 @@ wandb.init(
     }
 )
 
+save_dir = increment_path('./runs/train/exp', exist_ok = False)
+Path(save_dir).mkdir(parents=True, exist_ok=True)
+print(save_dir)
+
+model = choose_model(current_model)
+
+train_dataloader, test_dataloader = load_data(dataset=dataset, root=root, batch_size=batch_size, input_size=input_size)
+
 print(model)
 summary(model, input_size = (in_channels, *input_size))
 
@@ -176,7 +182,7 @@ optimizer = torch.optim.Adam(model.parameters(), lr=lr)
 # optimizer = torch.optim.SGD(model.parameters(), lr=lr, momentum=0.9)
 scheduler = ReduceLROnPlateau(optimizer)
 
-wandb.watch(model, loss_fn, log="all", log_freq=1)
+# wandb.watch(model, loss_fn, log="all", log_freq=1)
 train_loss, train_acc, valid_loss, valid_acc, checkpoint = train(train_dataloader, test_dataloader, model, loss_fn, optimizer, scheduler, epoch, device = device)
 print("Train: \n\tAccuracy: {}, Avg loss: {} \n".format(train_acc, train_loss))
 print("Valid: \n\tAccuracy: {}, Avg loss: {} \n".format(valid_acc, valid_loss))
@@ -195,8 +201,8 @@ record_table = wandb.Table(columns=["Image", "Answer", "Predict", "batch_Loss", 
 wandb.log({"Test Table": record_table})
 print(f'checkpoint keys: {checkpoint.keys()}')
 
-torch.save(checkpoint, f'{save_dir}/{current_model}_{epoch}_{description}.pth')
-art = wandb.Artifact(f"{current_model}_{dataset}", type="model")
-art.add_file(f'{save_dir}/{current_model}_{epoch}_{description}.pth')
+torch.save(checkpoint, f'{save_dir}/RGB_Plan_v3_epochs{epoch}.pth')
+art = wandb.Artifact(f"RGB_Plan_v3_{dataset}", type="model")
+art.add_file(f'{save_dir}/RGB_Plan_v3_epochs{epoch}.pth')
 wandb.log_artifact(art, aliases = ["latest"])
 wandb.finish()
