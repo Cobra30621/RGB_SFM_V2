@@ -95,12 +95,12 @@ class RGBSimpleShapeDataset(Dataset):
         
         self.train = train
         self.augmentation = augmentation
-        self.data, self.targets = self._load_data()
         labels = ['red_circle', 'green_circle', 'blue_circle', 'red_ellipse', 'green_ellipse', 'blue_ellipse', 
                     'red_rectangle', 'green_rectangle', 'blue_rectangle', 'red_square', 'green_square', 'blue_square',
                     'red_triangle', 'green_triangle', 'blue_triangle']
-        self.label_to_num = {i:k for i,k in enumerate(labels)}
-        self.num_to_label = {k:i for i,k in enumerate(labels)}
+        self.label_to_num = {k:i for i,k in enumerate(labels)}
+        self.num_to_label = {i:k for i,k in enumerate(labels)}
+        self.data, self.targets = self._load_data()
 
     def _load_data(self):
         image_file = f"{self.root}/{'train' if self.train else 'test'}/"

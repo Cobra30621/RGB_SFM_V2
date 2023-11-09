@@ -69,6 +69,7 @@ def plot_map(rm, grid_size=None, rowspan=None, colspan = None, cmap='viridis', p
         colspan = int(e_w / min(e_h, e_w))
     if grid_size is None:
         grid_size = (rows*rowspan, cols*colspan)
+
     fig = plt.figure(figsize=(grid_size[1], grid_size[0]))
     for row in range(rows):
         for col in range(cols):
@@ -161,8 +162,6 @@ def get_ci(origin, input, sfm_filter=(1, 1), n_filters=100):
     # print(segments.shape)
     with torch.no_grad():
         # output = layer(input)
-        print(sfm_filter)
-        print(segments.shape)
         rm_h, rm_w, ci_h, ci_w = (int(segments.shape[2]/sfm_filter[0]), int(segments.shape[3]/sfm_filter[1]), int(segments.shape[4]*sfm_filter[0]), int(segments.shape[5]*sfm_filter[1]))
         # print(segments.reshape(-1, origin.shape[1], rm_h, sfm_filter[0], rm_w, sfm_filter[1], segments.shape[4], segments.shape[5]).permute(0, 2, 4, 3, 6, 5, 7, 1).shape)
         segments = segments.reshape(-1, origin.shape[1], rm_h, sfm_filter[0], rm_w, sfm_filter[1], segments.shape[4], segments.shape[5]).permute(0, 2, 4, 3, 6, 5, 7, 1).reshape(-1, ci_h, ci_w, origin.shape[1])
