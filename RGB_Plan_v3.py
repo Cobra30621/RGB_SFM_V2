@@ -8,7 +8,7 @@ from torch.nn.common_types import _size_2_t
 from torchvision.transforms import Grayscale
 from torch.nn.modules.utils import _pair
 from operator import truediv
-from utils import get_rbf, get_RM
+from utils import *
 
 class SOMNetwork(nn.Module):
     def __init__(self, in_channels, out_channels, stride)->None:
@@ -289,3 +289,72 @@ class SFM(nn.Module):
     
     def extra_repr(self) -> str:
         return f"kernel_size={self.kernel_size}, shape={self.shape}, filter={self.filter}, alpha={self.alpha_0}"
+
+'''
+    印出FM、RM、CI的圖形
+'''
+class Visualize:
+    def __init__(self, model:nn.Module):
+        self.model = model
+
+    def get_FM_img(self):
+        FMs={}
+        FMs['rgb'] = self.model.RGB_preprocess[0].rgb_weight.reshape(10, 10, 3, 5, 5).permute(0, 1, 3, 4, 2)
+        FMs[1] = self.model.layer2[0].weight.permute(0, 2, 3, 1).reshape(15, 15, 10, 10, 1)
+        FMs[2] = self.model.layer2[3].weight.permute(0, 2, 3, 1).reshape(25, 25, 15, 15, 1)
+        FMs[3] = self.model.layer2[6].weight.permute(0, 2, 3, 1).reshape(35, 35, 25, 25, 1)
+        return FMs
+
+    def get_RM_img(self, X):
+        input = self.model.RGB_preprocess(X)
+
+        RMs={}
+        RMs['rgb'] = get_RM(input[:, :, :, :], (6, 6, 10, 10, 1))
+        RMs[0] = get_RM(input[:, :, :, :], (6, 6, 10, 10, 1))
+        RMs[1] = get_RM(torch.nn.Sequential(self.model.layer1 + self.model.layer2[0:2])(input), (3, 3, 15, 15, 1))
+        RMs[2] = get_RM(torch.nn.Sequential(self.model.layer1 + self.model.layer2[0:5])(input), (3, 1, 25, 25, 1))
+        RMs[3] = get_RM(torch.nn.Sequential(self.model.layer1 + self.model.layer2)(input), (1, 1, 35, 35, 1))
+        return RMs
+
+    def get_CI_img(self, X):
+        input = self.model.RGB_preprocess(X)
+
+        CIs = {}
+        pred = torch.nn.Sequential(*(list(self.model.layer1)+list(self.model.layer2[:1])))(input)
+        CIs[1] = get_ci(X, pred, sfm_filter=self.model.layer1[0].filter, n_filters = self.model.layer2[0].weight.shape[0])
+        pred = torch.nn.Sequential(*(list(self.model.layer1)+list(self.model.layer2[:4])))(input)
+        CIs[2] = get_ci(X, pred, sfm_filter=tuple(np.multiply(self.model.layer1[0].filter, self.model.layer2[2].filter)), n_filters = self.model.layer2[3].weight.shape[0])
+        pred = torch.nn.Sequential(*(list(self.model.layer1)+list(self.model.layer2[:7])))(input)
+        CIs[3] = get_ci(X, pred, sfm_filter=tuple(np.multiply(np.multiply(self.model.layer1[0].filter, self.model.layer2[2].filter), self.model.layer2[5].filter)), n_filters = self.model.layer2[6].weight.shape[0])
+        return CIs
+
+    def save_RM_CI(self, X, filter, RMs, CIs, RM_save_dir):
+        if len(X[filter]) != 0: 
+            Path(RM_save_dir).mkdir(parents=True, exist_ok=True)
+            plt.clf()
+            plt.imshow(X[filter][0].permute(1, 2, 0).detach().cpu().numpy())
+            plt.axis('off')
+            plt.savefig(RM_save_dir + '/input.png', bbox_inches='tight')
+
+            segments = split(X)
+            plot_map(segments[filter][0].permute(1, 2, 3, 4, 0).detach().cpu().numpy(), path = RM_save_dir + '/input_segements.png')
+
+            plt.clf()
+            plt.imshow(Grayscale()(X)[filter][0].permute(1, 2, 0).detach().cpu().numpy(), cmap='gray')
+            plt.axis('off')
+            plt.savefig(RM_save_dir + '/input_Gray.png', bbox_inches='tight')
+
+            segments = split(Grayscale()(X))
+            plot_map(segments[filter][0].permute(1, 2, 3, 4, 0).detach().cpu().numpy(), path = RM_save_dir + '/input_Gray_segements.png')
+            
+            for key in RMs:
+                print(f'{RM_save_dir} \t RMs[{key}] saving\t{RMs[key][filter][0].shape}')
+                plot_map(RMs[key][filter][0].detach().cpu().numpy(), path = RM_save_dir + f'/RMs_{key}.png')
+            
+            for key in CIs:
+                _, tmp = torch.topk(RMs[key][filter][0].reshape(RMs[key][filter][0].shape[0] * RMs[key][filter][0].shape[1], -1), k=5, dim=1)
+                for i in range(tmp.shape[1]):
+                    print(f'{RM_save_dir} \t CIs[{key}][{i}] saving\t{CIs[key][tmp[:,i][:, None].cpu()].reshape(*self.model.shape[key], CIs[key].shape[-3], CIs[key].shape[-2], CIs[key].shape[-1]).permute(0, 1, 3, 4, 2).shape}')
+                    plot_map(CIs[key][tmp[:,i][:, None].cpu()].reshape(*self.model.shape[key], CIs[key].shape[-3], CIs[key].shape[-2], CIs[key].shape[-1]).permute(0, 1, 3, 4, 2), path = RM_save_dir + f'/CIs_{key}_{i}.png')
+        else:
+            print(f"This batch don't have label {y[filter]}")
