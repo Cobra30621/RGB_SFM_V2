@@ -4,6 +4,8 @@ import wandb
 import numpy as np
 import time
 from pathlib import Path
+import copy
+import shutil
 
 from torch import nn
 from tqdm.autonotebook import tqdm
@@ -12,8 +14,8 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torchsummary import summary
 
 from utils import increment_path
-from models import CNN, ResNet, AlexNet, LeNet, GoogLeNet, MLP
-from RGB_Plan_v3 import SOMNetwork
+from models.basemodels import CNN, ResNet, AlexNet, LeNet, GoogLeNet, MLP
+from models.RGB_Plan_v8 import SOMNetwork
 from load_data import load_data
 from test import eval
 
@@ -46,9 +48,7 @@ def train(train_dataloader: DataLoader, valid_dataloader: DataLoader, model: nn.
     best_valid_loss = float('inf')
     count = 0
     patience = 20
-    checkpoint = {
-        'model': choose_model(current_model),
-    }
+    checkpoint = {}
     with torch.autograd.set_detect_anomaly(True):
         for e in range(epoch):
             print(f"------------------------------EPOCH {e}------------------------------")
@@ -115,7 +115,7 @@ def train(train_dataloader: DataLoader, valid_dataloader: DataLoader, model: nn.
                     
     return cur_train_loss, cur_train_acc, best_valid_loss, best_valid_acc, checkpoint
 
-# os.environ["CUDA_VISIBLE_DEVICES"] = "0,1"
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print(f"Using {device} device")
 root = os.path.dirname(__file__)
@@ -125,7 +125,7 @@ input_size = (28, 28)
 in_channels = 3 # 1, 3
 rbf = 'triangle' # gauss, triangle
 batch_size = 32
-epoch = 200
+epoch = 1
 lr = 0.001
 layer = 4
 stride = 4
@@ -137,11 +137,11 @@ wandb.init(
     # set the wandb project where this run will be logged
     project="paper experiment",
 
-    name = f"RGB_Plan_v3",
+    name = f"RGB_Plan_v8",
 
     notes = description,
     
-    tags = ["RGB_Plan_v3", "rgb-simple-shape-multiclass"],
+    tags = ["RGB_Plan_v8", "rgb-simple-shape-multiclass"],
 
     group = "RGB_Simple_shape_multiclass",
     
@@ -168,6 +168,7 @@ wandb.init(
 
 save_dir = increment_path('./runs/train/exp', exist_ok = False)
 Path(save_dir).mkdir(parents=True, exist_ok=True)
+shutil.copyfile('./models/RGB_Plan_v8.py', f'{save_dir}/RGB_Plan_v8.py')
 print(save_dir)
 
 model = choose_model(current_model)
@@ -201,8 +202,10 @@ record_table = wandb.Table(columns=["Image", "Answer", "Predict", "batch_Loss", 
 wandb.log({"Test Table": record_table})
 print(f'checkpoint keys: {checkpoint.keys()}')
 
-torch.save(checkpoint, f'{save_dir}/RGB_Plan_v3_epochs{epoch}.pth')
-art = wandb.Artifact(f"RGB_Plan_v3_{dataset}", type="model")
-art.add_file(f'{save_dir}/RGB_Plan_v3_epochs{epoch}.pth')
+torch.save(checkpoint, f'{save_dir}/RGB_Plan_v8_epochs{epoch}.pth')
+m = torch.jit.script(model)
+script = torch.jit.save(m, f'{save_dir}/RGB_Plan_v8_epochs{epoch}_entire_model.pth')
+art = wandb.Artifact(f"RGB_Plan_v8_{dataset}", type="model")
+art.add_file(f'{save_dir}/RGB_Plan_v8_epochs{epoch}.pth')
 wandb.log_artifact(art, aliases = ["latest"])
 wandb.finish()

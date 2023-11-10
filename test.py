@@ -10,7 +10,7 @@ from pathlib import Path
 from torch import nn
 from torch.utils.data import DataLoader
 from torchvision.transforms import Grayscale
-# from RGB_Plan_v8 import Visualize
+from RGB_Plan_v8 import SOMNetwork, Visualize
 
 def eval(dataloader: DataLoader, model: nn.Module, loss_fn, need_table = True, device=None):
     size = 0
@@ -44,7 +44,7 @@ def eval(dataloader: DataLoader, model: nn.Module, loss_fn, need_table = True, d
             table.append([wandb.Image(X), y[0], maxk[0], loss, batch_correct])
 
     test_loss /= num_batches
-    correct = (correct / size) * 100
+    correct = (correct / size)
     return correct, test_loss, table
 
 def showlayer(model:nn.Module, X, y, train_data, save_dir):
@@ -93,14 +93,10 @@ def showlayer(model:nn.Module, X, y, train_data, save_dir):
 
 
 if __name__ == '__main__':
-    os.environ["CUDA_VISIBLE_DEVICES"] = "1"
-    path = './runs/train/exp19/RGB_Plan_v8_epochs10.pth'
+    path = './runs/11_06/RGB_Plan_v8_rgbBlock_initial/RGB_Plan_v8_epochs200.pth'
     checkpoint = torch.load(path)
-    model = checkpoint['model']
+    model = SOMNetwork(3,15,4)
     model.load_state_dict(checkpoint['model_weights'])
-    print(model)
-    print(model.type)
-    input()
 
     dataset = 'rgb_simple_shape'
     batch_size = 32

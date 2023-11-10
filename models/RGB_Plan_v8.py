@@ -151,28 +151,28 @@ class RGB_Conv2d(nn.Module):
         blue_color = torch.linspace(max_color, min_color, int((max_color - min_color) / (max_color / (self.out_channels // 3))))[:, None].to('cuda')
         blue_color = F.pad(blue_color, (2, 0))
         self.rgb_weight = torch.concat((red_color, green_color, blue_color, black))
-        self.rgb_weight = torch.repeat_interleave(torch.repeat_interleave(self.rgb_weight.reshape(self.out_channels, self.in_channels, 1, 1), self.kernel_size[0], dim=2), self.kernel_size[1], dim=3)
+        # self.rgb_weight = torch.repeat_interleave(torch.repeat_interleave(self.rgb_weight.reshape(self.out_channels, self.in_channels, 1, 1), self.kernel_size[0], dim=2), self.kernel_size[1], dim=3)
         self.rgb_weight = nn.Parameter(self.rgb_weight)
     
     
     def forward(self, input: Tensor) -> Tensor:
         #expand rgb_weight
-        # rgb_expand_expand = torch.repeat_interleave(torch.repeat_interleave(self.rgb_weight.reshape(self.out_channels, self.in_channels, 1, 1), self.kernel_size[0], dim=2), self.kernel_size[1], dim=3)
+        rgb_expand_expand = torch.repeat_interleave(torch.repeat_interleave(self.rgb_weight.reshape(self.out_channels, self.in_channels, 1, 1), self.kernel_size[0], dim=2), self.kernel_size[1], dim=3)
         #計算output shape
         stride = torch.tensor(self.stride[0])
         batch_size = input.shape[0]
         output_height = torch.div((input.shape[2] - self.kernel_size[0]), stride, rounding_mode='floor') + 1
         output_width = torch.div((input.shape[3] - self.kernel_size[1]), stride, rounding_mode='floor') + 1
         rgb_result = torch.zeros((batch_size, self.out_channels, output_height, output_width), device = input.device)
-        dist = torch.zeros((input.shape[0], self.rgb_weight.shape[0]), device = input.device)
+        dist = torch.zeros((input.shape[0], rgb_expand_expand.shape[0]), device = input.device)
         
         # RBF
         for k in range(rgb_result.shape[2]):
             for l in range(rgb_result.shape[3]):   
                 window = input[:, :, k*stride:k*stride+self.kernel_size[0], l*stride:l*stride+self.kernel_size[1]]
-                dist = torch.zeros((input.shape[0], self.rgb_weight.shape[0]), device = input.device)
+                dist = torch.zeros((input.shape[0], rgb_expand_expand.shape[0]), device = input.device)
                 for in_channel in range(input.shape[1]):
-                    dist += torch.cdist(window[:, in_channel].reshape(batch_size, -1), self.rgb_weight[:, in_channel].reshape(self.rgb_weight.shape[0], -1))
+                    dist += torch.cdist(window[:, in_channel].reshape(batch_size, -1), rgb_expand_expand[:, in_channel].reshape(rgb_expand_expand.shape[0], -1))
                 self.std = torch.std(dist)
                 rgb_result[:, :, k, l] = self.rbf(dist, self.std)
         return rgb_result
@@ -249,9 +249,9 @@ class Visualize:
 
     def get_FM_img(self):
         FMs={}
-        # FMs['rgb'] = torch.repeat_interleave(torch.repeat_interleave(self.model.RGB_preprocess[0].rgb_weight.reshape(100, 3, 1, 1), self.model.RGB_preprocess[0].kernel_size[0], dim=2), self.model.RGB_preprocess[0].kernel_size[1], dim=3)
-        # FMs['rgb'] = FMs['rgb'].reshape(10, 10, 3, 5, 5).permute(0, 1, 3, 4, 2)
-        FMs['rgb'] = self.model.RGB_preprocess[0].rgb_weight.reshape(10, 10, 3, 5, 5).permute(0, 1, 3, 4, 2)
+        FMs['rgb'] = torch.repeat_interleave(torch.repeat_interleave(self.model.RGB_preprocess[0].rgb_weight.reshape(100, 3, 1, 1), self.model.RGB_preprocess[0].kernel_size[0], dim=2), self.model.RGB_preprocess[0].kernel_size[1], dim=3)
+        FMs['rgb'] = FMs['rgb'].reshape(10, 10, 3, 5, 5).permute(0, 1, 3, 4, 2)
+        # FMs['rgb'] = self.model.RGB_preprocess[0].rgb_weight.reshape(10, 10, 3, 5, 5).permute(0, 1, 3, 4, 2)
         FMs[1] = self.model.layer2[0].weight.permute(0, 2, 3, 1).reshape(15, 15, 10, 10, 1)
         FMs[2] = self.model.layer2[3].weight.permute(0, 2, 3, 1).reshape(25, 25, 15, 15, 1)
         FMs[3] = self.model.layer2[6].weight.permute(0, 2, 3, 1).reshape(35, 35, 25, 25, 1)
