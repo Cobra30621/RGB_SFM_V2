@@ -18,69 +18,40 @@ class SOMNetwork(nn.Module):
         self.in_channels = in_channels
         self.out_channels = out_channels
 
-        SFM_combine_filters = [(2, 2), (1, 5), (5, 1), (3, 3)]
+        SFM_combine_filters = [(2, 2), (1, 3), (3, 1), (1, 1)]
         # SFM_combine_filters = [(1, 6), (3, 1), (2, 1), (1, 1)]
         Conv2d_kernel = [(5, 5), (10, 10), (15, 15), (25, 25), (35, 35)]
 
+        #shape = input經過Conv後的width和height
         self.shape = [(int((28 - 5 + 1)//stride), int((28 - 5 + 1)//stride))]
         for i in range(3):
             self.shape.append((int(self.shape[i][0] / SFM_combine_filters[i][0]), int(self.shape[i][1] / SFM_combine_filters[i][1])))
 
-        self.RGB_preprocess = nn.Sequential(
-            RGB_Conv2d(3, 100, kernel_size=Conv2d_kernel[0], stride=stride),
-            cReLU(0.4)
-        )
-
-        self.GRAY_preprocess = nn.Sequential(
-            RBF_Conv2d(1, 10*10, kernel_size=Conv2d_kernel[0], stride=stride),
-            cReLU(0.4)
-        )
-
-        self.layer1 = [
-            SFM(kernel_size=Conv2d_kernel[1], shape=self.shape[0], filter=SFM_combine_filters[0]),
-        ]
-        self.layer1 = nn.Sequential(*self.layer1)
-
-        self.layer2 = nn.Sequential(
-            RBF_Conv2d(1, math.prod(Conv2d_kernel[2]), kernel_size=Conv2d_kernel[1], stride=stride),
-            cReLU(0.1),
-            # SFM(kernel_size=Conv2d_kernel[2], shape=self.shape[1], filter=SFM_combine_filters[1]),
-            # RBF_Conv2d(1, math.prod(Conv2d_kernel[3]), kernel_size=Conv2d_kernel[2], stride=stride),
-            # cReLU(0.01),
-            # SFM(kernel_size=Conv2d_kernel[3], shape=self.shape[2], filter=SFM_combine_filters[2]),
-            # RBF_Conv2d(1, math.prod(Conv2d_kernel[4]), kernel_size=Conv2d_kernel[3], stride=stride),
-            # cReLU(0.01),
-            # SFM(kernel_size=Conv2d_kernel[4], shape=self.shape[3], filter=SFM_combine_filters[3]),
-        )
-
-        self.layer5 = nn.Sequential(
-            RBF_Conv2d(1, math.prod(Conv2d_kernel[1]), kernel_size=Conv2d_kernel[0], stride=stride),
-            cReLU(0.4),
-            SFM(kernel_size=Conv2d_kernel[1], shape=self.shape[0], filter=SFM_combine_filters[0]),
-            RBF_Conv2d(1, math.prod(Conv2d_kernel[2]), kernel_size=Conv2d_kernel[1], stride=stride),
-            cReLU(0.1),
-            # SFM(kernel_size=Conv2d_kernel[2], shape=self.shape[1], filter=SFM_combine_filters[1]),
-            # RBF_Conv2d(1, math.prod(Conv2d_kernel[3]), kernel_size=Conv2d_kernel[2], stride=stride),
-            # cReLU(0.01),
-            # SFM(kernel_size=Conv2d_kernel[3], shape=self.shape[2], filter=SFM_combine_filters[2]),
-            # RBF_Conv2d(1, math.prod(Conv2d_kernel[4]), kernel_size=Conv2d_kernel[3], stride=stride),
-            # cReLU(0.01),
-            # SFM(kernel_size=Conv2d_kernel[4], shape=self.shape[3], filter=SFM_combine_filters[3]),
-        )
+        self.convs = nn.ModuleList([
+            nn.Sequential(
+                RBF_Conv2d(1, math.prod(Conv2d_kernel[1]), kernel_size=Conv2d_kernel[0], stride=stride),
+                cReLU(0.4),
+                SFM(kernel_size=Conv2d_kernel[1], shape=self.shape[0], filter=SFM_combine_filters[0]),
+                RBF_Conv2d(1, math.prod(Conv2d_kernel[2]), kernel_size=Conv2d_kernel[1], stride=stride),
+                cReLU(0.1),
+                SFM(kernel_size=Conv2d_kernel[2], shape=self.shape[1], filter=SFM_combine_filters[1]),
+                RBF_Conv2d(1, math.prod(Conv2d_kernel[3]), kernel_size=Conv2d_kernel[2], stride=stride),
+                cReLU(0.01),
+                SFM(kernel_size=Conv2d_kernel[3], shape=self.shape[2], filter=SFM_combine_filters[2]),
+                RBF_Conv2d(1, math.prod(Conv2d_kernel[4]), kernel_size=Conv2d_kernel[3], stride=stride),
+                cReLU(0.01),
+            ) for i in range(in_channels)
+        ])
 
         self.fc1 = nn.Sequential(
-            nn.Linear(4050, self.out_channels)
+            nn.Linear(3675, self.out_channels)
         )
 
     def forward(self, x):
-        out: Tensor
-        RGB_output = self.RGB_preprocess(x)
-        RGB_output = self.layer1(RGB_output)
-        RGB_output = self.layer2(RGB_output)
-
-        Gray_output = self.layer5(Grayscale()(x))
-
-        output = torch.concat((RGB_output, Gray_output), dim=0)
+        fc_input = []
+        for i, l in enumerate(self.convs):
+            fc_input.append(l(x[:, i, :, :][:, None, :, :]))
+        output = torch.concat((fc_input), dim=1)
         output = self.fc1(output.reshape(x.shape[0], -1))
         return output
 

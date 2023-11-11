@@ -15,7 +15,7 @@ from torchsummary import summary
 
 from utils import increment_path
 from models.basemodels import CNN, ResNet, AlexNet, LeNet, GoogLeNet, MLP
-from models.RGB_Plan_v8 import SOMNetwork
+from models.RGB_Plan_v9 import SOMNetwork
 from load_data import load_data
 from test import eval
 
@@ -66,10 +66,9 @@ def train(train_dataloader: DataLoader, valid_dataloader: DataLoader, model: nn.
                 loss.backward()
                 optimizer.step()
 
-                model.RGB_preprocess[0].rgb_weight.data = model.RGB_preprocess[0].rgb_weight.data.clamp(0.0, 1.0)
-
-                if count == patience - 1:
-                    print(model.RGB_preprocess[0].rgb_weight.data)
+                # model.RGB_preprocess[0].rgb_weight.data = model.RGB_preprocess[0].rgb_weight.data.clamp(0.0, 1.0)
+                # if count == patience - 1:
+                #     print(model.RGB_preprocess[0].rgb_weight.data)
                 
                 losses += loss.detach().item()
                 size += len(X)
@@ -137,11 +136,11 @@ wandb.init(
     # set the wandb project where this run will be logged
     project="paper experiment",
 
-    name = f"RGB_Plan_v8",
+    name = f"RGB_Plan_v9",
 
     notes = description,
     
-    tags = ["RGB_Plan_v8", "rgb-simple-shape-multiclass"],
+    tags = ["RGB_Plan_v9", "rgb-simple-shape-multiclass"],
 
     group = "RGB_Simple_shape_multiclass",
     
@@ -168,7 +167,7 @@ wandb.init(
 
 save_dir = increment_path('./runs/train/exp', exist_ok = False)
 Path(save_dir).mkdir(parents=True, exist_ok=True)
-shutil.copyfile('./models/RGB_Plan_v8.py', f'{save_dir}/RGB_Plan_v8.py')
+shutil.copyfile('./models/RGB_Plan_v9.py', f'{save_dir}/RGB_Plan_v9.py')
 print(save_dir)
 
 model = choose_model(current_model)
@@ -202,10 +201,11 @@ record_table = wandb.Table(columns=["Image", "Answer", "Predict", "batch_Loss", 
 wandb.log({"Test Table": record_table})
 print(f'checkpoint keys: {checkpoint.keys()}')
 
-torch.save(checkpoint, f'{save_dir}/RGB_Plan_v8_epochs{epoch}.pth')
-m = torch.jit.script(model)
-script = torch.jit.save(m, f'{save_dir}/RGB_Plan_v8_epochs{epoch}_entire_model.pth')
-art = wandb.Artifact(f"RGB_Plan_v8_{dataset}", type="model")
-art.add_file(f'{save_dir}/RGB_Plan_v8_epochs{epoch}.pth')
+torch.save(checkpoint, f'{save_dir}/RGB_Plan_v9_epochs{epoch}.pth')
+# m = torch.jit.script(model)
+# script = torch.jit.save(m, f'{save_dir}/RGB_Plan_v9_epochs{epoch}_entire_model.pth')
+art = wandb.Artifact(f"RGB_Plan_v9_{dataset}", type="model")
+art.add_file(f'{save_dir}/RGB_Plan_v9_epochs{epoch}.pth')
+art.add_file(f'{save_dir}/RGB_Plan_v9.py')
 wandb.log_artifact(art, aliases = ["latest"])
 wandb.finish()
