@@ -10,7 +10,7 @@ from pathlib import Path
 from torch import nn
 from torch.utils.data import DataLoader
 from torchvision.transforms import Grayscale
-from RGB_Plan_v8 import SOMNetwork, Visualize
+# from RGB_Plan_v8 import SOMNetwork, Visualize
 
 def eval(dataloader: DataLoader, model: nn.Module, loss_fn, need_table = True, device=None):
     size = 0
@@ -93,9 +93,9 @@ def showlayer(model:nn.Module, X, y, train_data, save_dir):
 
 
 if __name__ == '__main__':
-    path = './runs/11_06/RGB_Plan_v8_rgbBlock_initial/RGB_Plan_v8_epochs200.pth'
+    path = './runs/11_06/RGB_Plan_v8_clamp_(0,1)/RGB_Plan_v8_epochs200 copy.pth'
     checkpoint = torch.load(path)
-    model = SOMNetwork(3,15,4)
+    model = SOMNetwork(3,15,4).to('cuda')
     model.load_state_dict(checkpoint['model_weights'])
 
     dataset = 'rgb_simple_shape'

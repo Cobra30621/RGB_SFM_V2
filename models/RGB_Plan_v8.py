@@ -19,31 +19,31 @@ class SOMNetwork(nn.Module):
         self.in_channels = in_channels
         self.out_channels = out_channels
 
-        SFM_combine_filters = [(2, 2),  (1, 3), (3, 1), (1, 1)]
+        SFM_combine_filters = [(2, 2),  (1, 5), (5, 1), (1, 1)]
         # SFM_combine_filters = [(1, 6), (3, 1), (2, 1), (1, 1)]
-        Conv2d_kernel = [(5, 5), (10, 10), (15, 15), (25, 25), (35, 35)]
+        Conv2d_kernel = [(3, 3), (5, 5), (7, 7), (9, 9), (35, 35)]
 
-        self.shape = [(int((28 - 5 + 1)//stride), int((28 - 5 + 1)//stride))]
+        self.patch_shapes = [(math.floor((30 - Conv2d_kernel[0][0])//stride) + 1, math.floor((30 - Conv2d_kernel[0][1])//stride) + 1)]
         for i in range(3):
-            self.shape.append((int(self.shape[i][0] / SFM_combine_filters[i][0]), int(self.shape[i][1] / SFM_combine_filters[i][1])))
+            self.patch_shapes.append((int(self.patch_shapes[i][0] / SFM_combine_filters[i][0]), int(self.patch_shapes[i][1] / SFM_combine_filters[i][1])))
 
         self.RGB_preprocess = nn.Sequential(
-            RGB_Conv2d(3, 100, kernel_size=Conv2d_kernel[0], stride=stride),
+            RGB_Conv2d(3, math.prod(Conv2d_kernel[1]), kernel_size=Conv2d_kernel[0], stride=stride),
             cReLU(0.4)
         )
 
         self.layer1 = [
-            SFM(kernel_size=Conv2d_kernel[1], shape=self.shape[0], filter=SFM_combine_filters[0]),
+            SFM(kernel_size=Conv2d_kernel[1], shape=self.patch_shapes[0], filter=SFM_combine_filters[0]),
         ]
         self.layer1 = nn.Sequential(*self.layer1)
 
         self.layer2 = nn.Sequential(
             RBF_Conv2d(1, math.prod(Conv2d_kernel[2]), kernel_size=Conv2d_kernel[1], stride=stride),
             cReLU(0.1),
-            SFM(kernel_size=Conv2d_kernel[2], shape=self.shape[1], filter=SFM_combine_filters[1]),
+            SFM(kernel_size=Conv2d_kernel[2], shape=self.patch_shapes[1], filter=SFM_combine_filters[1]),
             RBF_Conv2d(1, math.prod(Conv2d_kernel[3]), kernel_size=Conv2d_kernel[2], stride=stride),
             cReLU(0.01),
-            SFM(kernel_size=Conv2d_kernel[3], shape=self.shape[2], filter=SFM_combine_filters[2]),
+            SFM(kernel_size=Conv2d_kernel[3], shape=self.patch_shapes[2], filter=SFM_combine_filters[2]),
             RBF_Conv2d(1, math.prod(Conv2d_kernel[4]), kernel_size=Conv2d_kernel[3], stride=stride),
             cReLU(0.01),
         )
@@ -142,7 +142,7 @@ class RGB_Conv2d(nn.Module):
         # #由19種顏色之filter來找出區塊對應之顏色(每個filter代表一個顏色)
         max_color = 1
         min_color = 0
-        black = torch.Tensor([[1,1,1]]).to('cuda')
+        white = torch.Tensor([[1,1,1]]).to('cuda')
         zero_pad = [0, 0]
         red_color = torch.linspace(max_color, min_color, int((max_color - min_color) / (max_color / (self.out_channels // 3))))[:, None].to('cuda')
         red_color = F.pad(red_color, (0, 2))
@@ -150,8 +150,7 @@ class RGB_Conv2d(nn.Module):
         green_color = F.pad(green_color, (1, 1))
         blue_color = torch.linspace(max_color, min_color, int((max_color - min_color) / (max_color / (self.out_channels // 3))))[:, None].to('cuda')
         blue_color = F.pad(blue_color, (2, 0))
-        self.rgb_weight = torch.concat((red_color, green_color, blue_color, black))
-        # self.rgb_weight = torch.repeat_interleave(torch.repeat_interleave(self.rgb_weight.reshape(self.out_channels, self.in_channels, 1, 1), self.kernel_size[0], dim=2), self.kernel_size[1], dim=3)
+        self.rgb_weight = torch.concat((red_color, green_color, blue_color, white))
         self.rgb_weight = nn.Parameter(self.rgb_weight)
     
     
@@ -209,7 +208,7 @@ class SFM(nn.Module):
     def __init__(self, kernel_size: _size_2_t, shape: _size_2_t, filter: _size_2_t, alpha: float = 0.9, alpha_type: str = 'pow') -> None:
         super(SFM, self).__init__()
         self.kernel_size = _pair(kernel_size)
-        self.shape = _pair(shape)
+        self.patch_shapes = _pair(shape)
         self.alpha_0 = torch.tensor(alpha)
         self.filter = filter
         self.alpha_type = alpha_type
@@ -217,7 +216,7 @@ class SFM(nn.Module):
         
     
     def __filtering(self, input: Tensor):
-        input = get_RM(input, (*self.shape, math.prod(self.kernel_size)))
+        input = get_RM(input, (*self.patch_shapes, math.prod(self.kernel_size)))
         n_data, seg_h, seg_w, n_filters = input.shape
         
         RM_segment_size = list(map(int, map(truediv, (seg_h, seg_w), self.filter)))
@@ -238,7 +237,7 @@ class SFM(nn.Module):
     
     
     def extra_repr(self) -> str:
-        return f"kernel_size={self.kernel_size}, shape={self.shape}, filter={self.filter}, alpha={self.alpha_0}"
+        return f"kernel_size={self.kernel_size}, shape={self.patch_shapes}, filter={self.filter}, alpha={self.alpha_0}"
 
 '''
     印出FM、RM、CI的圖形
