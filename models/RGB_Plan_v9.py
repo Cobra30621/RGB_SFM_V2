@@ -11,40 +11,43 @@ from operator import truediv
 from utils import get_rbf, get_RM
 
 class SOMNetwork(nn.Module):
-    def __init__(self, in_channels, out_channels, stride)->None:
+    def __init__(self, input_shape, out_channels, stride)->None:
         super().__init__()
         # _log_api_usage_once(self)
 
-        self.in_channels = in_channels
+        self.in_channels = input_shape[0]
         self.out_channels = out_channels
 
-        SFM_combine_filters = [(2, 2), (1, 3), (3, 1), (1, 1)]
-        # SFM_combine_filters = [(1, 6), (3, 1), (2, 1), (1, 1)]
-        Conv2d_kernel = [(5, 5), (10, 10), (15, 15), (25, 25), (35, 35)]
+        # self.SFM_combine_filters = [(2, 2),  (1, 3), (3, 1), (1, 1)]
+        # # self.SFM_combine_filters = [(1, 6), (3, 1), (2, 1), (1, 1)]
+        # self.Conv2d_kernel = [(5, 5), (10, 10), (15, 15), (25, 25), (35, 35)]
+
+        self.SFM_combine_filters = [(2, 2),  (1, 5), (5, 1), (1, 1)]
+        self.Conv2d_kernel = [(3, 3), (5, 5), (7, 7), (9, 9), (35, 35)]
 
         #shape = input經過Conv後的width和height
-        self.shape = [(int((28 - 5 + 1)//stride), int((28 - 5 + 1)//stride))]
+        self.patch_shapes = [(math.floor((input_shape[1] - self.Conv2d_kernel[0][0])//stride) + 1, math.floor((input_shape[2] - self.Conv2d_kernel[0][1])//stride) + 1)]
         for i in range(3):
-            self.shape.append((int(self.shape[i][0] / SFM_combine_filters[i][0]), int(self.shape[i][1] / SFM_combine_filters[i][1])))
+            self.patch_shapes.append((int(self.patch_shapes[i][0] / self.SFM_combine_filters[i][0]), int(self.patch_shapes[i][1] / self.SFM_combine_filters[i][1])))
 
         self.convs = nn.ModuleList([
             nn.Sequential(
-                RBF_Conv2d(1, math.prod(Conv2d_kernel[1]), kernel_size=Conv2d_kernel[0], stride=stride),
+                RBF_Conv2d(1, math.prod(self.Conv2d_kernel[1]), kernel_size=self.Conv2d_kernel[0], stride=stride),
                 cReLU(0.4),
-                SFM(kernel_size=Conv2d_kernel[1], shape=self.shape[0], filter=SFM_combine_filters[0]),
-                RBF_Conv2d(1, math.prod(Conv2d_kernel[2]), kernel_size=Conv2d_kernel[1], stride=stride),
+                SFM(kernel_size=self.Conv2d_kernel[1], shape=self.patch_shapes[0], filter=self.SFM_combine_filters[0]),
+                RBF_Conv2d(1, math.prod(self.Conv2d_kernel[2]), kernel_size=self.Conv2d_kernel[1], stride=stride),
                 cReLU(0.1),
-                SFM(kernel_size=Conv2d_kernel[2], shape=self.shape[1], filter=SFM_combine_filters[1]),
-                RBF_Conv2d(1, math.prod(Conv2d_kernel[3]), kernel_size=Conv2d_kernel[2], stride=stride),
+                SFM(kernel_size=self.Conv2d_kernel[2], shape=self.patch_shapes[1], filter=self.SFM_combine_filters[1]),
+                RBF_Conv2d(1, math.prod(self.Conv2d_kernel[3]), kernel_size=self.Conv2d_kernel[2], stride=stride),
                 cReLU(0.01),
-                SFM(kernel_size=Conv2d_kernel[3], shape=self.shape[2], filter=SFM_combine_filters[2]),
-                RBF_Conv2d(1, math.prod(Conv2d_kernel[4]), kernel_size=Conv2d_kernel[3], stride=stride),
+                SFM(kernel_size=self.Conv2d_kernel[3], shape=self.patch_shapes[2], filter=self.SFM_combine_filters[2]),
+                RBF_Conv2d(1, math.prod(self.Conv2d_kernel[4]), kernel_size=self.Conv2d_kernel[3], stride=stride),
                 cReLU(0.01),
-            ) for i in range(in_channels)
+            ) for i in range(self.in_channels)
         ])
 
         self.fc1 = nn.Sequential(
-            nn.Linear(3675, self.out_channels)
+            nn.Linear(3 * 1225, self.out_channels)
         )
 
     def forward(self, x):
@@ -54,6 +57,69 @@ class SOMNetwork(nn.Module):
         output = torch.concat((fc_input), dim=1)
         output = self.fc1(output.reshape(x.shape[0], -1))
         return output
+    
+    # def get_FM_img(self):
+    #     FMs=[]
+    #     for i in range(self.in_channels):
+    #         tmp = {}
+    #         tmp[1] = self.model.layer2[0].weight.permute(0, 2, 3, 1).reshape(15, 15, 10, 10, 1)
+    #         tmp[2] = self.model.layer2[3].weight.permute(0, 2, 3, 1).reshape(25, 25, 15, 15, 1)
+    #         tmp[3] = self.model.layer2[6].weight.permute(0, 2, 3, 1).reshape(35, 35, 25, 25, 1)
+    #         FMs.append(tmp)
+    #     return FMs
+
+    # def get_RM_img(self,X):
+    #     input = self.model.RGB_preprocess(X)
+    #     RMs={}
+    #     RMs['rgb'] = get_RM(input[:, :, :, :], (6, 6, 10, 10, 1))
+    #     RMs[0] = get_RM(input[:, :, :, :], (6, 6, 10, 10, 1))
+    #     RMs[1] = get_RM(torch.nn.Sequential(self.model.layer1 + self.model.layer2[0:2])(input), (3, 3, 15, 15, 1))
+    #     RMs[2] = get_RM(torch.nn.Sequential(self.model.layer1 + self.model.layer2[0:5])(input), (3, 1, 25, 25, 1))
+    #     RMs[3] = get_RM(torch.nn.Sequential(self.model.layer1 + self.model.layer2)(input), (1, 1, 35, 35, 1))
+    #     return RMs
+
+    # def get_CI_img(self, X):
+    #     input = self.model.RGB_preprocess(X)
+
+    #     CIs = {}
+    #     pred = torch.nn.Sequential(*(list(self.model.layer1)+list(self.model.layer2[:1])))(input)
+    #     CIs[1] = get_ci(X, pred, sfm_filter=self.model.layer1[0].filter, n_filters = self.model.layer2[0].weight.shape[0])
+    #     pred = torch.nn.Sequential(*(list(self.model.layer1)+list(self.model.layer2[:4])))(input)
+    #     CIs[2] = get_ci(X, pred, sfm_filter=tuple(np.multiply(self.model.layer1[0].filter, self.model.layer2[2].filter)), n_filters = self.model.layer2[3].weight.shape[0])
+    #     pred = torch.nn.Sequential(*(list(self.model.layer1)+list(self.model.layer2[:7])))(input)
+    #     CIs[3] = get_ci(X, pred, sfm_filter=tuple(np.multiply(np.multiply(self.model.layer1[0].filter, self.model.layer2[2].filter), self.model.layer2[5].filter)), n_filters = self.model.layer2[6].weight.shape[0])
+    #     return CIs
+
+    # def save_RM_CI(self, X, filter, RMs, CIs, RM_save_dir):
+    #     if len(X[filter]) != 0: 
+    #         Path(RM_save_dir).mkdir(parents=True, exist_ok=True)
+    #         plt.clf()
+    #         plt.imshow(X[filter][0].permute(1, 2, 0).detach().cpu().numpy())
+    #         plt.axis('off')
+    #         plt.savefig(RM_save_dir + '/input.png', bbox_inches='tight')
+
+    #         segments = split(X)
+    #         plot_map(segments[filter][0].permute(1, 2, 3, 4, 0).detach().cpu().numpy(), path = RM_save_dir + '/input_segements.png')
+
+    #         plt.clf()
+    #         plt.imshow(Grayscale()(X)[filter][0].permute(1, 2, 0).detach().cpu().numpy(), cmap='gray')
+    #         plt.axis('off')
+    #         plt.savefig(RM_save_dir + '/input_Gray.png', bbox_inches='tight')
+
+    #         segments = split(Grayscale()(X))
+    #         plot_map(segments[filter][0].permute(1, 2, 3, 4, 0).detach().cpu().numpy(), path = RM_save_dir + '/input_Gray_segements.png')
+            
+    #         for key in RMs:
+    #             print(f'{RM_save_dir} \t RMs[{key}] saving\t{RMs[key][filter][0].shape}')
+    #             plot_map(RMs[key][filter][0].detach().cpu().numpy(), path = RM_save_dir + f'/RMs_{key}.png')
+            
+    #         for key in CIs:
+    #             _, tmp = torch.topk(RMs[key][filter][0].reshape(RMs[key][filter][0].shape[0] * RMs[key][filter][0].shape[1], -1), k=5, dim=1)
+    #             for i in range(tmp.shape[1]):
+    #                 print(f'{RM_save_dir} \t CIs[{key}][{i}] saving\t{CIs[key][tmp[:,i][:, None].cpu()].reshape(*self.model.shape[key], CIs[key].shape[-3], CIs[key].shape[-2], CIs[key].shape[-1]).permute(0, 1, 3, 4, 2).shape}')
+    #                 plot_map(CIs[key][tmp[:,i][:, None].cpu()].reshape(*self.model.shape[key], CIs[key].shape[-3], CIs[key].shape[-2], CIs[key].shape[-1]).permute(0, 1, 3, 4, 2), path = RM_save_dir + f'/CIs_{key}_{i}.png')
+    #     else:
+    #         print(f"This batch don't have label {y[filter]}")
 
 '''
     RBF 卷積層
@@ -192,7 +258,7 @@ class SFM(nn.Module):
     def __init__(self, kernel_size: _size_2_t, shape: _size_2_t, filter: _size_2_t, alpha: float = 0.9, alpha_type: str = 'pow') -> None:
         super(SFM, self).__init__()
         self.kernel_size = _pair(kernel_size)
-        self.shape = _pair(shape)
+        self.patch_shapes = _pair(shape)
         self.alpha_0 = torch.tensor(alpha)
         self.filter = filter
         self.alpha_type = alpha_type
@@ -200,7 +266,7 @@ class SFM(nn.Module):
         
     
     def __filtering(self, input: Tensor):
-        input = get_RM(input, (*self.shape, math.prod(self.kernel_size)))
+        input = get_RM(input, (*self.patch_shapes, math.prod(self.kernel_size)))
         n_data, seg_h, seg_w, n_filters = input.shape
         
         RM_segment_size = list(map(int, map(truediv, (seg_h, seg_w), self.filter)))
@@ -221,4 +287,4 @@ class SFM(nn.Module):
     
     
     def extra_repr(self) -> str:
-        return f"kernel_size={self.kernel_size}, shape={self.shape}, filter={self.filter}, alpha={self.alpha_0}"
+        return f"kernel_size={self.kernel_size}, shape={self.patch_shapes}, filter={self.filter}, alpha={self.alpha_0}"

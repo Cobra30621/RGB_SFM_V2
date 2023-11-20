@@ -15,15 +15,15 @@ from torchsummary import summary
 
 from utils import increment_path
 from models.basemodels import CNN, ResNet, AlexNet, LeNet, GoogLeNet, MLP
-from models.RGB_Plan_v8 import SOMNetwork
+from models.RGB_Plan_v9 import SOMNetwork
 from load_data import load_data
 from test import eval
 
 def choose_model(current_model):
     if current_model == 'SFM': 
-        model = SOMNetwork(in_channels=in_channels, out_channels=out_channels, stride = stride).to(device)
+        model = SOMNetwork(input_shape=input_size, out_channels=out_channels, stride = stride).to(device)
     elif current_model == 'cnn':
-        model = CNN(in_channels=in_channels, out_channels = out_channels).to(device)
+        model = CNN(in_channels=input_size[0], out_channels = out_channels).to(device)
     elif current_model == 'mlp':
         model = MLP().to(device)
     elif current_model == 'resnet18':
@@ -45,7 +45,8 @@ def choose_model(current_model):
     return model
 
 def train(train_dataloader: DataLoader, valid_dataloader: DataLoader, model: nn.Module, loss_fn, optimizer, scheduler, epoch, device):
-    best_valid_loss = float('inf')
+    # best_valid_loss = float('inf')
+    best_valid_acc = 0
     count = 0
     patience = 20
     checkpoint = {}
@@ -82,7 +83,7 @@ def train(train_dataloader: DataLoader, valid_dataloader: DataLoader, model: nn.
                 progress.set_description("Loss: {:.7f}, Accuracy: {:.7f}".format(train_loss, train_acc))
 
             valid_acc, valid_loss, _ = eval(valid_dataloader, model, loss_fn, False, device = device)
-            print(f"Test Loss: {valid_loss}, Test Accuracy: {valid_acc}%")
+            print(f"Test Loss: {valid_loss}, Test Accuracy: {valid_acc}")
             if scheduler:
                 scheduler.step(valid_loss)
 
@@ -97,10 +98,10 @@ def train(train_dataloader: DataLoader, valid_dataloader: DataLoader, model: nn.
             wandb.log(metrics, step=e)
 
             #early stopping
-            if valid_loss > best_valid_loss:
+            if valid_acc < best_valid_acc:
                 count += 1
-                if count >= patience:
-                    break
+                # if count >= patience:
+                #     break
             else:
                 count = 0
                 best_valid_loss = valid_loss
@@ -120,11 +121,10 @@ print(f"Using {device} device")
 root = os.path.dirname(__file__)
 current_model = 'SFM' # SFM, mlp, cnn, resnet50, alexnet, lenet, googlenet
 dataset = 'rgb_simple_shape' # mnist, fashion, cifar10, malaria, malaria_split, rgb_simple_shape
-input_size = (30, 30)
-in_channels = 3 # 1, 3
+input_size = (3, 30, 30)
 rbf = 'triangle' # gauss, triangle
 batch_size = 32
-epoch = 200
+epoch = 2000
 lr = 0.001
 layer = 4
 stride = 3
@@ -136,11 +136,11 @@ wandb.init(
     # set the wandb project where this run will be logged
     project="paper experiment",
 
-    name = f"RGB_Plan_v8_change_Conv_filter",
+    name = f"RGB_Plan_v9_change_Conv_filter",
 
     notes = description,
     
-    tags = ["RGB_Plan_v8", "rgb-simple-shape-multiclass"],
+    tags = ["RGB_Plan_v9", "rgb-simple-shape-multiclass"],
 
     group = "RGB_Simple_shape_multiclass",
     
@@ -156,7 +156,7 @@ wandb.init(
     # "test_data_num": len(test_dataloader.sampler),
     # "total_data_num": len(train_dataloader.sampler) + len(test_dataloader.sampler),
     "batch_size": batch_size,
-    "input shape": (in_channels, *input_size),
+    "input shape": input_size,
     "out_channels": out_channels,
     "SFM filter": "(2, 2)",
     "lr scheduler": "ReduceLROnPlateau",
@@ -167,20 +167,20 @@ wandb.init(
 
 save_dir = increment_path('./runs/train/exp', exist_ok = False)
 Path(save_dir).mkdir(parents=True, exist_ok=True)
-shutil.copyfile('./models/RGB_Plan_v8.py', f'{save_dir}/RGB_Plan_v8.py')
+shutil.copyfile('./models/RGB_Plan_v9.py', f'{save_dir}/RGB_Plan_v9.py')
 print(save_dir)
 
 model = choose_model(current_model)
 
-train_dataloader, test_dataloader = load_data(dataset=dataset, root=root, batch_size=batch_size, input_size=input_size)
+train_dataloader, test_dataloader = load_data(dataset=dataset, root=root, batch_size=batch_size, input_size=(input_size[1], input_size[2]))
 
 print(model)
-summary(model, input_size = (in_channels, *input_size))
+summary(model, input_size = input_size)
 
 loss_fn = nn.CrossEntropyLoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=lr)
 # optimizer = torch.optim.SGD(model.parameters(), lr=lr, momentum=0.9)
-scheduler = ReduceLROnPlateau(optimizer)
+scheduler = ReduceLROnPlateau(optimizer, patience=10)
 
 # wandb.watch(model, loss_fn, log="all", log_freq=1)
 train_loss, train_acc, valid_loss, valid_acc, checkpoint = train(train_dataloader, test_dataloader, model, loss_fn, optimizer, scheduler, epoch, device = device)
@@ -201,11 +201,11 @@ record_table = wandb.Table(columns=["Image", "Answer", "Predict", "batch_Loss", 
 wandb.log({"Test Table": record_table})
 print(f'checkpoint keys: {checkpoint.keys()}')
 
-torch.save(checkpoint, f'{save_dir}/RGB_Plan_v8_epochs{epoch}.pth')
+torch.save(checkpoint, f'{save_dir}/RGB_Plan_v9_epochs{epoch}.pth')
 # m = torch.jit.script(model)
-# script = torch.jit.save(m, f'{save_dir}/RGB_Plan_v8_epochs{epoch}_entire_model.pth')
-art = wandb.Artifact(f"RGB_Plan_v8_{dataset}", type="model")
-art.add_file(f'{save_dir}/RGB_Plan_v8_epochs{epoch}.pth')
-art.add_file(f'{save_dir}/RGB_Plan_v8.py')
+# script = torch.jit.save(m, f'{save_dir}/RGB_Plan_v9_epochs{epoch}_entire_model.pth')
+art = wandb.Artifact(f"RGB_Plan_v9_{dataset}", type="model")
+art.add_file(f'{save_dir}/RGB_Plan_v9_epochs{epoch}.pth')
+art.add_file(f'{save_dir}/RGB_Plan_v9.py')
 wandb.log_artifact(art, aliases = ["latest"])
 wandb.finish()
