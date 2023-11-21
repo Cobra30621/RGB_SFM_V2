@@ -40,7 +40,9 @@ def gaussian(d, std):
     return torch.exp(d.pow(2) / (-2 * torch.pow(std, 2)))
 
 def triangle(d, std):
-    return torch.ones_like(d) - torch.minimum(d, std)
+    w = 16
+    d[d>w] = w
+    return torch.ones_like(d) - torch.div(d, w)
 
 
 def test(dataloader: DataLoader, model: nn.Module, loss_fn, device=torch.device('cpu')):
