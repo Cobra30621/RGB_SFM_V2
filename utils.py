@@ -39,8 +39,7 @@ def get_rbf(rbf):
 def gaussian(d, std):
     return torch.exp(d.pow(2) / (-2 * torch.pow(std, 2)))
 
-def triangle(d, std):
-    w = 16
+def triangle(d, std, w):
     d[d>w] = w
     return torch.ones_like(d) - torch.div(d, w)
 

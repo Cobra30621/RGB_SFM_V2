@@ -15,13 +15,13 @@ from torchsummary import summary
 
 from utils import increment_path
 from models.basemodels import CNN, ResNet, AlexNet, LeNet, GoogLeNet, MLP
-from models.RGB_Plan_v9 import SOMNetwork
+from models.RGB_Plan_v10 import SOMNetwork
 from load_data import load_data
 from test import eval
 
 def choose_model(current_model):
     if current_model == 'SFM': 
-        model = SOMNetwork(input_shape=input_size, out_channels=out_channels, stride = stride).to(device)
+        model = SOMNetwork(in_channels=input_size[0], out_channels=out_channels).to(device)
     elif current_model == 'cnn':
         model = CNN(in_channels=input_size[0], out_channels = out_channels).to(device)
     elif current_model == 'mlp':
@@ -121,26 +121,31 @@ print(f"Using {device} device")
 root = os.path.dirname(__file__)
 current_model = 'SFM' # SFM, mlp, cnn, resnet50, alexnet, lenet, googlenet
 dataset = 'rgb_simple_shape' # mnist, fashion, cifar10, malaria, malaria_split, rgb_simple_shape
-input_size = (3, 30, 30)
+input_size = (3, 28, 28)
 rbf = 'triangle' # gauss, triangle
 batch_size = 32
-epoch = 2000
+epoch = 200
 lr = 0.001
 layer = 4
-stride = 3
+stride = 4
 out_channels = 15
-description = f"Conv2d_kernel = [(3, 3), (5, 5), (7, 7), (9, 9), (35, 35)]\n SFM_combine_filters = [(2, 2),  (1, 5), (5, 1), (1, 1)]"
+description = f"fix triangle function w = 16"
+
+save_dir = increment_path('./runs/train/exp', exist_ok = False)
+Path(save_dir).mkdir(parents=True, exist_ok=True)
+shutil.copyfile('./models/RGB_Plan_v10.py', f'{save_dir}/RGB_Plan_v10.py')
+print(save_dir)
 
 # start a new wandb run to track this script
 wandb.init(
     # set the wandb project where this run will be logged
     project="paper experiment",
 
-    name = f"RGB_Plan_v9_change_Conv_filter",
+    name = f"RGB_Plan_v10",
 
     notes = description,
     
-    tags = ["RGB_Plan_v9", "rgb-simple-shape-multiclass"],
+    tags = ["RGB_Plan_v10", "rgb-simple-shape-multiclass"],
 
     group = "RGB_Simple_shape_multiclass",
     
@@ -161,14 +166,10 @@ wandb.init(
     "SFM filter": "(2, 2)",
     "lr scheduler": "ReduceLROnPlateau",
     "optimizer": "Adam",
-    "loss_fn": "CrossEntropyLoss"
+    "loss_fn": "CrossEntropyLoss",
+    "save_path": save_dir
     }
 )
-
-save_dir = increment_path('./runs/train/exp', exist_ok = False)
-Path(save_dir).mkdir(parents=True, exist_ok=True)
-shutil.copyfile('./models/RGB_Plan_v9.py', f'{save_dir}/RGB_Plan_v9.py')
-print(save_dir)
 
 model = choose_model(current_model)
 
@@ -182,7 +183,7 @@ optimizer = torch.optim.Adam(model.parameters(), lr=lr)
 # optimizer = torch.optim.SGD(model.parameters(), lr=lr, momentum=0.9)
 scheduler = ReduceLROnPlateau(optimizer, patience=10)
 
-# wandb.watch(model, loss_fn, log="all", log_freq=1)
+wandb.watch(model, loss_fn, log="all", log_freq=1)
 train_loss, train_acc, valid_loss, valid_acc, checkpoint = train(train_dataloader, test_dataloader, model, loss_fn, optimizer, scheduler, epoch, device = device)
 print("Train: \n\tAccuracy: {}, Avg loss: {} \n".format(train_acc, train_loss))
 print("Valid: \n\tAccuracy: {}, Avg loss: {} \n".format(valid_acc, valid_loss))
@@ -201,11 +202,11 @@ record_table = wandb.Table(columns=["Image", "Answer", "Predict", "batch_Loss", 
 wandb.log({"Test Table": record_table})
 print(f'checkpoint keys: {checkpoint.keys()}')
 
-torch.save(checkpoint, f'{save_dir}/RGB_Plan_v9_epochs{epoch}.pth')
+torch.save(checkpoint, f'{save_dir}/RGB_Plan_v10_epochs{epoch}.pth')
 # m = torch.jit.script(model)
-# script = torch.jit.save(m, f'{save_dir}/RGB_Plan_v9_epochs{epoch}_entire_model.pth')
-art = wandb.Artifact(f"RGB_Plan_v9_{dataset}", type="model")
-art.add_file(f'{save_dir}/RGB_Plan_v9_epochs{epoch}.pth')
-art.add_file(f'{save_dir}/RGB_Plan_v9.py')
+# script = torch.jit.save(m, f'{save_dir}/RGB_Plan_v10_epochs{epoch}_entire_model.pth')
+art = wandb.Artifact(f"RGB_Plan_v10_{dataset}", type="model")
+art.add_file(f'{save_dir}/RGB_Plan_v10_epochs{epoch}.pth')
+art.add_file(f'{save_dir}/RGB_Plan_v10.py')
 wandb.log_artifact(art, aliases = ["latest"])
 wandb.finish()

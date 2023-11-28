@@ -11,19 +11,19 @@ import math
 class SOMNetwork(nn.Module):
     def __init__(self, in_channels, out_channels) -> None:
         super().__init__()
-        SFM_filters = [(3, 3), (3, 3), (1, 1)]
-        Conv2d_kernel = [(5, 5), (3, 3), (3, 3), (2, 2), (1, 1)]
+        Conv2d_kernel = [(5, 5), (3, 3), (3, 3), (1, 1)]
+        SFM_filters = [(2, 2), (2, 2), (2, 2)]
         self.convs = nn.ModuleList([
             nn.Sequential(
-                self._make_BasicBlock(1, 16, Conv2d_kernel[0], padding = 3, filter = SFM_filters[0], bias=0.4),
-                self._make_BasicBlock(16, 32, Conv2d_kernel[1], padding = 3, filter = SFM_filters[1], bias=0.1),
-                self._make_BasicBlock(32, 64, Conv2d_kernel[2], filter = SFM_filters[2], bias=0.01),
-                self._make_ConvBlock(64, 128, Conv2d_kernel[3], bias=0.01)
+                self._make_BasicBlock(1, 32, Conv2d_kernel[0], padding = 3, filter = SFM_filters[0], bias=0.4),
+                self._make_BasicBlock(32, 64, Conv2d_kernel[1], padding = 4, filter = SFM_filters[1], bias=0.1),
+                self._make_BasicBlock(64, 128, Conv2d_kernel[2], filter = SFM_filters[2], bias=0.01),
+                self._make_ConvBlock(128, 256, Conv2d_kernel[3], bias=0.01)
             ) for i in range(in_channels)
         ])
 
         self.fc1 = nn.Sequential(
-            nn.Linear(3 * 128, out_channels)
+            nn.Linear(3 * 256 * 4 * 4, out_channels)
         )
 
     def _make_BasicBlock(self,
@@ -111,11 +111,12 @@ class triangle(nn.Module):
         super().__init__()
         self.w = torch.Tensor([w]).to(device)
         if requires_grad:
-            self.w = torch.nn.Parameter(self.w)
+            self.w = nn.Parameter(self.w, requires_grad = True)
 
     def forward(self, d):
-        d[d>self.w] = self.w
-        return torch.ones_like(d) - torch.div(d, self.w)
+        w_tmp = self.w
+        d[d>w_tmp] = w_tmp
+        return torch.ones_like(d) - torch.div(d, w_tmp)
     
     def extra_repr(self) -> str:
         return f"w = {self.w.item()}"
@@ -128,10 +129,11 @@ class cReLU(nn.Module):
         super().__init__()
         self.bias = torch.tensor([bias]).to(device)
         if requires_grad:
-            self.bias = torch.nn.Parameter(self.bias)
+            self.bias = nn.Parameter(self.bias, requires_grad = True)
     
     def forward(self, x):
-        return x * torch.ge(x, self.bias).float()
+        bias_tmp = self.bias
+        return x * torch.ge(x, bias_tmp).float()
     
     def extra_repr(self) -> str:
         return f"bias={self.bias.item()}"
@@ -148,9 +150,9 @@ class SFM(nn.Module):
                  device: str = "cuda") -> None:
         super(SFM, self).__init__()
         self.filter = filter
-        self.alpha = torch.tensor(alpha)
+        self.alpha = torch.nn.Parameter(torch.tensor([alpha]).to(device), requires_grad=True)
         "powNum = 次方數順序"
-        self.powerNum = torch.nn.Parameter(torch.arange(math.prod(filter)).flip(0), requires_grad=False).to(device)
+        self.powerNum = torch.arange(math.prod(filter)).flip(0).to(device)
         self.device = device
 
     def forward(self, input: Tensor) -> Tensor:
