@@ -14,8 +14,8 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torchsummary import summary
 
 from utils import increment_path
-from models.basemodels import CNN, ResNet, AlexNet, LeNet, GoogLeNet, MLP
-from models.RGB_Plan_v10 import SOMNetwork
+from models.CNN import CNN
+from models.SFMCNN import SOMNetwork
 from load_data import load_data
 from test import eval
 
@@ -133,7 +133,7 @@ description = f"fix triangle function w = 16"
 
 save_dir = increment_path('./runs/train/exp', exist_ok = False)
 Path(save_dir).mkdir(parents=True, exist_ok=True)
-shutil.copyfile('./models/RGB_Plan_v10.py', f'{save_dir}/RGB_Plan_v10.py')
+shutil.copyfile('./models/SFMCNN.py', f'{save_dir}/SFMCNN_v10.py')
 print(save_dir)
 
 # start a new wandb run to track this script
@@ -141,11 +141,11 @@ wandb.init(
     # set the wandb project where this run will be logged
     project="paper experiment",
 
-    name = f"RGB_Plan_v10",
+    name = f"SFMCNN_v10",
 
     notes = description,
     
-    tags = ["RGB_Plan_v10", "rgb-simple-shape-multiclass"],
+    tags = ["SFMCNN_v10", "rgb-simple-shape-multiclass"],
 
     group = "RGB_Simple_shape_multiclass",
     
@@ -202,11 +202,11 @@ record_table = wandb.Table(columns=["Image", "Answer", "Predict", "batch_Loss", 
 wandb.log({"Test Table": record_table})
 print(f'checkpoint keys: {checkpoint.keys()}')
 
-torch.save(checkpoint, f'{save_dir}/RGB_Plan_v10_epochs{epoch}.pth')
+torch.save(checkpoint, f'{save_dir}/SFMCNN_v10_epochs{epoch}.pth')
 # m = torch.jit.script(model)
 # script = torch.jit.save(m, f'{save_dir}/RGB_Plan_v10_epochs{epoch}_entire_model.pth')
-art = wandb.Artifact(f"RGB_Plan_v10_{dataset}", type="model")
-art.add_file(f'{save_dir}/RGB_Plan_v10_epochs{epoch}.pth')
-art.add_file(f'{save_dir}/RGB_Plan_v10.py')
+art = wandb.Artifact(f"SFMCNN_v10_{dataset}", type="model")
+art.add_file(f'{save_dir}/SFMCNN_v10_epochs{epoch}.pth')
+art.add_file(f'{save_dir}/SFMCNN_v10.py')
 wandb.log_artifact(art, aliases = ["latest"])
 wandb.finish()
