@@ -66,18 +66,18 @@ def train(train_dataloader: DataLoader, valid_dataloader: DataLoader, model: nn.
                 optimizer.zero_grad()
                 loss.backward()
                 optimizer.step()
-
-                # model.RGB_preprocess[0].rgb_weight.data = model.RGB_preprocess[0].rgb_weight.data.clamp(0.0, 1.0)
-                # if count == patience - 1:
-                #     print(model.RGB_preprocess[0].rgb_weight.data)
                 
                 losses += loss.detach().item()
                 size += len(X)
-
+                
                 pred = nn.Softmax(dim=-1)(pred)
-                _, maxk = torch.topk(pred, 1, dim = -1, sorted = False)
-                _, y = torch.topk(y, 1, dim=-1, sorted = False)
-                correct += torch.eq(maxk, y).sum().detach().item()
+                correct += (pred.argmax(1) == y).type(torch.float).sum().item()
+
+                # pred = nn.Softmax(dim=-1)(pred)
+                # _, maxk = torch.topk(pred, 1, dim = -1, sorted = False)
+                # _, y = torch.topk(y, 1, dim=-1, sorted = False)
+                # correct += torch.eq(maxk, y).sum().detach().item()
+
                 train_loss = losses/(batch+1)
                 train_acc = correct/size
                 progress.set_description("Loss: {:.7f}, Accuracy: {:.7f}".format(train_loss, train_acc))
@@ -120,16 +120,16 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print(f"Using {device} device")
 root = os.path.dirname(__file__)
 current_model = 'SFM' # SFM, mlp, cnn, resnet50, alexnet, lenet, googlenet
-dataset = 'rgb_simple_shape' # mnist, fashion, cifar10, malaria, malaria_split, rgb_simple_shape
-input_size = (3, 28, 28)
+dataset = 'mnist' # mnist, fashion, cifar10, malaria, malaria_split, rgb_simple_shape
+input_size = (1, 28, 28)
 rbf = 'triangle' # gauss, triangle
-batch_size = 32
+batch_size = 128
 epoch = 200
 lr = 0.001
 layer = 4
 stride = 4
-out_channels = 15
-description = f"fix triangle function w = 16"
+out_channels = 10
+description = f""
 
 save_dir = increment_path('./runs/train/exp', exist_ok = False)
 Path(save_dir).mkdir(parents=True, exist_ok=True)
@@ -145,9 +145,9 @@ wandb.init(
 
     notes = description,
     
-    tags = ["SFMCNN_v10", "rgb-simple-shape-multiclass"],
+    tags = ["SFMCNN_v10", "Rewrite"],
 
-    group = "RGB_Simple_shape_multiclass",
+    group = "Rewrite",
     
     # track hyperparameters and run metadata
     config={
@@ -157,9 +157,6 @@ wandb.init(
     "epochs": epoch,
     "architecture": current_model,
     "dataset": dataset,
-    # "train_data_num": len(train_dataloader.sampler),
-    # "test_data_num": len(test_dataloader.sampler),
-    # "total_data_num": len(train_dataloader.sampler) + len(test_dataloader.sampler),
     "batch_size": batch_size,
     "input shape": input_size,
     "out_channels": out_channels,
@@ -183,7 +180,7 @@ optimizer = torch.optim.Adam(model.parameters(), lr=lr)
 # optimizer = torch.optim.SGD(model.parameters(), lr=lr, momentum=0.9)
 scheduler = ReduceLROnPlateau(optimizer, patience=10)
 
-wandb.watch(model, loss_fn, log="all", log_freq=1)
+# wandb.watch(model, loss_fn, log="all", log_freq=1)
 train_loss, train_acc, valid_loss, valid_acc, checkpoint = train(train_dataloader, test_dataloader, model, loss_fn, optimizer, scheduler, epoch, device = device)
 print("Train: \n\tAccuracy: {}, Avg loss: {} \n".format(train_acc, train_loss))
 print("Valid: \n\tAccuracy: {}, Avg loss: {} \n".format(valid_acc, valid_loss))

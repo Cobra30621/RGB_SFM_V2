@@ -2,6 +2,7 @@ from load_data import load_data
 
 from utils import *
 import matplotlib.pyplot as plt
+import numpy as np
 import torch
 import os
 import wandb
@@ -22,13 +23,15 @@ def eval(dataloader: DataLoader, model: nn.Module, loss_fn, need_table = True, d
     for X, y in dataloader:
         X = X.to(device); y= y.to(device)
         pred = model(X)
-        
-        loss = loss_fn(pred, y)
-        test_loss += loss
 
-        _, maxk = torch.topk(pred, 1, dim = -1, sorted = False)
-        _, y = torch.topk(y, 1, dim=-1, sorted = False)
-        batch_correct = torch.eq(maxk, y).sum().detach().item()
+        loss = loss_fn(pred, y)
+        test_loss += loss.detach().item()
+
+        pred = nn.Softmax(dim=-1)(pred)
+        # _, maxk = torch.topk(pred, 1, dim = -1, sorted = False)
+        # _, y = torch.topk(y, 1, dim=-1, sorted = False)
+        # batch_correct = torch.eq(maxk, y).sum().detach().item()
+        batch_correct = (pred.argmax(1) == y).type(torch.float).sum().item()
         correct += batch_correct
         size += len(X)
 
@@ -41,7 +44,7 @@ def eval(dataloader: DataLoader, model: nn.Module, loss_fn, need_table = True, d
                 X = np.transpose(np.array(X[0]), (1, 2, 0))
             else:
                 X = np.array(X[0])
-            table.append([wandb.Image(X), y[0], maxk[0], loss, batch_correct])
+            table.append([wandb.Image(X), y[0], pred.argmax(1)[0], loss, batch_correct])
 
     test_loss /= num_batches
     correct = (correct / size)
