@@ -3,46 +3,17 @@ import torch
 import wandb
 import numpy as np
 import time
-from pathlib import Path
 import copy
-import shutil
 
-from torch import nn
+from torch import nn, optim
 from tqdm.autonotebook import tqdm
 from torch.utils.data import DataLoader
-from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torchsummary import summary
 
-from utils import increment_path
-from models.CNN import CNN
-from models.SFMCNN import SOMNetwork
 from load_data import load_data
 from test import eval
-
-def choose_model(current_model):
-    if current_model == 'SFM': 
-        model = SOMNetwork(in_channels=input_size[0], out_channels=out_channels).to(device)
-    elif current_model == 'cnn':
-        model = CNN(in_channels=input_size[0], out_channels = out_channels).to(device)
-    elif current_model == 'mlp':
-        model = MLP().to(device)
-    elif current_model == 'resnet18':
-        model = ResNet().to(device)
-    elif current_model == 'resnet34':
-        model = ResNet(layers=34).to(device)
-    elif current_model == 'resnet50':
-        model = ResNet(layers=50).to(device)
-    elif current_model == 'resnet101':
-        model = ResNet(layers=101).to(device)
-    elif current_model == 'resnet152':
-        model = ResNet(layers=152).to(device)
-    elif current_model == 'alexnet':
-        model = AlexNet().to(device)
-    elif current_model == 'lenet':
-        model = LeNet().to(device)
-    elif current_model == 'googlenet':
-        model = GoogLeNet().to(device)
-    return model
+from config import *
+import models
 
 def train(train_dataloader: DataLoader, valid_dataloader: DataLoader, model: nn.Module, loss_fn, optimizer, scheduler, epoch, device):
     # best_valid_loss = float('inf')
@@ -61,6 +32,7 @@ def train(train_dataloader: DataLoader, valid_dataloader: DataLoader, model: nn.
             for batch, (X, y) in progress:
                 X = X.to(device); y= y.to(device)
                 pred = model(X)
+                y = y.argmax(1)
                 loss = loss_fn(pred, y)
 
                 optimizer.zero_grad()
@@ -70,7 +42,6 @@ def train(train_dataloader: DataLoader, valid_dataloader: DataLoader, model: nn.
                 losses += loss.detach().item()
                 size += len(X)
                 
-                pred = nn.Softmax(dim=-1)(pred)
                 correct += (pred.argmax(1) == y).type(torch.float).sum().item()
 
                 # pred = nn.Softmax(dim=-1)(pred)
@@ -115,79 +86,41 @@ def train(train_dataloader: DataLoader, valid_dataloader: DataLoader, model: nn.
                     
     return cur_train_loss, cur_train_acc, best_valid_loss, best_valid_acc, checkpoint
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "1"
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-print(f"Using {device} device")
-root = os.path.dirname(__file__)
-current_model = 'SFM' # SFM, mlp, cnn, resnet50, alexnet, lenet, googlenet
-dataset = 'mnist' # mnist, fashion, cifar10, malaria, malaria_split, rgb_simple_shape
-input_size = (1, 28, 28)
-rbf = 'triangle' # gauss, triangle
-batch_size = 128
-epoch = 200
-lr = 0.001
-layer = 4
-stride = 4
-out_channels = 10
-description = f""
-
-save_dir = increment_path('./runs/train/exp', exist_ok = False)
-Path(save_dir).mkdir(parents=True, exist_ok=True)
-shutil.copyfile('./models/SFMCNN.py', f'{save_dir}/SFMCNN_v10.py')
-print(save_dir)
-
 # start a new wandb run to track this script
 wandb.init(
     # set the wandb project where this run will be logged
-    project="paper experiment",
+    project=project,
 
-    name = f"SFMCNN_v10",
+    name = name,
 
     notes = description,
     
-    tags = ["SFMCNN_v10", "Rewrite"],
+    tags = tags,
 
-    group = "Rewrite",
+    group = group,
     
     # track hyperparameters and run metadata
-    config={
-    "learning_rate": lr,
-    "layer": layer,
-    "stride": stride,
-    "epochs": epoch,
-    "architecture": current_model,
-    "dataset": dataset,
-    "batch_size": batch_size,
-    "input shape": input_size,
-    "out_channels": out_channels,
-    "SFM filter": "(2, 2)",
-    "lr scheduler": "ReduceLROnPlateau",
-    "optimizer": "Adam",
-    "loss_fn": "CrossEntropyLoss",
-    "save_path": save_dir
-    }
+    config=config
 )
 
-model = choose_model(current_model)
+train_dataloader, test_dataloader = load_data(dataset=config['dataset'], root=config['root'], batch_size=config['batch_size'], input_size=config['input_shape'])
 
-train_dataloader, test_dataloader = load_data(dataset=dataset, root=root, batch_size=batch_size, input_size=(input_size[1], input_size[2]))
+model = getattr(getattr(models, config['model']['name']), config['model']['name'])(**dict(config['model']['args'], device = config['device']))
+model = model.to(config['device'])
+summary(model, input_size = (config['model']['args']['in_channels'], *config['input_shape']))
 
-print(model)
-summary(model, input_size = input_size)
-
-loss_fn = nn.CrossEntropyLoss()
-optimizer = torch.optim.Adam(model.parameters(), lr=lr)
-# optimizer = torch.optim.SGD(model.parameters(), lr=lr, momentum=0.9)
-scheduler = ReduceLROnPlateau(optimizer, patience=10)
+loss_fn = getattr(nn, config['loss_fn'])()
+optimizer = getattr(optim, config['optimizer']['name'])(model.parameters(), lr=config['lr'], **dict(config['optimizer']['args']))
+scheduler = getattr(optim.lr_scheduler, config['lr_scheduler']['name'])(optimizer, **dict(config['lr_scheduler']['args']))
 
 # wandb.watch(model, loss_fn, log="all", log_freq=1)
-train_loss, train_acc, valid_loss, valid_acc, checkpoint = train(train_dataloader, test_dataloader, model, loss_fn, optimizer, scheduler, epoch, device = device)
+train_loss, train_acc, valid_loss, valid_acc, checkpoint = train(train_dataloader, test_dataloader, model, loss_fn, optimizer, scheduler, config['epoch'], device = config['device'])
 print("Train: \n\tAccuracy: {}, Avg loss: {} \n".format(train_acc, train_loss))
 print("Valid: \n\tAccuracy: {}, Avg loss: {} \n".format(valid_acc, valid_loss))
 
 # Test model
 model.load_state_dict(checkpoint['model_weights'])
-test_acc, test_loss, test_table = eval(test_dataloader, model, loss_fn, device = device)
+test_acc, test_loss, test_table = eval(test_dataloader, model, loss_fn, device = config['device'])
 print("Test: \n\tAccuracy: {}, Avg loss: {} \n".format(test_acc, test_loss))
 
 # Record result into Wandb
@@ -199,11 +132,11 @@ record_table = wandb.Table(columns=["Image", "Answer", "Predict", "batch_Loss", 
 wandb.log({"Test Table": record_table})
 print(f'checkpoint keys: {checkpoint.keys()}')
 
-torch.save(checkpoint, f'{save_dir}/SFMCNN_v10_epochs{epoch}.pth')
+torch.save(checkpoint, f'{config["save_dir"]}/SFMCNN_v10_epochs{config["epoch"]}.pth')
 # m = torch.jit.script(model)
 # script = torch.jit.save(m, f'{save_dir}/RGB_Plan_v10_epochs{epoch}_entire_model.pth')
-art = wandb.Artifact(f"SFMCNN_v10_{dataset}", type="model")
-art.add_file(f'{save_dir}/SFMCNN_v10_epochs{epoch}.pth')
-art.add_file(f'{save_dir}/SFMCNN_v10.py')
+art = wandb.Artifact(f"SFMCNN_v10_{config['dataset']}", type="model")
+art.add_file(f'{config["save_dir"]}/SFMCNN_v10_epochs{config["epoch"]}.pth')
+art.add_file(f'{config["save_dir"]}/SFMCNN_v10.py')
 wandb.log_artifact(art, aliases = ["latest"])
 wandb.finish()

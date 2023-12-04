@@ -22,6 +22,7 @@ def eval(dataloader: DataLoader, model: nn.Module, loss_fn, need_table = True, d
     table = []
     for X, y in dataloader:
         X = X.to(device); y= y.to(device)
+        y = y.argmax(1)
         pred = model(X)
 
         loss = loss_fn(pred, y)

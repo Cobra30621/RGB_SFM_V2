@@ -8,54 +8,46 @@ import torch.nn.functional as F
 import torch
 import math
 
-class SOMNetwork(nn.Module):
-    def __init__(self, in_channels, out_channels) -> None:
+class SFMCNN(nn.Module):
+    def __init__(self, 
+                 in_channels, 
+                 out_channels, 
+                 Conv2d_kernel, 
+                 channels, 
+                 SFM_filters, 
+                 strides, 
+                 paddings,
+                 w_arr,
+                 bais_arr,
+                 fc_input,
+                 device) -> None:
         super().__init__()
-        Conv2d_kernel = [(5, 5), (1, 1), (1, 1), (1, 1)]
-        SFM_filters = [(2, 2), (1, 3), (3, 1)]
+
         self.convs = nn.ModuleList([
             nn.Sequential(
-                self._make_BasicBlock(1, 100, Conv2d_kernel[0], stride=4, filter = SFM_filters[0], bias=0.4),
-                self._make_BasicBlock(100, 225, Conv2d_kernel[1], filter = SFM_filters[1], bias=0.1),
-                self._make_BasicBlock(225, 625, Conv2d_kernel[2], filter = SFM_filters[2], bias=0.01),
-                self._make_ConvBlock(625, 1225, Conv2d_kernel[3], bias=0.01)
+                *[self._make_BasicBlock(channels[i], 
+                                        channels[i+1], 
+                                        Conv2d_kernel[i], 
+                                        stride = strides[i],
+                                        padding = paddings[i], 
+                                        filter = SFM_filters[i], 
+                                        bias=bais_arr[i], 
+                                        w = w_arr[i], 
+                                        device = device) for i in range(len(SFM_filters))],
+                self._make_ConvBlock(channels[-2], 
+                                     channels[-1], 
+                                     Conv2d_kernel[-1], 
+                                     stride = strides[-1],
+                                     padding = paddings[-1], 
+                                     bias=bais_arr[-1], 
+                                     w=w_arr[i], 
+                                     device = device)
             ) for i in range(in_channels)
         ])
 
+
         self.fc1 = nn.Sequential(
-            nn.Linear(in_channels * 1225 * 1 * 1, out_channels)
-        )
-
-    def _make_BasicBlock(self,
-                    in_channels:int, 
-                    out_channels:int, 
-                    kernel_size:tuple,
-                    stride:int = 1,
-                    padding:int = 0,
-                    filter:tuple = (1,1),
-                    w = 5.0,
-                    bias = 0.4,):
-        return nn.Sequential(
-            RBF_Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride = stride, padding = padding, device = "cuda"),
-            # triangle(w=w, requires_grad = True, device = "cuda"),
-            gauss(std=2, device = "cuda"),
-            cReLU(bias=bias, requires_grad = True, device = "cuda"),
-            SFM(filter = filter, device = "cuda")
-        )
-
-    def _make_ConvBlock(self,
-                    in_channels, 
-                    out_channels, 
-                    kernel_size,
-                    stride:int = 1,
-                    padding:int = 0,
-                    w = 4.0,
-                    bias = 0.4,):
-        return nn.Sequential(
-            RBF_Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride = stride, device = "cuda"),
-            # triangle(w=w, requires_grad = True, device="cuda"),
-            gauss(std=2, device = "cuda"),
-            cReLU(bias=bias, requires_grad = True, device="cuda"),
+            nn.Linear(fc_input, out_channels)
         )
 
     def forward(self, x):
@@ -65,6 +57,40 @@ class SOMNetwork(nn.Module):
         output = torch.concat((fc_input), dim=1)
         output = self.fc1(output.reshape(x.shape[0], -1))
         return output
+
+    def _make_BasicBlock(self,
+                    in_channels:int, 
+                    out_channels:int, 
+                    kernel_size:tuple,
+                    stride:int = 1,
+                    padding:int = 0,
+                    filter:tuple = (1,1),
+                    w = 5.0,
+                    bias = 0.4,
+                    device:str = "cuda"):
+        return nn.Sequential(
+            RBF_Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride = stride, padding = padding, device = device),
+            triangle(w=w, requires_grad = True, device = device),
+            # gauss(std=2, device = device),
+            cReLU(bias=bias, requires_grad = True, device = device),
+            SFM(filter = filter, device = device)
+        )
+
+    def _make_ConvBlock(self,
+                    in_channels, 
+                    out_channels, 
+                    kernel_size,
+                    stride:int = 1,
+                    padding:int = 0,
+                    w = 4.0,
+                    bias = 0.4,
+                    device:str = "cuda"):
+        return nn.Sequential(
+            RBF_Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride = stride, padding = padding, device = device),
+            triangle(w=w, requires_grad = True, device = device),
+            # gauss(std=2, device = device),
+            cReLU(bias=bias, requires_grad = True, device = device),
+        )
 
 
 '''
@@ -100,7 +126,8 @@ class RBF_Conv2d(nn.Module):
         output_height = math.floor((input.shape[-2] + self.padding * 2 - (self.kernel_size[1] - 1) - 1) / self.stride[1] + 1)
         windows = F.unfold(input, kernel_size = self.kernel_size, stride = self.stride, padding = self.padding).permute(0, 2, 1)
         result = torch.pow(torch.cdist(windows, self.weight).permute(0, 2, 1), 2)
-        return result.reshape(result.shape[0], result.shape[1], output_height, output_width)
+        result = result.reshape(result.shape[0], result.shape[1], output_height, output_width)
+        return result
     
     def extra_repr(self) -> str:
         return f"weight shape = {(self.out_channels, self.in_channels, *self.kernel_size)}"
@@ -116,6 +143,7 @@ class triangle(nn.Module):
             self.w = nn.Parameter(self.w, requires_grad = True)
 
     def forward(self, d):
+        # print(f"d = {list(d[0, :10, :, :])}")
         w_tmp = self.w
         d[d>w_tmp] = w_tmp
         return torch.ones_like(d) - torch.div(d, w_tmp)
@@ -142,6 +170,8 @@ class cReLU(nn.Module):
             self.bias = nn.Parameter(self.bias, requires_grad = True)
     
     def forward(self, x):
+        # print(f"x = {list(x[0, 0, :, :])}")
+        # input()
         bias_tmp = self.bias
         return x * torch.ge(x, bias_tmp).float()
     
@@ -175,7 +205,7 @@ class SFM(nn.Module):
         _, filter_h, filter_w = alpha_pows.shape
 
         # 使用 unfold 將 input 展開成形狀為 (batch_num, channels, (height-filter_h+step)*(width-filter_w+step), filter_h * filter_w) 的二維張量
-        unfolded_input = input.unfold(2, filter_h, filter_h).unfold(3, filter_w, filter_h).reshape(batch_num, channels, -1, filter_h * filter_w)
+        unfolded_input = input.unfold(2, filter_h, filter_h).unfold(3, filter_w, filter_w).reshape(batch_num, channels, -1, filter_h * filter_w)
         # print(f"unfolded_input = {unfolded_input.shape}")
         # print(unfolded_input)
 
@@ -196,7 +226,7 @@ class SFM(nn.Module):
         return output
     
     def extra_repr(self) -> str:
-        return f"filter={self.filter}, alpha={self.alpha}"
+        return f"filter={self.filter}, alpha={self.alpha.item()}"
 
 
 
