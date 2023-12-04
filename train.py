@@ -101,11 +101,14 @@ train_dataloader, test_dataloader = load_data(dataset=config['dataset'], root=co
 
 model = getattr(getattr(models, config['model']['name']), config['model']['name'])(**dict(config['model']['args'], device = config['device']))
 model = model.to(config['device'])
+print(model)
 summary(model, input_size = (config['model']['args']['in_channels'], *config['input_shape']))
 
 loss_fn = getattr(nn, config['loss_fn'])()
 optimizer = getattr(optim, config['optimizer']['name'])(model.parameters(), lr=config['lr'], **dict(config['optimizer']['args']))
 scheduler = getattr(optim.lr_scheduler, config['lr_scheduler']['name'])(optimizer, **dict(config['lr_scheduler']['args']))
+
+shutil.copyfile(f'./models/{config["model"]["name"]}.py', f'{save_dir}/{config["model"]["name"]}.py')
 
 # wandb.watch(model, loss_fn, log="all", log_freq=1)
 train_loss, train_acc, valid_loss, valid_acc, checkpoint = train(train_dataloader, test_dataloader, model, loss_fn, optimizer, scheduler, config['epoch'], device = config['device'])
@@ -126,11 +129,11 @@ record_table = wandb.Table(columns=["Image", "Answer", "Predict", "batch_Loss", 
 wandb.log({"Test Table": record_table})
 print(f'checkpoint keys: {checkpoint.keys()}')
 
-torch.save(checkpoint, f'{config["save_dir"]}/SFMCNN_v10_epochs{config["epoch"]}.pth')
+torch.save(checkpoint, f'{config["save_dir"]}/{config["model"]["name"]}_epochs{config["epoch"]}.pth')
 # m = torch.jit.script(model)
 # script = torch.jit.save(m, f'{save_dir}/RGB_Plan_v10_epochs{epoch}_entire_model.pth')
-art = wandb.Artifact(f"SFMCNN_v10_{config['dataset']}", type="model")
-art.add_file(f'{config["save_dir"]}/SFMCNN_v10_epochs{config["epoch"]}.pth')
-art.add_file(f'{config["save_dir"]}/SFMCNN_v10.py')
+art = wandb.Artifact(f'{config["model"]["name"]}_{config["dataset"]}', type="model")
+art.add_file(f'{config["save_dir"]}/{config["model"]["name"]}_epochs{config["epoch"]}.pth')
+art.add_file(f'{config["save_dir"]}/{config["model"]["name"]}.py')
 wandb.log_artifact(art, aliases = ["latest"])
 wandb.finish()
