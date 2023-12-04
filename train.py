@@ -32,7 +32,6 @@ def train(train_dataloader: DataLoader, valid_dataloader: DataLoader, model: nn.
             for batch, (X, y) in progress:
                 X = X.to(device); y= y.to(device)
                 pred = model(X)
-                y = y.argmax(1)
                 loss = loss_fn(pred, y)
 
                 optimizer.zero_grad()
@@ -42,12 +41,7 @@ def train(train_dataloader: DataLoader, valid_dataloader: DataLoader, model: nn.
                 losses += loss.detach().item()
                 size += len(X)
                 
-                correct += (pred.argmax(1) == y).type(torch.float).sum().item()
-
-                # pred = nn.Softmax(dim=-1)(pred)
-                # _, maxk = torch.topk(pred, 1, dim = -1, sorted = False)
-                # _, y = torch.topk(y, 1, dim=-1, sorted = False)
-                # correct += torch.eq(maxk, y).sum().detach().item()
+                correct += (pred.argmax(1) == y.argmax(1)).type(torch.float).sum().item()
 
                 train_loss = losses/(batch+1)
                 train_acc = correct/size
