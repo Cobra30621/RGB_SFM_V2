@@ -18,7 +18,7 @@ print(save_dir)
 lr_scheduler = {
     "name": "ReduceLROnPlateau",
     "args":{
-        "patience": 10
+        "patience": 100
     }
 }
 
@@ -40,6 +40,7 @@ arch = {
         "strides": [1, 1, 1, 1],
         "paddings": [3, 3, 0, 0],
         "w_arr": [4.0, 4.0, 4.0, 4.0],
+        # "w_arr": [4.5, 200.0, 784.0, 32.0],
         "bais_arr": [0.4, 0.1, 0.01, 0.01],
         "fc_input": 3 * 128 * 1 * 3
     }

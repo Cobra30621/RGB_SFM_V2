@@ -47,6 +47,10 @@ def train(train_dataloader: DataLoader, valid_dataloader: DataLoader, model: nn.
                 train_acc = correct/size
                 progress.set_description("Loss: {:.7f}, Accuracy: {:.7f}".format(train_loss, train_acc))
 
+                # for name, param in model.named_parameters():
+                #     if 'weight' in name:
+                #         param.data = torch.clamp(param.data, 0, 1)
+
             valid_acc, valid_loss, _ = eval(valid_dataloader, model, loss_fn, False, device = device)
             print(f"Test Loss: {valid_loss}, Test Accuracy: {valid_acc}")
             if scheduler:

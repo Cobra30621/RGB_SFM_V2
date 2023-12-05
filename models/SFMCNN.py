@@ -73,7 +73,7 @@ class SFMCNN(nn.Module):
             # triangle(w=w, requires_grad = True, device = device),
             # gauss(std=2, device = device),
             # cReLU(bias=bias, requires_grad = True, device = device),
-            triangle_cReLU(w=w, percentile=0.5, requires_grad = True, device=device),
+            triangle_cReLU(w=w, bias=bias, requires_grad = True, device=device),
             SFM(filter = filter, device = device)
         )
 
@@ -91,7 +91,7 @@ class SFMCNN(nn.Module):
             # triangle(w=w, requires_grad = True, device = device),
             # gauss(std=2, device = device),
             # cReLU(bias=bias, requires_grad = True, device = device),
-            triangle_cReLU(w=w, percentile=0.5, requires_grad = True, device=device),
+            triangle_cReLU(w=w, bias=bias, requires_grad = True, device=device),
         )
 
 
@@ -120,10 +120,13 @@ class RBF_Conv2d(nn.Module):
         self.reset_parameters()
     
     def reset_parameters(self) -> None:
-        init.kaiming_uniform_(self.weight)
+        # init.uniform_(self.weight)
+        init.kaiming_uniform_(self.weight) # bound = (-0.8, 0.8)
         self.weight = nn.Parameter(self.weight)
     
     def forward(self, input: Tensor) -> Tensor:
+        # print(input[0, 0, :, :])
+        # print(f"RBF weights = {self.weight}")
         output_width = math.floor((input.shape[-1] + self.padding * 2 - (self.kernel_size[0] - 1) - 1) / self.stride[0] + 1)
         output_height = math.floor((input.shape[-2] + self.padding * 2 - (self.kernel_size[1] - 1) - 1) / self.stride[1] + 1)
         windows = F.unfold(input, kernel_size = self.kernel_size, stride = self.stride, padding = self.padding).permute(0, 2, 1)
@@ -145,10 +148,9 @@ class triangle(nn.Module):
             self.w = nn.Parameter(self.w, requires_grad = True)
 
     def forward(self, d):
-        # print(f"d = {list(d[0, :10, :, :])}")
         w_tmp = self.w
-        d[d>w_tmp] = w_tmp
-        return torch.tensor([torch.ones_like(d) - torch.div(d, w_tmp), w_tmp]).to("cuda")
+        d[d>=w_tmp] = w_tmp
+        return torch.ones_like(d) - torch.div(d, w_tmp)
     
     def extra_repr(self) -> str:
         return f"w = {self.w.item()}"
@@ -164,66 +166,44 @@ class gauss(nn.Module):
 class cReLU(nn.Module):
     def __init__(self, 
                  bias: float = 0.7,
-                 percentile:float = 0.5,
                  requires_grad: bool = True,
                  device:str = "cuda") -> None:
         super().__init__()
         self.bias = torch.tensor([bias]).to(device)
-        self.percentile = torch.tensor(percentile)
         if requires_grad:
             self.bias = nn.Parameter(self.bias, requires_grad = True)
     
-    def forward(self, input):
-        # print(f"x = {list(x[0, 0, :, :])}")
-        x, w = input
-
-        tmp = x.reshape(x.shape[0], -1)
-        tmp, _ = torch.sort(tmp, dim=-1, descending = True)
-
-        # 計算在每個 batch 中的索引位置
-        index = (self.percentile * tmp.shape[1] // 100).long()
-
-        # 通過索引取得百分比元素的值
-        percentile_values = tmp[:, index]
-        
-        bias = 1 - w * percentile_values
-        bias = bias.view(-1,1,1,1)
-
-        return x * torch.ge(x, bias).float()
+    def forward(self, x):
+        bias_tmp = self.bias
+        result = x * torch.ge(x, bias_tmp.repeat(x.shape[0]).view(-1,1,1,1)).float()
+        return result
     
     def extra_repr(self) -> str:
         return f"bias={self.bias.item()}"
 
 class triangle_cReLU(nn.Module):
     def __init__(self, 
-                 w: float = 0.4,
-                 percentile:float = 0.5,
+                 w: float,
+                 bias: float,
                  requires_grad: bool = False, 
                  device:str = "cuda"):
         super().__init__()
         self.w = torch.Tensor([w]).to(device)
-        self.percentile = torch.tensor(percentile)
+        self.bias = torch.tensor([bias]).to(device)
         if requires_grad:
             self.w = nn.Parameter(self.w, requires_grad = True)
+            self.bias = nn.Parameter(self.bias, requires_grad = True)
 
     def forward(self, d):
         w_tmp = self.w
-        tmp = d.reshape(d.shape[0], -1)
-        tmp, _ = torch.sort(tmp, dim=-1, descending = True)
-        # 計算在每個 batch 中的索引位置
-        index = (self.percentile * tmp.shape[1]).long()
-        # 通過索引取得百分比元素的值
-        threshold = tmp[:, index]
-        threshold[threshold>w_tmp] = w_tmp
-        threshold = threshold.view(-1,1,1,1)
-
-        result = d.detach()
-        result[result>=threshold] = w_tmp
+        bias_tmp = self.bias
+        threshold = w_tmp * (1-bias_tmp)
+        d[d>=threshold] = w_tmp
         result = torch.ones_like(d) - torch.div(d, w_tmp)
         return result
     
     def extra_repr(self) -> str:
-        return f"w = {self.w.item()}, percentile = {self.percentile.item()}"
+        return f"w = {self.w.item()}, bias={self.bias.item()}"
 
 '''
     時序合併層
