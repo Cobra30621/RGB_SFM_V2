@@ -70,9 +70,10 @@ class SFMCNN(nn.Module):
                     device:str = "cuda"):
         return nn.Sequential(
             RBF_Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride = stride, padding = padding, device = device),
-            triangle(w=w, requires_grad = True, device = device),
+            # triangle(w=w, requires_grad = True, device = device),
             # gauss(std=2, device = device),
-            cReLU(bias=bias, requires_grad = True, device = device),
+            # cReLU(bias=bias, requires_grad = True, device = device),
+            triangle_cReLU(w=w, percentile=0.5, requires_grad = True, device=device),
             SFM(filter = filter, device = device)
         )
 
@@ -87,9 +88,10 @@ class SFMCNN(nn.Module):
                     device:str = "cuda"):
         return nn.Sequential(
             RBF_Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride = stride, padding = padding, device = device),
-            triangle(w=w, requires_grad = True, device = device),
+            # triangle(w=w, requires_grad = True, device = device),
             # gauss(std=2, device = device),
-            cReLU(bias=bias, requires_grad = True, device = device),
+            # cReLU(bias=bias, requires_grad = True, device = device),
+            triangle_cReLU(w=w, percentile=0.5, requires_grad = True, device=device),
         )
 
 
@@ -146,7 +148,7 @@ class triangle(nn.Module):
         # print(f"d = {list(d[0, :10, :, :])}")
         w_tmp = self.w
         d[d>w_tmp] = w_tmp
-        return torch.ones_like(d) - torch.div(d, w_tmp)
+        return torch.tensor([torch.ones_like(d) - torch.div(d, w_tmp), w_tmp]).to("cuda")
     
     def extra_repr(self) -> str:
         return f"w = {self.w.item()}"
@@ -161,22 +163,67 @@ class gauss(nn.Module):
 
 class cReLU(nn.Module):
     def __init__(self, 
-                 bias: float = 0.7, 
+                 bias: float = 0.7,
+                 percentile:float = 0.5,
                  requires_grad: bool = True,
                  device:str = "cuda") -> None:
         super().__init__()
         self.bias = torch.tensor([bias]).to(device)
+        self.percentile = torch.tensor(percentile)
         if requires_grad:
             self.bias = nn.Parameter(self.bias, requires_grad = True)
     
-    def forward(self, x):
+    def forward(self, input):
         # print(f"x = {list(x[0, 0, :, :])}")
-        # input()
-        bias_tmp = self.bias
-        return x * torch.ge(x, bias_tmp).float()
+        x, w = input
+
+        tmp = x.reshape(x.shape[0], -1)
+        tmp, _ = torch.sort(tmp, dim=-1, descending = True)
+
+        # 計算在每個 batch 中的索引位置
+        index = (self.percentile * tmp.shape[1] // 100).long()
+
+        # 通過索引取得百分比元素的值
+        percentile_values = tmp[:, index]
+        
+        bias = 1 - w * percentile_values
+        bias = bias.view(-1,1,1,1)
+
+        return x * torch.ge(x, bias).float()
     
     def extra_repr(self) -> str:
         return f"bias={self.bias.item()}"
+
+class triangle_cReLU(nn.Module):
+    def __init__(self, 
+                 w: float = 0.4,
+                 percentile:float = 0.5,
+                 requires_grad: bool = False, 
+                 device:str = "cuda"):
+        super().__init__()
+        self.w = torch.Tensor([w]).to(device)
+        self.percentile = torch.tensor(percentile)
+        if requires_grad:
+            self.w = nn.Parameter(self.w, requires_grad = True)
+
+    def forward(self, d):
+        w_tmp = self.w
+        tmp = d.reshape(d.shape[0], -1)
+        tmp, _ = torch.sort(tmp, dim=-1, descending = True)
+        # 計算在每個 batch 中的索引位置
+        index = (self.percentile * tmp.shape[1]).long()
+        # 通過索引取得百分比元素的值
+        threshold = tmp[:, index]
+        threshold[threshold>w_tmp] = w_tmp
+        threshold = threshold.view(-1,1,1,1)
+
+        result = d.detach()
+        result[result>=threshold] = w_tmp
+        result = torch.ones_like(d) - torch.div(d, w_tmp)
+        return result
+    
+    def extra_repr(self) -> str:
+        return f"w = {self.w.item()}, percentile = {self.percentile.item()}"
 
 '''
     時序合併層
