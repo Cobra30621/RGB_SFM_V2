@@ -8,7 +8,7 @@ project = "paper experiment"
 name = "SFMCNN"
 group = "Rewrite"
 tags = ["SFMCNN", "Rewrite"]
-description = "test RGB Plan v9 architecture"
+description = ""
 
 
 save_dir = increment_path('./runs/train/exp', exist_ok = False)
@@ -41,10 +41,19 @@ arch = {
         "paddings": [3, 3, 0, 0],
         "w_arr": [4.0, 4.0, 4.0, 4.0],
         # "w_arr": [4.5, 200.0, 784.0, 32.0],
-        "bais_arr": [0.4, 0.1, 0.01, 0.01],
-        "fc_input": 3 * 128 * 1 * 3
+        "percent": [0.5, 0.5, 0.5, 0.5],
+        "fc_input": 3 * 128 * 1 * 3,
+        "device": torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     }
 }
+
+# arch = {
+#     "name": 'CNN',
+#     "args":{
+#         "in_channels": 3,
+#         "out_channels": 15,
+#     }
+# }
 
 config = {
     "device": torch.device('cuda' if torch.cuda.is_available() else 'cpu'),

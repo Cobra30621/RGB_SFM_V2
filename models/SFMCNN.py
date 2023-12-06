@@ -66,14 +66,11 @@ class SFMCNN(nn.Module):
                     padding:int = 0,
                     filter:tuple = (1,1),
                     w = 5.0,
-                    bias = 0.4,
+                    percent = 0.4,
                     device:str = "cuda"):
         return nn.Sequential(
             RBF_Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride = stride, padding = padding, device = device),
-            # triangle(w=w, requires_grad = True, device = device),
-            # gauss(std=2, device = device),
-            # cReLU(bias=bias, requires_grad = True, device = device),
-            triangle_cReLU(w=w, bias=bias, requires_grad = True, device=device),
+            triangle_cReLU(w=w, percent=percent, requires_grad = True, device=device),
             SFM(filter = filter, device = device)
         )
 
@@ -84,14 +81,11 @@ class SFMCNN(nn.Module):
                     stride:int = 1,
                     padding:int = 0,
                     w = 4.0,
-                    bias = 0.4,
+                    percent = 0.4,
                     device:str = "cuda"):
         return nn.Sequential(
             RBF_Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride = stride, padding = padding, device = device),
-            # triangle(w=w, requires_grad = True, device = device),
-            # gauss(std=2, device = device),
-            # cReLU(bias=bias, requires_grad = True, device = device),
-            triangle_cReLU(w=w, bias=bias, requires_grad = True, device=device),
+            triangle_cReLU(w=w, percent=percent, requires_grad = True, device=device),
         )
 
 
@@ -184,26 +178,35 @@ class cReLU(nn.Module):
 class triangle_cReLU(nn.Module):
     def __init__(self, 
                  w: float,
-                 bias: float,
+                 percent: float,
                  requires_grad: bool = False, 
                  device:str = "cuda"):
         super().__init__()
         self.w = torch.Tensor([w]).to(device)
-        self.bias = torch.tensor([bias]).to(device)
+        self.percent = torch.tensor([percent]).to(device)
         if requires_grad:
             self.w = nn.Parameter(self.w, requires_grad = True)
-            self.bias = nn.Parameter(self.bias, requires_grad = True)
 
     def forward(self, d):
         w_tmp = self.w
-        bias_tmp = self.bias
-        threshold = w_tmp * (1-bias_tmp)
-        d[d>=threshold] = w_tmp
-        result = torch.ones_like(d) - torch.div(d, w_tmp)
+        # bias_tmp = self.bias
+
+        tmp = d.reshape(d.shape[0], -1)
+        tmp, _ = torch.sort(tmp, dim=-1, descending = True)
+        # 計算在每個 batch 中的索引位置
+        index = (self.percent * tmp.shape[1]).long()
+        # 通過索引取得百分比元素的值
+        threshold = tmp[:, index]
+        threshold[threshold>w_tmp] = w_tmp
+        threshold = threshold.view(-1,1,1,1)
+
+        # threshold = w_tmp * (1-bias_tmp)
+        d[torch.ge(d, threshold)] = w_tmp
+        result = (torch.ones_like(d) - torch.div(d, w_tmp))
         return result
     
     def extra_repr(self) -> str:
-        return f"w = {self.w.item()}, bias={self.bias.item()}"
+        return f"w = {self.w.item()}, percent={self.percent.item()}"
 
 '''
     時序合併層

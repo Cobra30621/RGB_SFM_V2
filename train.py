@@ -61,8 +61,8 @@ def train(train_dataloader: DataLoader, valid_dataloader: DataLoader, model: nn.
                 "train/epoch": e,
                 "train/accuracy": train_acc,
                 "train/learnrate": optimizer.param_groups[0]['lr'],
-                "test/loss": valid_loss,
-                "test/accuracy": valid_acc
+                "valid/loss": valid_loss,
+                "valid/accuracy": valid_acc
             }
             wandb.log(metrics, step=e)
 
@@ -103,7 +103,7 @@ wandb.init(
 
 train_dataloader, test_dataloader = load_data(dataset=config['dataset'], root=config['root'], batch_size=config['batch_size'], input_size=config['input_shape'])
 
-model = getattr(getattr(models, config['model']['name']), config['model']['name'])(**dict(config['model']['args'], device = config['device']))
+model = getattr(getattr(models, config['model']['name']), config['model']['name'])(**dict(config['model']['args']))
 model = model.to(config['device'])
 print(model)
 summary(model, input_size = (config['model']['args']['in_channels'], *config['input_shape']))
