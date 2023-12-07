@@ -18,8 +18,7 @@ class CNN(nn.Module):
         )
 
         self.fc1 = nn.Sequential(
-            nn.Linear(1152, 512),
-            nn.Linear(512, out_channels)
+            nn.Linear(1152, out_channels)
         )
     def forward(self, x):
         x = self.conv1(x)
