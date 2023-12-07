@@ -1,1 +1,1 @@
-from . import CNN, SFMCNN
+from . import CNN, SFMCNN, AlexNet
