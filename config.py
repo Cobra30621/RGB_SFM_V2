@@ -9,7 +9,7 @@ name = "SFMCNN"
 group = "Rewrite"
 tags = ["SFMCNN", "Rewrite"]
 description = ""
-
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 save_dir = increment_path('./runs/train/exp', exist_ok = False)
 Path(save_dir).mkdir(parents=True, exist_ok=True)
@@ -39,11 +39,10 @@ arch = {
         "channels": [1, 16, 32, 64, 128],
         "strides": [1, 1, 1, 1],
         "paddings": [3, 3, 0, 0],
-        "w_arr": [4.0, 4.0, 4.0, 4.0],
-        # "w_arr": [4.5, 200.0, 784.0, 32.0],
-        "percent": [0.5, 0.5, 0.5, 0.5],
-        "fc_input": 3 * 128 * 1 * 3,
-        "device": torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        "w_arr": [2.0, 100.0, 784.0, 784.0],
+        "percent": [0.85, 0.7, 0.6, 0.5],
+        "fc_input": 3*1*3*128,
+        "device": device
     }
 }
 
@@ -55,8 +54,15 @@ arch = {
 #     }
 # }
 
+# arch = {
+#     "name": 'AlexNet',
+#     "args":{
+#         "num_classes":15
+#     }
+# }
+
 config = {
-    "device": torch.device('cuda' if torch.cuda.is_available() else 'cpu'),
+    "device": device,
     "root": os.path.dirname(__file__),
     "save_dir": save_dir,
     "model": arch,

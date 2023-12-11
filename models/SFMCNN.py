@@ -18,7 +18,7 @@ class SFMCNN(nn.Module):
                  strides, 
                  paddings,
                  w_arr,
-                 bais_arr,
+                 percent,
                  fc_input,
                  device) -> None:
         super().__init__()
@@ -31,7 +31,7 @@ class SFMCNN(nn.Module):
                                         stride = strides[i],
                                         padding = paddings[i], 
                                         filter = SFM_filters[i], 
-                                        bias=bais_arr[i], 
+                                        percent=percent[i], 
                                         w = w_arr[i], 
                                         device = device) for i in range(len(SFM_filters))],
                 self._make_ConvBlock(channels[-2], 
@@ -39,8 +39,8 @@ class SFMCNN(nn.Module):
                                      Conv2d_kernel[-1], 
                                      stride = strides[-1],
                                      padding = paddings[-1], 
-                                     bias=bais_arr[-1], 
-                                     w=w_arr[i], 
+                                     percent=percent[-1], 
+                                     w=w_arr[-1], 
                                      device = device)
             ) for i in range(in_channels)
         ])
@@ -65,8 +65,8 @@ class SFMCNN(nn.Module):
                     stride:int = 1,
                     padding:int = 0,
                     filter:tuple = (1,1),
-                    w = 5.0,
-                    percent = 0.4,
+                    w:float = 0.4,
+                    percent: float = 0.5,
                     device:str = "cuda"):
         return nn.Sequential(
             RBF_Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride = stride, padding = padding, device = device),
@@ -192,7 +192,8 @@ class triangle_cReLU(nn.Module):
         # bias_tmp = self.bias
 
         tmp = d.reshape(d.shape[0], -1)
-        tmp, _ = torch.sort(tmp, dim=-1, descending = True)
+        tmp, _ = torch.sort(tmp, dim=-1)
+
         # 計算在每個 batch 中的索引位置
         index = (self.percent * tmp.shape[1]).long()
         # 通過索引取得百分比元素的值
@@ -257,9 +258,3 @@ class SFM(nn.Module):
     
     def extra_repr(self) -> str:
         return f"filter={self.filter}, alpha={self.alpha.item()}"
-
-
-
-        
-
-    
