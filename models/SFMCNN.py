@@ -124,7 +124,7 @@ class RBF_Conv2d(nn.Module):
         output_width = math.floor((input.shape[-1] + self.padding * 2 - (self.kernel_size[0] - 1) - 1) / self.stride[0] + 1)
         output_height = math.floor((input.shape[-2] + self.padding * 2 - (self.kernel_size[1] - 1) - 1) / self.stride[1] + 1)
         windows = F.unfold(input, kernel_size = self.kernel_size, stride = self.stride, padding = self.padding).permute(0, 2, 1)
-        result = torch.pow(torch.cdist(windows, self.weight).permute(0, 2, 1), 2)
+        result = torch.cdist(windows, self.weight).permute(0, 2, 1)
         result = result.reshape(result.shape[0], result.shape[1], output_height, output_width)
         return result
     
@@ -189,21 +189,31 @@ class triangle_cReLU(nn.Module):
 
     def forward(self, d):
         w_tmp = self.w
-        # bias_tmp = self.bias
+        # print(f'd = {d[0]}')
 
+        # 取所有數字的對應percent值當作唯一threshold
         tmp = d.reshape(d.shape[0], -1)
         tmp, _ = torch.sort(tmp, dim=-1)
-
         # 計算在每個 batch 中的索引位置
         index = (self.percent * tmp.shape[1]).long()
         # 通過索引取得百分比元素的值
         threshold = tmp[:, index]
         threshold[threshold>w_tmp] = w_tmp
         threshold = threshold.view(-1,1,1,1)
+        # print(f'threshold = {threshold}')
 
-        # threshold = w_tmp * (1-bias_tmp)
-        d[torch.ge(d, threshold)] = w_tmp
+        # #每個channel獨立計算threshold
+        # threshold, _ = d.topk(int((1 - self.percent) * d.shape[1]), dim=1)
+        # threshold = threshold[:, -1, :, :][:, None, :, :]
+        # # 將 threshold 中大於 w 的元素設為 w
+        # threshold[threshold > w_tmp] = w_tmp
+        # print(f'threshold = {threshold[0]}')
+
+        d = torch.where(d > threshold, w_tmp, d).view(*d.shape)
         result = (torch.ones_like(d) - torch.div(d, w_tmp))
+        # print(f'result shape = {result.shape}')
+        # print(f'result = {result[0]}')
+        # input()
         return result
     
     def extra_repr(self) -> str:
@@ -250,10 +260,13 @@ class SFM(nn.Module):
         # 對應相乘
         result = unfolded_input * expanded_filter
         # print(f"result = {result.shape}")
+        # print(result)
 
         # 將 dim=-1 的維度相加取 mean
         output = result.mean(dim=-1).reshape(batch_num, channels, math.floor(height/filter_h), math.floor(width/filter_w))
-        # print(f"output = {output.shape}")
+        # print(f"output = {output}")
+        # print(f"output max = {torch.max(output.reshape(batch_num,-1), dim = -1)}")
+        # print(f"output min = {torch.min(output.reshape(batch_num,-1), dim = -1)}")
         return output
     
     def extra_repr(self) -> str:
