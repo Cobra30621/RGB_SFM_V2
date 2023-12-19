@@ -114,13 +114,13 @@ class RBF_Conv2d(nn.Module):
         self.reset_parameters()
     
     def reset_parameters(self) -> None:
-        # init.uniform_(self.weight)
-        init.kaiming_uniform_(self.weight) # bound = (-0.8, 0.8)
+        init.uniform_(self.weight)
+        # init.kaiming_uniform_(self.weight) # bound = (-0.8, 0.8)
         self.weight = nn.Parameter(self.weight)
     
     def forward(self, input: Tensor) -> Tensor:
         # print(input[0, 0, :, :])
-        # print(f"RBF weights = {self.weight}")
+        # print(f"RBF weights = {self.weight[0]}")
         output_width = math.floor((input.shape[-1] + self.padding * 2 - (self.kernel_size[0] - 1) - 1) / self.stride[0] + 1)
         output_height = math.floor((input.shape[-2] + self.padding * 2 - (self.kernel_size[1] - 1) - 1) / self.stride[1] + 1)
         windows = F.unfold(input, kernel_size = self.kernel_size, stride = self.stride, padding = self.padding).permute(0, 2, 1)
@@ -191,22 +191,22 @@ class triangle_cReLU(nn.Module):
         w_tmp = self.w
         # print(f'd = {d[0]}')
 
-        # 取所有數字的對應percent值當作唯一threshold
-        tmp = d.reshape(d.shape[0], -1)
-        tmp, _ = torch.sort(tmp, dim=-1)
-        # 計算在每個 batch 中的索引位置
-        index = (self.percent * tmp.shape[1]).long()
-        # 通過索引取得百分比元素的值
-        threshold = tmp[:, index]
-        threshold[threshold>w_tmp] = w_tmp
-        threshold = threshold.view(-1,1,1,1)
-        # print(f'threshold = {threshold}')
+        # # 取所有數字的對應percent值當作唯一threshold
+        # tmp = d.reshape(d.shape[0], -1)
+        # tmp, _ = torch.sort(tmp, dim=-1)
+        # # 計算在每個 batch 中的索引位置
+        # index = (self.percent * tmp.shape[1]).long()
+        # # 通過索引取得百分比元素的值
+        # threshold = tmp[:, index]
+        # threshold[threshold>w_tmp] = w_tmp
+        # threshold = threshold.view(-1,1,1,1)
+        # # print(f'threshold = {threshold}')
 
-        # #每個channel獨立計算threshold
-        # threshold, _ = d.topk(int((1 - self.percent) * d.shape[1]), dim=1)
-        # threshold = threshold[:, -1, :, :][:, None, :, :]
-        # # 將 threshold 中大於 w 的元素設為 w
-        # threshold[threshold > w_tmp] = w_tmp
+        #每個channel獨立計算threshold
+        threshold, _ = d.topk(int((1 - self.percent) * d.shape[1]), dim=1)
+        threshold = threshold[:, -1, :, :][:, None, :, :]
+        # 將 threshold 中大於 w 的元素設為 w
+        threshold[threshold > w_tmp] = w_tmp
         # print(f'threshold = {threshold[0]}')
 
         d = torch.where(d > threshold, w_tmp, d).view(*d.shape)
