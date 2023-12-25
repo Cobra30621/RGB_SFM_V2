@@ -114,8 +114,8 @@ class RBF_Conv2d(nn.Module):
         self.reset_parameters()
     
     def reset_parameters(self) -> None:
-        init.uniform_(self.weight)
-        # init.kaiming_uniform_(self.weight) # bound = (-0.8, 0.8)
+        #init.uniform_(self.weight)
+        init.kaiming_uniform_(self.weight) # bound = (-0.8, 0.8)
         self.weight = nn.Parameter(self.weight)
     
     def forward(self, input: Tensor) -> Tensor:
@@ -227,20 +227,16 @@ class triangle_cReLU(nn.Module):
 class SFM(nn.Module):
     def __init__(self,
                  filter: _size_2_t,
-                 alpha: float = 0.9,
+                 alpha_max: float = 0.99,
+                 alpha_min: float = 0.9,
                  device: str = "cuda") -> None:
         super(SFM, self).__init__()
         self.filter = filter
-        self.alpha = torch.nn.Parameter(torch.tensor([alpha]).to(device), requires_grad=True)
-        "powNum = 次方數順序"
-        self.powerNum = torch.arange(math.prod(filter)).flip(0).to(device)
+        self.alpha = torch.linspace(start=alpha_min, end=alpha_max, steps = math.prod(self.filter), requires_grad=True).reshape(*self.filter)
         self.device = device
 
     def forward(self, input: Tensor) -> Tensor:
-        #將 alpha 進行次方計算
-        alpha_pows = torch.pow(self.alpha, self.powerNum).reshape(*self.filter)
-        #將alpha 從(1,6)變成(100, 1, 6)
-        alpha_pows = alpha_pows.repeat(input.shape[1], 1, 1).to(self.device)
+        alpha_pows = self.alpha.repeat(input.shape[1], 1, 1).to(self.device)
 
         batch_num, channels, height, width = input.shape
         _, filter_h, filter_w = alpha_pows.shape
@@ -270,4 +266,4 @@ class SFM(nn.Module):
         return output
     
     def extra_repr(self) -> str:
-        return f"filter={self.filter}, alpha={self.alpha.item()}"
+        return f"filter={self.filter}, alpha={self.alpha.detach().numpy()}"

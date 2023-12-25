@@ -6,10 +6,9 @@ import os
 
 project = "paper experiment"
 name = "SFMCNN"
-group = "12/18"
+group = "12/20"
 tags = ["SFMCNN", "Rewrite"]
-description = "12/18 老師架構圖實作,\n\
-step4 時序的方式從成alpha成次方改成alpha扣定值"
+description = "12/20 實驗現在SFM合併方法是否會影響mnist"
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 save_dir = increment_path('./runs/train/exp', exist_ok = False)
@@ -33,16 +32,16 @@ optimizer = {
 arch = {
     "name": 'SFMCNN',
     "args":{
-        "in_channels": 3,
-        "out_channels": 15,
-        "Conv2d_kernel": [(3, 3), (1, 1), (1, 1), (1, 1)],
-        "SFM_filters": [(5, 1), (1, 5), (2, 2)],
-        "channels": [1, 16, 32, 64, 128],
-        "strides": [1, 1, 1, 1],
+        "in_channels": 1,
+        "out_channels": 10,
+        "Conv2d_kernel": [(5, 5), (1, 1), (1, 1), (1, 1)],
+        "SFM_filters": [(2, 2), (1, 3), (3, 1), (1, 1)],
+        "channels": [1, 100, 225, 625, 1225],
+        "strides": [4, 1, 1, 1],
         "paddings": [0, 0, 0, 0],
-        "w_arr": [3, 4, 5.65, 8.0],
+        "w_arr": [5, 10, 15, 25],
         "percent": [0.85, 0.7, 0.6, 0.5],
-        "fc_input": 3*1*1*128,
+        "fc_input": 1225,
         "device": device
     }
 }
@@ -67,8 +66,8 @@ config = {
     "root": os.path.dirname(__file__),
     "save_dir": save_dir,
     "model": arch,
-    "dataset": 'rgb_simple_shape',
-    "input_shape": (30, 30),
+    "dataset": 'mnist',
+    "input_shape": (28, 28),
     "rbf": "triangle",
     "batch_size": 32,
     "epoch" : 200,

@@ -32,8 +32,8 @@ class CustomMNISTDataset(Dataset):
         self.data, self.targets = self._load_data()
         
     def _load_data(self):
-        image_file = f"{'train' if self.train else 't10k'}-images.idx3-ubyte"
-        label_file = f"{'train' if self.train else 't10k'}-labels.idx1-ubyte"
+        image_file = f"{'train' if self.train else 'test'}/images.idx3-ubyte"
+        label_file = f"{'train' if self.train else 'test'}/labels.idx1-ubyte"
         data, targets = loadlocal_mnist(
             images_path=os.path.join(self.root, image_file),
             labels_path=os.path.join(self.root, label_file)
