@@ -21,8 +21,8 @@ def eval(dataloader: DataLoader, model: nn.Module, loss_fn, need_table = True, d
     model.eval()
     table = []
     for X, y in dataloader:
-        X = X.to(device); y= y.to(device)
-        y = y.argmax(1)
+        X = X.to(device)
+        y= y.to(device)
         pred = model(X)
 
         loss = loss_fn(pred, y)
@@ -32,7 +32,7 @@ def eval(dataloader: DataLoader, model: nn.Module, loss_fn, need_table = True, d
         # _, maxk = torch.topk(pred, 1, dim = -1, sorted = False)
         # _, y = torch.topk(y, 1, dim=-1, sorted = False)
         # batch_correct = torch.eq(maxk, y).sum().detach().item()
-        batch_correct = (pred.argmax(1) == y).type(torch.float).sum().item()
+        batch_correct = (pred.argmax(1) == y.argmax(1)).type(torch.float).sum().item()
         correct += batch_correct
         size += len(X)
 

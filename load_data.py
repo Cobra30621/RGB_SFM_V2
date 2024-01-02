@@ -30,10 +30,11 @@ class CustomMNISTDataset(Dataset):
         self.train = train
         self.augmentation = augmentation
         self.data, self.targets = self._load_data()
+        self.targets = np.eye(10)[self.targets]
         
     def _load_data(self):
-        image_file = f"{'train' if self.train else 'test'}/images.idx3-ubyte"
-        label_file = f"{'train' if self.train else 'test'}/labels.idx1-ubyte"
+        image_file = f"{'train' if self.train else 't10k'}-images.idx3-ubyte"
+        label_file = f"{'train' if self.train else 't10k'}-labels.idx1-ubyte"
         data, targets = loadlocal_mnist(
             images_path=os.path.join(self.root, image_file),
             labels_path=os.path.join(self.root, label_file)
@@ -68,7 +69,7 @@ class CustomMNISTDataset(Dataset):
         
     def __getitem__(self, index: int) -> Tuple[Any, Any]:
 
-        img, target = self.data[index], int(self.targets[index])
+        img, target = self.data[index], self.targets[index]
         
         if self.transform is not None:
             img = self.transform(img)
