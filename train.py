@@ -47,10 +47,6 @@ def train(train_dataloader: DataLoader, valid_dataloader: DataLoader, model: nn.
                 train_acc = correct/size
                 progress.set_description("Loss: {:.7f}, Accuracy: {:.7f}".format(train_loss, train_acc))
 
-                # for name, param in model.named_parameters():
-                #     if 'weight' in name:
-                #         param.data = torch.clamp(param.data, 0, 1)
-
             valid_acc, valid_loss, _ = eval(valid_dataloader, model, loss_fn, False, device = device)
             print(f"Test Loss: {valid_loss}, Test Accuracy: {valid_acc}")
             if scheduler:
@@ -121,8 +117,10 @@ print("Train: \n\tAccuracy: {}, Avg loss: {} \n".format(train_acc, train_loss))
 print("Valid: \n\tAccuracy: {}, Avg loss: {} \n".format(valid_acc, valid_loss))
 
 # Test model
+model = getattr(getattr(models, config['model']['name']), config['model']['name'])(**dict(config['model']['args']))
 model.load_state_dict(checkpoint['model_weights'])
-test_acc, test_loss, test_table = eval(test_dataloader, model, loss_fn, device = config['device'])
+model.to(device)
+test_acc, test_loss, test_table = eval(test_dataloader, model, loss_fn, device = config['device'], need_table=False)
 print("Test: \n\tAccuracy: {}, Avg loss: {} \n".format(test_acc, test_loss))
 
 # Record result into Wandb
@@ -135,8 +133,6 @@ wandb.log({"Test Table": record_table})
 print(f'checkpoint keys: {checkpoint.keys()}')
 
 torch.save(checkpoint, f'{config["save_dir"]}/{config["model"]["name"]}_epochs{config["epoch"]}.pth')
-# m = torch.jit.script(model)
-# script = torch.jit.save(m, f'{save_dir}/RGB_Plan_v10_epochs{epoch}_entire_model.pth')
 art = wandb.Artifact(f'{config["model"]["name"]}_{config["dataset"]}', type="model")
 art.add_file(f'{config["save_dir"]}/{config["model"]["name"]}_epochs{config["epoch"]}.pth')
 art.add_file(f'{config["save_dir"]}/{config["model"]["name"]}.py')

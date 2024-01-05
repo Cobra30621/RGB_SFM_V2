@@ -31,7 +31,7 @@ class SFMCNN(nn.Module):
                                         stride = strides[i],
                                         padding = paddings[i], 
                                         filter = SFM_filters[i], 
-                                        percent=percent[i], 
+                                        percent=percent[i],
                                         w = w_arr[i], 
                                         device = device) for i in range(len(SFM_filters))],
                 self._make_ConvBlock(channels[-2], 
@@ -124,7 +124,15 @@ class RBF_Conv2d(nn.Module):
         output_width = math.floor((input.shape[-1] + self.padding * 2 - (self.kernel_size[0] - 1) - 1) / self.stride[0] + 1)
         output_height = math.floor((input.shape[-2] + self.padding * 2 - (self.kernel_size[1] - 1) - 1) / self.stride[1] + 1)
         windows = F.unfold(input, kernel_size = self.kernel_size, stride = self.stride, padding = self.padding).permute(0, 2, 1)
+
+        #1. 取絕對值距離
+        # weight_expand = self.weight.unsqueeze(1).unsqueeze(2)
+        # result = (windows - weight_expand).permute(1,0,2,3)
+        # result = torch.abs(result).sum(dim=-1)
+        
+        #2. 取歐基里德距離
         result = torch.cdist(windows, self.weight).permute(0, 2, 1)
+
         result = result.reshape(result.shape[0], result.shape[1], output_height, output_width)
         return result
     
@@ -150,12 +158,17 @@ class triangle(nn.Module):
         return f"w = {self.w.item()}"
 
 class gauss(nn.Module):
-    def __init__(self, std, device):
+    def __init__(self, std, requires_grad: bool = True, device:str = "cuda"):
         super().__init__()
         self.std = torch.Tensor([std]).to(device)
+        if requires_grad:
+            self.std = nn.Parameter(self.std)
 
     def forward(self, d):
-        return torch.exp(d / (-2 * torch.pow(self.std, 2)))
+        return torch.exp(torch.pow(d, 2) / (-2 * torch.pow(self.std, 2)))
+    
+    def extra_repr(self) -> str:
+        return f"std={self.std.item()}"
 
 class cReLU(nn.Module):
     def __init__(self, 
@@ -191,23 +204,26 @@ class triangle_cReLU(nn.Module):
         w_tmp = self.w
         # print(f'd = {d[0]}')
 
-        # # 取所有數字的對應percent值當作唯一threshold
-        # tmp = d.reshape(d.shape[0], -1)
-        # tmp, _ = torch.sort(tmp, dim=-1)
-        # # 計算在每個 batch 中的索引位置
-        # index = (self.percent * tmp.shape[1]).long()
-        # # 通過索引取得百分比元素的值
-        # threshold = tmp[:, index]
-        # threshold[threshold>w_tmp] = w_tmp
-        # threshold = threshold.view(-1,1,1,1)
-        # # print(f'threshold = {threshold}')
+        # 1. 取所有數字的對應percent值當作唯一threshold
+        tmp = d.reshape(d.shape[0], -1)
+        tmp, _ = torch.sort(tmp, dim=-1)
+        # 計算在每個 batch 中的索引位置
+        index = (self.percent * tmp.shape[1]).long()
+        # 通過索引取得百分比元素的值
+        threshold = tmp[:, index]
+        threshold[threshold>w_tmp] = w_tmp
+        threshold = threshold.view(-1,1,1,1)
+        # print(f'threshold = {threshold}')
 
-        #每個channel獨立計算threshold
-        threshold, _ = d.topk(int((1 - self.percent) * d.shape[1]), dim=1)
-        threshold = threshold[:, -1, :, :][:, None, :, :]
-        # 將 threshold 中大於 w 的元素設為 w
-        threshold[threshold > w_tmp] = w_tmp
-        # print(f'threshold = {threshold[0]}')
+        # #2. 每個channel獨立計算threshold
+        # threshold, _ = d.topk(int((1 - self.percent) * d.shape[1]), dim=1)
+        # threshold = threshold[:, -1, :, :][:, None, :, :]
+        # # 將 threshold 中大於 w 的元素設為 w
+        # threshold[threshold > w_tmp] = w_tmp
+        # # print(f'threshold = {threshold[0]}')
+
+        # #3. 取beta
+        # threshold  = w_tmp * (1 - self.beta)
 
         d = torch.where(d > threshold, w_tmp, d).view(*d.shape)
         result = (torch.ones_like(d) - torch.div(d, w_tmp))
@@ -256,13 +272,10 @@ class SFM(nn.Module):
         # 對應相乘
         result = unfolded_input * expanded_filter
         # print(f"result = {result.shape}")
-        # print(result)
 
         # 將 dim=-1 的維度相加取 mean
         output = result.mean(dim=-1).reshape(batch_num, channels, math.floor(height/filter_h), math.floor(width/filter_w))
-        # print(f"output = {output}")
-        # print(f"output max = {torch.max(output.reshape(batch_num,-1), dim = -1)}")
-        # print(f"output min = {torch.min(output.reshape(batch_num,-1), dim = -1)}")
+        # print(f"output = {output.shape}")
         return output
     
     def extra_repr(self) -> str:
