@@ -25,15 +25,36 @@ class SFMCNN(nn.Module):
 
         self.convs = nn.ModuleList([
             nn.Sequential(
-                *[self._make_BasicBlock(channels[i], 
-                                        channels[i+1], 
-                                        Conv2d_kernel[i], 
-                                        stride = strides[i],
-                                        padding = paddings[i], 
-                                        filter = SFM_filters[i], 
-                                        percent=percent[i],
-                                        w = w_arr[i], 
-                                        device = device) for i in range(len(SFM_filters))],
+                self._make_BasicBlock(channels[0], 
+                                        channels[1], 
+                                        Conv2d_kernel[0], 
+                                        stride = strides[0],
+                                        padding = paddings[0], 
+                                        filter = SFM_filters[0], 
+                                        percent=percent[0],
+                                        w = w_arr[0], 
+                                        initial="kaiming",
+                                        device = device),
+                self._make_BasicBlock(channels[1], 
+                                        channels[2], 
+                                        Conv2d_kernel[1], 
+                                        stride = strides[1],
+                                        padding = paddings[1], 
+                                        filter = SFM_filters[1], 
+                                        percent=percent[1],
+                                        w = w_arr[1],
+                                        initial="kaiming", 
+                                        device = device),
+                self._make_BasicBlock(channels[2], 
+                                        channels[3], 
+                                        Conv2d_kernel[2], 
+                                        stride = strides[2],
+                                        padding = paddings[2], 
+                                        filter = SFM_filters[2], 
+                                        percent=percent[2],
+                                        w = w_arr[2], 
+                                        initial="kaiming",
+                                        device = device),
                 self._make_ConvBlock(channels[-2], 
                                      channels[-1], 
                                      Conv2d_kernel[-1], 
@@ -67,9 +88,10 @@ class SFMCNN(nn.Module):
                     filter:tuple = (1,1),
                     w:float = 0.4,
                     percent: float = 0.5,
+                    initial: str = "kaiming",
                     device:str = "cuda"):
         return nn.Sequential(
-            RBF_Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride = stride, padding = padding, device = device),
+            RBF_Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride = stride, padding = padding, initial = initial,device = device),
             triangle_cReLU(w=w, percent=percent, requires_grad = True, device=device),
             SFM(filter = filter, device = device)
         )
@@ -100,6 +122,7 @@ class RBF_Conv2d(nn.Module):
                  kernel_size: int,
                  stride: int = 1,
                  padding: int = 0,
+                 initial:str = "kaiming",
                  device=None,
                  dtype=None):
         super().__init__()
@@ -109,13 +132,22 @@ class RBF_Conv2d(nn.Module):
         factory_kwargs = {'device':device, 'dtype':dtype}
         self.out_channels = out_channels
         self.in_channels = in_channels
+        self.initial = initial
 
         self.weight = torch.empty((out_channels, in_channels * self.kernel_size[0] * self.kernel_size[1]), **factory_kwargs)
-        self.reset_parameters()
+        self.reset_parameters(initial)
     
-    def reset_parameters(self) -> None:
-        #init.uniform_(self.weight)
-        init.kaiming_uniform_(self.weight) # bound = (-0.8, 0.8)
+    def reset_parameters(self, initial) -> None:
+        if initial == "kaiming":
+            # kaiming 初始化
+            # bound  = sqrt(6/(1 + a^2 * fan))
+            # fan = self.weight.size(1) * 1
+            init.kaiming_uniform_(self.weight)
+        elif initial == "uniform":
+            init.uniform_(self.weight)
+        else:
+            raise "RBF_Conv2d initial error"
+
         self.weight = nn.Parameter(self.weight)
     
     def forward(self, input: Tensor) -> Tensor:
@@ -124,6 +156,9 @@ class RBF_Conv2d(nn.Module):
         output_width = math.floor((input.shape[-1] + self.padding * 2 - (self.kernel_size[0] - 1) - 1) / self.stride[0] + 1)
         output_height = math.floor((input.shape[-2] + self.padding * 2 - (self.kernel_size[1] - 1) - 1) / self.stride[1] + 1)
         windows = F.unfold(input, kernel_size = self.kernel_size, stride = self.stride, padding = self.padding).permute(0, 2, 1)
+
+        # # 將weight取平方保證其範圍落在 0 ~ 1 之間
+        # weights = torch.pow(self.weight, 2)
 
         #1. 取絕對值距離
         # weight_expand = self.weight.unsqueeze(1).unsqueeze(2)
@@ -137,7 +172,7 @@ class RBF_Conv2d(nn.Module):
         return result
     
     def extra_repr(self) -> str:
-        return f"weight shape = {(self.out_channels, self.in_channels, *self.kernel_size)}"
+        return f"initial = {self.initial}, weight shape = {(self.out_channels, self.in_channels, *self.kernel_size)}"
 
 class triangle(nn.Module):
     def __init__(self, 
@@ -201,6 +236,7 @@ class triangle_cReLU(nn.Module):
             self.w = nn.Parameter(self.w, requires_grad = True)
 
     def forward(self, d):
+        # input()
         w_tmp = self.w
         # print(f'd = {d[0]}')
 
@@ -227,9 +263,8 @@ class triangle_cReLU(nn.Module):
 
         d = torch.where(d > threshold, w_tmp, d).view(*d.shape)
         result = (torch.ones_like(d) - torch.div(d, w_tmp))
-        # print(f'result shape = {result.shape}')
-        # print(f'result = {result[0]}')
-        # input()
+        # print(f"triangle_cRelu after: {torch.max(result)} ~ {torch.min(result)}")
+        # print('-----')
         return result
     
     def extra_repr(self) -> str:

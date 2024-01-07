@@ -8,8 +8,7 @@ project = "paper experiment"
 name = "SFMCNN"
 group = "1/3"
 tags = ["SFMCNN", "Rewrite"]
-description = "1/3 對照組, \n\
-                改變SFM合併方式0.99~0.9 + guass 變成triangle(每個channel有獨立的z)"
+description = "1/3 實驗修正W的數值"
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 save_dir = increment_path('./runs/train/exp', exist_ok = False)
@@ -40,7 +39,7 @@ arch = {
         "channels": [1, 100, 225, 625, 1225],
         "strides": [4, 1, 1, 1],
         "paddings": [0, 0, 0, 0],
-        "w_arr": [5, 10, 15, 25],
+        "w_arr": [7.45, 12.45, 17.445, 27.5],
         "percent": [0.5, 0.4, 0.3, 0.2],
         "fc_input": 1225,
         "device": device
