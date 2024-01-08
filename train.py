@@ -11,7 +11,6 @@ from torch.utils.data import DataLoader
 from torchsummary import summary
 
 from load_data import load_data
-from test import eval
 from config import *
 import models
 
@@ -77,8 +76,48 @@ def train(train_dataloader: DataLoader, valid_dataloader: DataLoader, model: nn.
                 checkpoint['model_weights'] = model.state_dict()
                 checkpoint['optimizer'] = optimizer.state_dict()
                 checkpoint['scheduler'] = scheduler.state_dict()
+                torch.save(checkpoint, f'{config["save_dir"]}/epochs{e}.pth')
+                print(model)
+                del checkpoint
+                checkpoint = {}
+
+
+    print(model)
                     
     return cur_train_loss, cur_train_acc, best_valid_loss, best_valid_acc, checkpoint
+
+def eval(dataloader: DataLoader, model: nn.Module, loss_fn, need_table = True, device=None):
+    progress = tqdm(enumerate(dataloader), desc="Loss: ", total=len(dataloader))
+    model.eval()
+    losses = 0
+    correct = 0
+    size = 0
+    table = []
+    for batch, (X, y) in progress:
+        X = X.to(device); y= y.to(device)
+        pred = model(X)
+        loss = loss_fn(pred, y)
+        
+        losses += loss.detach().item()
+        size += len(X)
+        
+        correct += (pred.argmax(1) == y.argmax(1)).type(torch.float).sum().item()
+
+        if need_table:
+            X = X.cpu()
+            y = y.cpu()
+            
+            # sample first image in batch 
+            if X[0].shape[0] == 3:
+                X = np.transpose(np.array(X[0]), (1, 2, 0))
+            else:
+                X = np.array(X[0])
+            table.append([wandb.Image(X), y[0], pred.argmax(1)[0], loss, (pred.argmax(1) == y.argmax(1)).type(torch.float).sum().item()])
+
+        test_loss = losses/(batch+1)
+        test_acc = correct/size
+        progress.set_description("Loss: {:.7f}, Accuracy: {:.7f}".format(test_loss, test_acc))
+    return test_acc, test_loss, table
 
 # start a new wandb run to track this script
 wandb.init(

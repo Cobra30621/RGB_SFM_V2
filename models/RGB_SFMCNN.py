@@ -1,14 +1,17 @@
+import torch
+
 from torch.nn.modules.utils import _pair
 from torch.nn.common_types import _size_2_t
 from torch.nn import init
 from torch import nn
 from torch import Tensor
+from torchvision.transforms import Grayscale
 
 import torch.nn.functional as F
 import torch
 import math
 
-class SFMCNN(nn.Module):
+class RGB_SFMCNN(nn.Module):
     def __init__(self, 
                  in_channels, 
                  out_channels, 
@@ -25,18 +28,12 @@ class SFMCNN(nn.Module):
 
         
         # TODO 檢查是否各個block的initial function
+        self.RGB_conv2d = self._make_RGBBlock(75, Conv2d_kernel[0], w = 8.66, percent = percent[0], initial='uniform', device=device)
+        self.GRAY_conv2d = self._make_ConvBlock(1, 25, Conv2d_kernel[0], w = 7.45, percent = percent[0], initial = 'kaiming', device=device)
+        self.SFM = SFM(filter = (2,2), device = device)
+
         self.convs = nn.ModuleList([
             nn.Sequential(
-                self._make_BasicBlock(channels[0], 
-                                        channels[1], 
-                                        Conv2d_kernel[0], 
-                                        stride = strides[0],
-                                        padding = paddings[0], 
-                                        filter = SFM_filters[0], 
-                                        percent=percent[0],
-                                        w = w_arr[0], 
-                                        initial="kaiming",
-                                        device = device),
                 self._make_BasicBlock(channels[1], 
                                         channels[2], 
                                         Conv2d_kernel[1], 
@@ -65,21 +62,13 @@ class SFMCNN(nn.Module):
                                      percent=percent[-1], 
                                      w=w_arr[-1], 
                                      device = device)
-            ) for i in range(in_channels)
+            )
         ])
 
 
         self.fc1 = nn.Sequential(
             nn.Linear(fc_input, out_channels)
         )
-
-    def forward(self, x):
-        fc_input = []
-        for i, l in enumerate(self.convs):
-            fc_input.append(l(x[:, i, :, :][:, None, :, :]))
-        output = torch.concat((fc_input), dim=1)
-        output = self.fc1(output.reshape(x.shape[0], -1))
-        return output
 
     def _make_BasicBlock(self,
                     in_channels:int, 
@@ -97,6 +86,21 @@ class SFMCNN(nn.Module):
             triangle_cReLU(w=w, percent=percent, requires_grad = True, device=device),
             SFM(filter = filter, device = device)
         )
+    
+    def _make_RGBBlock(self,
+                    out_channels:int, 
+                    kernel_size:tuple,
+                    stride:int = 1,
+                    padding:int = 0,
+                    filter:tuple = (1,1),
+                    w:float = 0.4,
+                    percent: float = 0.5,
+                    initial: str = "kaiming",
+                    device:str = "cuda"):
+        return nn.Sequential(
+            RGB_Conv2d(out_channels, kernel_size=kernel_size, stride = stride, padding = padding, initial = initial,device = device),
+            triangle_cReLU(w=w, percent=percent, requires_grad = True, device=device),
+        )
 
     def _make_ConvBlock(self,
                     in_channels, 
@@ -106,12 +110,79 @@ class SFMCNN(nn.Module):
                     padding:int = 0,
                     w = 4.0,
                     percent = 0.4,
+                    initial: str = "kaiming",
                     device:str = "cuda"):
         return nn.Sequential(
-            RBF_Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride = stride, padding = padding, device = device),
+            RBF_Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride = stride, padding = padding, initial = initial, device = device),
             triangle_cReLU(w=w, percent=percent, requires_grad = True, device=device),
         )
+    
+    def forward(self, x):
+        rgb_output = self.RGB_conv2d(x)
+        gray_output = self.GRAY_conv2d(Grayscale()(x))
+        output = torch.concat(([rgb_output, gray_output]), dim=1)
+        output = self.convs[0](output)
+        # print(torch.max(output), torch.min(output))
+        output = self.fc1(output.reshape(x.shape[0], -1))
+        return output
+    
+class RGB_Conv2d(nn.Module):
+    def __init__(self,
+                 out_channels: int,
+                 kernel_size: int,
+                 stride: int = 1,
+                 padding: int = 0,
+                 initial:str = "kaiming",
+                 device=None,
+                 dtype=None) -> None:
+        super().__init__() # TODO RGB_Conv2d function
+        weights_R = torch.empty((out_channels, 1))
+        weights_G = torch.empty((out_channels, 1))
+        weights_B = torch.empty((out_channels, 1))
 
+        if initial == "kaiming":
+            torch.nn.init.kaiming_uniform_(weights_R)
+            torch.nn.init.kaiming_uniform_(weights_G)
+            torch.nn.init.kaiming_uniform_(weights_B)
+        elif initial == "uniform":
+            torch.nn.init.uniform(weights_R)
+            torch.nn.init.uniform(weights_G)
+            torch.nn.init.uniform(weights_B)
+        else:
+            raise "RGB_Conv2d initial error"
+        
+        self.weights = torch.cat([weights_R, weights_G, weights_B], dim=-1).to(device=device, dtype=dtype)
+
+        self.out_channels = out_channels
+        self.kernel_size = kernel_size
+        self.stride = stride
+        self.padding = padding
+        self.initial = initial
+        
+    def forward(self, input):
+        # weights shape = (out_channels, 3, prod(self.kernel_size))
+        weights = self.weights.reshape(*self.weights.shape, 1)
+        weights = weights.repeat(1,1,math.prod(self.kernel_size))
+
+        output_width = math.floor((input.shape[-1] + self.padding * 2 - (self.kernel_size[0] - 1) - 1) / self.stride + 1)
+        output_height = math.floor((input.shape[-2] + self.padding * 2 - (self.kernel_size[1] - 1) - 1) / self.stride + 1)
+        batch_num = input.shape[0]
+
+        # windows shape = (batch_num, output_width * output_height, 1, 3, prod(self.kernel_size))
+        windows = F.unfold(input, kernel_size = self.kernel_size, stride = self.stride, padding = self.padding).permute(0, 2, 1)
+        windows = windows.reshape(*windows.shape[:-1], 3, math.prod(self.kernel_size)).unsqueeze(2)
+
+        # result shape = (batch_num, output_width * output_height, self.out_channels)
+        result = torch.pow(windows - weights, 2).reshape(batch_num, output_width * output_height, self.out_channels, -1)
+        result = torch.sum(result, dim=-1)
+        result = torch.sqrt(result)
+
+        result = result.permute(0,2,1).reshape(batch_num,self.out_channels,output_height,output_width)
+        return result
+    def extra_repr(self) -> str:
+        return f"initial = {self.initial}, weight shape = {self.weights.shape}"
+
+        
 
 '''
     RBF 卷積層
@@ -312,7 +383,9 @@ class SFM(nn.Module):
         # print(f"result = {result.shape}")
 
         # 將 dim=-1 的維度相加取 mean
-        output = result.mean(dim=-1).reshape(batch_num, channels, math.floor(height/filter_h), math.floor(width/filter_w))
+        output_width = math.floor((width - (filter_w - 1) - 1) / filter_w + 1)
+        output_height = math.floor((height -  (filter_h - 1) - 1) / filter_h + 1)
+        output = result.mean(dim=-1).reshape(batch_num, channels, output_height, output_width)
         # print(f"output = {output.shape}")
         return output
     
