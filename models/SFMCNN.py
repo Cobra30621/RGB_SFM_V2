@@ -297,23 +297,16 @@ class SFM(nn.Module):
 
         # 使用 unfold 將 input 展開成形狀為 (batch_num, channels, (height-filter_h+step)*(width-filter_w+step), filter_h * filter_w) 的二維張量
         unfolded_input = input.unfold(2, filter_h, filter_h).unfold(3, filter_w, filter_w).reshape(batch_num, channels, -1, filter_h * filter_w)
-        # print(f"unfolded_input = {unfolded_input.shape}")
-        # print(unfolded_input)
-
 
         # 將 filter 擴展成形狀為 (1, channels, 1, filter_h * filter_w)
         expanded_filter = alpha_pows.reshape(channels, 1, -1)
         expanded_filter = expanded_filter.repeat(batch_num, 1, 1, 1)
-        # print(f"expanded_filter = {expanded_filter.shape}")
-        # print(expanded_filter)
 
         # 對應相乘
         result = unfolded_input * expanded_filter
-        # print(f"result = {result.shape}")
 
         # 將 dim=-1 的維度相加取 mean
         output = result.mean(dim=-1).reshape(batch_num, channels, math.floor(height/filter_h), math.floor(width/filter_w))
-        # print(f"output = {output.shape}")
         return output
     
     def extra_repr(self) -> str:

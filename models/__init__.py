@@ -1,1 +1,1 @@
-from . import CNN, SFMCNN, AlexNet, RGB_SFMCNN
+from . import CNN, SFMCNN, AlexNet, RGB_SFMCNN, SFMCNN_old
