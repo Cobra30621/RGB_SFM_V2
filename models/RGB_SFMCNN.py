@@ -152,6 +152,7 @@ class RGB_Conv2d(nn.Module):
             raise "RGB_Conv2d initial error"
         
         self.weights = torch.cat([weights_R, weights_G, weights_B], dim=-1).to(device=device, dtype=dtype)
+        self.weights = nn.Parameter(self.weights)
 
         self.out_channels = out_channels
         self.kernel_size = kernel_size

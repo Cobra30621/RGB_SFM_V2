@@ -73,13 +73,18 @@ def train(train_dataloader: DataLoader, valid_dataloader: DataLoader, model: nn.
                 cur_train_loss = train_loss
                 cur_train_acc = train_acc
                 print(f'best epoch: {e}')
+                del checkpoint
+                checkpoint = {}
+                checkpoint['epoch'] = e
                 checkpoint['model_weights'] = model.state_dict()
                 checkpoint['optimizer'] = optimizer.state_dict()
                 checkpoint['scheduler'] = scheduler.state_dict()
+                checkpoint['train_loss'] = train_loss
+                checkpoint['train_acc'] = train_acc
+                checkpoint['valid_loss'] = valid_loss
+                checkpoint['valid_acc'] = valid_acc
                 torch.save(checkpoint, f'{config["save_dir"]}/epochs{e}.pth')
-                print(model)
-                del checkpoint
-                checkpoint = {}
+                # print(model)
 
 
     print(model)
@@ -171,9 +176,9 @@ record_table = wandb.Table(columns=["Image", "Answer", "Predict", "batch_Loss", 
 wandb.log({"Test Table": record_table})
 print(f'checkpoint keys: {checkpoint.keys()}')
 
-torch.save(checkpoint, f'{config["save_dir"]}/{config["model"]["name"]}_epochs{config["epoch"]}.pth')
+torch.save(checkpoint, f'{config["save_dir"]}/{config["model"]["name"]}_best.pth')
 art = wandb.Artifact(f'{config["model"]["name"]}_{config["dataset"]}', type="model")
-art.add_file(f'{config["save_dir"]}/{config["model"]["name"]}_epochs{config["epoch"]}.pth')
+art.add_file(f'{config["save_dir"]}/{config["model"]["name"]}_best.pth')
 art.add_file(f'{config["save_dir"]}/{config["model"]["name"]}.py')
 art.add_file(f'{config["save_dir"]}/config.py')
 wandb.log_artifact(art, aliases = ["latest"])
