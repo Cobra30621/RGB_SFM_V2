@@ -72,10 +72,9 @@ def train(train_dataloader: DataLoader, valid_dataloader: DataLoader, model: nn.
                 best_valid_acc = valid_acc
                 cur_train_loss = train_loss
                 cur_train_acc = train_acc
-                print(f'best epoch: {e}')
                 del checkpoint
                 checkpoint = {}
-                checkpoint['epoch'] = e
+                print(f'best epoch: {e}')
                 checkpoint['model_weights'] = model.state_dict()
                 checkpoint['optimizer'] = optimizer.state_dict()
                 checkpoint['scheduler'] = scheduler.state_dict()
@@ -85,6 +84,7 @@ def train(train_dataloader: DataLoader, valid_dataloader: DataLoader, model: nn.
                 checkpoint['valid_acc'] = valid_acc
                 torch.save(checkpoint, f'{config["save_dir"]}/epochs{e}.pth')
                 # print(model)
+                
 
 
     print(model)
@@ -124,6 +124,9 @@ def eval(dataloader: DataLoader, model: nn.Module, loss_fn, need_table = True, d
         progress.set_description("Loss: {:.7f}, Accuracy: {:.7f}".format(test_loss, test_acc))
     return test_acc, test_loss, table
 
+config['save_dir'] = increment_path(config['save_dir'], exist_ok = False)
+Path(config['save_dir']).mkdir(parents=True, exist_ok=True)
+
 # start a new wandb run to track this script
 wandb.init(
     # set the wandb project where this run will be logged
@@ -152,8 +155,8 @@ loss_fn = getattr(nn, config['loss_fn'])()
 optimizer = getattr(optim, config['optimizer']['name'])(model.parameters(), lr=config['lr'], **dict(config['optimizer']['args']))
 scheduler = getattr(optim.lr_scheduler, config['lr_scheduler']['name'])(optimizer, **dict(config['lr_scheduler']['args']))
 
-shutil.copyfile(f'./models/{config["model"]["name"]}.py', f'{save_dir}/{config["model"]["name"]}.py')
-shutil.copyfile(f'./config.py', f'{save_dir}/config.py')
+shutil.copyfile(f'./models/{config["model"]["name"]}.py', f'{config["save_dir"]}/{config["model"]["name"]}.py')
+shutil.copyfile(f'./config.py', f'{config["save_dir"]}/config.py')
 
 # wandb.watch(model, loss_fn, log="all", log_freq=1)
 train_loss, train_acc, valid_loss, valid_acc, checkpoint = train(train_dataloader, test_dataloader, model, loss_fn, optimizer, scheduler, config['epoch'], device = config['device'])

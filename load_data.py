@@ -191,7 +191,12 @@ class MultiColorShapesDataset(Dataset):
 
     
 
-def get_MalariaCellImagesDataset(root: str = f"{root}/data/cell_images/", resize=[224, 224], valid_size=0.2, test_size = 0.1, batch_size=27558, shuffle=True):
+def get_MalariaCellImagesDataset(root: str = f"{root}/data/cell_images/", resize=[224, 224], valid_size=0.0, test_size = 0.2, batch_size=27558, shuffle=True):
+    def target_to_oh(target):
+        NUM_CLASS = 2  # hard code here, can do partial
+        one_hot = torch.eye(NUM_CLASS)[target]
+        return one_hot
+
     train_transforms = transforms.Compose([
         transforms.ColorJitter(brightness=0.5),  # 更改明亮度
         transforms.RandomRotation(
@@ -202,7 +207,7 @@ def get_MalariaCellImagesDataset(root: str = f"{root}/data/cell_images/", resize
         transforms.Resize(resize),
         transforms.ToTensor(),
     ])                                           
-    train_data = datasets.ImageFolder(root, transform=train_transforms)
+    train_data = datasets.ImageFolder(root, transform=train_transforms, target_transform=target_to_oh)
 
     num_train = len(train_data)
     indices = list(range(num_train))
