@@ -6,9 +6,9 @@ import os
 
 project = "paper experiment"
 name = "SFMCNN"
-group = "1/3"
+group = "1/17"
 tags = ["SFMCNN", "Rewrite"]
-description = "1/3 想找到當初景豐的設定"
+description = "1/17 測試瘧疾資料集"
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 lr_scheduler = {
@@ -65,7 +65,7 @@ config = {
     "dataset": 'malaria',
     "input_shape": (64, 64),
     "rbf": "triangle",
-    "batch_size": 128,
+    "batch_size": 32,
     "epoch" : 200,
     "lr" : 0.001,
     "lr_scheduler": lr_scheduler,

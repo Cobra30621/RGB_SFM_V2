@@ -28,32 +28,22 @@ class RGB_SFMCNN(nn.Module):
 
         
         # TODO 檢查是否各個block的initial function
-        self.RGB_conv2d = self._make_RGBBlock(75, Conv2d_kernel[0], w = 8.66, percent = percent[0], initial='uniform', device=device)
-        self.GRAY_conv2d = self._make_ConvBlock(1, 25, Conv2d_kernel[0], w = 7.45, percent = percent[0], initial = 'kaiming', device=device)
-        self.SFM = SFM(filter = (2,2), device = device)
+        self.RGB_conv2d = self._make_RGBBlock(75, Conv2d_kernel[0], stride = strides[0], w = 8.66, percent = percent[0], initial='uniform', device=device)
+        self.GRAY_conv2d = self._make_ConvBlock(1, 25, Conv2d_kernel[0], stride = strides[0], w = 7.45, percent = percent[0], initial = 'kaiming', device=device)
+        self.SFM = SFM(filter = SFM_filters[0], device = device)
 
         self.convs = nn.ModuleList([
             nn.Sequential(
-                self._make_BasicBlock(channels[1], 
-                                        channels[2], 
-                                        Conv2d_kernel[1], 
-                                        stride = strides[1],
-                                        padding = paddings[1], 
-                                        filter = SFM_filters[1], 
-                                        percent=percent[1],
-                                        w = w_arr[1],
-                                        initial="kaiming", 
-                                        device = device),
-                self._make_BasicBlock(channels[2], 
-                                        channels[3], 
-                                        Conv2d_kernel[2], 
-                                        stride = strides[2],
-                                        padding = paddings[2], 
-                                        filter = SFM_filters[2], 
-                                        percent=percent[2],
-                                        w = w_arr[2], 
+                *[self._make_BasicBlock(channels[i], 
+                                        channels[i+1], 
+                                        Conv2d_kernel[i], 
+                                        stride = strides[i],
+                                        padding = paddings[i], 
+                                        filter = SFM_filters[i], 
+                                        percent=percent[i],
+                                        w = w_arr[i], 
                                         initial="kaiming",
-                                        device = device),
+                                        device = device) for i in range(1, len(SFM_filters))],
                 self._make_ConvBlock(channels[-2], 
                                      channels[-1], 
                                      Conv2d_kernel[-1], 
