@@ -14,7 +14,6 @@ import torch
 root = os.path.dirname(__file__)
 
 class CustomMNISTDataset(Dataset):
-
     def __init__(
         self,
         root: str,
@@ -134,7 +133,6 @@ class RGBSimpleShapeDataset(Dataset):
     
     def __len__(self):
         return len(self.data)
-    
 
 class MultiColorShapesDataset(Dataset):
     def __init__(self,
@@ -189,7 +187,52 @@ class MultiColorShapesDataset(Dataset):
     def __len__(self):
         return len(self.data)
 
+class FaceDataset(Dataset):
+    def __init__(self,
+        root: str,
+        transform: Optional[Callable] = None,
+        target_transform: Optional[Callable] = None,
+    ) -> None:
+        self.root = root
+        self.transform = transform
+        self.target_transform = target_transform
+        self.data, self.targets = self._load_data()
+        print(self.data.shape)
+        
+    def _load_data(self):
+        face_images = np.load(f"{self.root}/face_correspond_64.npy")
+        face_images = face_images[:6000]
+        print(face_images.shape)
+
+        baseball_images = np.load(f"{self.root}/baseball_64.npy")
+        baseball_images = baseball_images[:2000]
+        print(baseball_images.shape)
+
+        apple_images = np.load(f"{self.root}/apple_64.npy")
+        apple_images = apple_images[:2000]
+        print(apple_images.shape)
+
+        circle_images = np.load(f"{self.root}/circle_64.npy")
+        circle_images = circle_images[:2000]
+        print(circle_images.shape)
+
+        images = np.concatenate((face_images, baseball_images, apple_images, circle_images), axis=0, dtype='float')
+        labels = torch.Tensor([0] * face_images.shape[0] + [1] * baseball_images.shape[0] + [1] * apple_images.shape[0] + [1] * circle_images.shape[0])
+        return images, labels
     
+    def __getitem__(self, index: int) -> Tuple[Any, Any]:
+        img, target = self.data[index], self.targets[index]
+        
+        if self.transform is not None:
+            img = self.transform(img)
+
+        if self.target_transform is not None:
+            target = self.target_transform(target)
+
+        return img, target
+    
+    def __len__(self):
+        return self.data.shape[0]
 
 def get_MalariaCellImagesDataset(root: str = f"{root}/data/cell_images/", resize=[224, 224], valid_size=0.0, test_size = 0.2, batch_size=27558, shuffle=True):
     def target_to_oh(target):
@@ -251,6 +294,27 @@ def get_MalariaCellImagesDataset_split(root: str = f"{root}/data/cell_images_spl
     valid_loader = DataLoader(train_data, batch_size=batch_size, sampler=SubsetRandomSampler(valid_idx))
     test_loader = DataLoader(test_data, batch_size=batch_size, sampler=SubsetRandomSampler(test_idx))
     return train_loader, valid_loader, test_loader
+
+def get_FaceDataloader(root: str = f"{root}/data/face_dataset/", valid_size=0.0, test_size = 0.2, batch_size=128, shuffle=True):
+    def target_to_oh(target):
+        NUM_CLASS = 2  # hard code here, can do partial
+        one_hot = torch.eye(NUM_CLASS)[target.long()]
+        return one_hot
+    dataset = FaceDataset(root = root, transform=transforms.Compose([transforms.ToTensor(),
+                                                                     transforms.ConvertImageDtype(torch.float)]), target_transform=target_to_oh)
+    num_train = len(dataset)
+    indices = list(range(num_train))
+    if shuffle:
+        np.random.shuffle(indices)
+    valid_split = int(np.floor((valid_size) * num_train))
+    test_split = int(np.floor((valid_size+test_size) * num_train))
+    valid_idx, test_idx, train_idx = indices[:valid_split], indices[valid_split:test_split], indices[test_split:]
+
+    train_loader = DataLoader(dataset, batch_size=batch_size, sampler=SubsetRandomSampler(train_idx))
+    valid_loader = DataLoader(dataset, batch_size=batch_size, sampler=SubsetRandomSampler(valid_idx))
+    test_loader = DataLoader(dataset, batch_size=batch_size, sampler=SubsetRandomSampler(test_idx))
+    return train_loader, valid_loader, test_loader
+
 
 def load_data(dataset: str = 'mnist', root: str = '.', batch_size: int = 256, input_size: tuple = (28, 28)):
     if dataset == 'mnist_aug':
@@ -342,11 +406,13 @@ def load_data(dataset: str = 'mnist', root: str = '.', batch_size: int = 256, in
                 ConvertImageDtype(torch.float)
             ]),
         )
-    
+
     if dataset == 'malaria':
         train_dataloader, valid_dataloader, test_dataloader = get_MalariaCellImagesDataset(root=f"{root}/data/cell_images/", resize=[*input_size], valid_size=0.0, test_size = 0.2, batch_size=batch_size, shuffle=True)
     elif dataset == 'malaria_split':
         train_dataloader, valid_dataloader, test_dataloader = get_MalariaCellImagesDataset_split(root=f"{root}/data/cell_images_split/", resize=[*input_size], valid_size=0.0, test_size = 0.2, batch_size=batch_size, shuffle=True)
+    elif dataset == 'face_dataset':
+        train_dataloader, valid_dataloader, test_dataloader = get_FaceDataloader(root=f"{root}/data/face_dataset/", valid_size=0.0, test_size = 0.2, batch_size=128, shuffle=True)
     else:
         train_dataloader = DataLoader(training_data, batch_size=batch_size, shuffle=True)
         test_dataloader = DataLoader(test_data, batch_size=batch_size, shuffle=True)

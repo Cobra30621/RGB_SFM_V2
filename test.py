@@ -31,7 +31,7 @@ def test(dataloader: DataLoader, model: nn.Module, loss_fn, device=None):
 
     return test_acc, test_loss
 
-checkpoint = torch.load('./runs/train/exp68/RGB_SFMCNN_epochs200.pth')
+checkpoint = torch.load('epochs48.pth')
 
 model = getattr(getattr(models, config['model']['name']), config['model']['name'])(**dict(config['model']['args']))
 model = model.to(config['device'])
@@ -40,6 +40,6 @@ print(model)
 
 train_dataloader, test_dataloader = load_data(dataset=config['dataset'], root=config['root'], batch_size=config['batch_size'], input_size=config['input_shape'])
 loss_fn = getattr(nn, config['loss_fn'])()
-test_acc, test_loss = test(train_dataloader, model, loss_fn, device = config['device'])
+test_acc, test_loss = test(test_dataloader, model, loss_fn, device = config['device'])
 
 print(test_acc, test_loss)
