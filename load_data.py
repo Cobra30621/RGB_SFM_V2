@@ -217,6 +217,7 @@ class FaceDataset(Dataset):
         print(circle_images.shape)
 
         images = np.concatenate((face_images, baseball_images, apple_images, circle_images), axis=0, dtype='float')
+        images = images / max(images.flatten())
         labels = torch.Tensor([0] * face_images.shape[0] + [1] * baseball_images.shape[0] + [1] * apple_images.shape[0] + [1] * circle_images.shape[0])
         return images, labels
     
@@ -225,6 +226,7 @@ class FaceDataset(Dataset):
         
         if self.transform is not None:
             img = self.transform(img)
+            print(max(img.flatten()))
 
         if self.target_transform is not None:
             target = self.target_transform(target)
@@ -300,8 +302,7 @@ def get_FaceDataloader(root: str = f"{root}/data/face_dataset/", valid_size=0.0,
         NUM_CLASS = 2  # hard code here, can do partial
         one_hot = torch.eye(NUM_CLASS)[target.long()]
         return one_hot
-    dataset = FaceDataset(root = root, transform=transforms.Compose([transforms.ToTensor(),
-                                                                     transforms.ConvertImageDtype(torch.float)]), target_transform=target_to_oh)
+    dataset = FaceDataset(root = root, transform=transforms.Compose([transforms.ToTensor(),]), target_transform=target_to_oh)
     num_train = len(dataset)
     indices = list(range(num_train))
     if shuffle:

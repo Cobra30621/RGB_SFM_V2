@@ -85,8 +85,6 @@ def train(train_dataloader: DataLoader, valid_dataloader: DataLoader, model: nn.
                 torch.save(checkpoint, f'{config["save_dir"]}/epochs{e}.pth')
                 # print(model)
                 
-
-
     print(model)
                     
     return cur_train_loss, cur_train_acc, best_valid_loss, best_valid_acc, checkpoint
