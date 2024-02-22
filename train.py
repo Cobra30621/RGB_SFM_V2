@@ -30,7 +30,7 @@ def train(train_dataloader: DataLoader, valid_dataloader: DataLoader, model: nn.
             size = 0
             for batch, (X, y) in progress:
                 X = X.to(device); y= y.to(device)
-                pred = model(X.float())
+                pred = model(X)
                 loss = loss_fn(pred, y)
 
                 optimizer.zero_grad()

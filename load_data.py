@@ -197,23 +197,21 @@ class FaceDataset(Dataset):
         self.transform = transform
         self.target_transform = target_transform
         self.data, self.targets = self._load_data()
-        print(self.data.shape)
         
     def _load_data(self):
-        face_images = np.load(f"{self.root}/face_correspond_64.npy")
+        face_images = np.load(f"{self.root}/face_correspond_64_unit8.npy")
         face_images = face_images[:6000]
 
-        baseball_images = np.load(f"{self.root}/baseball_64.npy")
+        baseball_images = np.load(f"{self.root}/baseball_64_unit8.npy")
         baseball_images = baseball_images[:2000]
 
-        apple_images = np.load(f"{self.root}/apple_64.npy")
+        apple_images = np.load(f"{self.root}/apple_64_unit8.npy")
         apple_images = apple_images[:2000]
 
-        circle_images = np.load(f"{self.root}/circle_64.npy")
+        circle_images = np.load(f"{self.root}/circle_64_unit8.npy")
         circle_images = circle_images[:2000]
 
-        images = np.concatenate((face_images, baseball_images, apple_images, circle_images), axis=0, dtype='float')
-        images = images / max(images.flatten())
+        images = np.concatenate((face_images, baseball_images, apple_images, circle_images), axis=0, dtype=np.uint8)
         labels = torch.Tensor([0] * face_images.shape[0] + [1] * baseball_images.shape[0] + [1] * apple_images.shape[0] + [1] * circle_images.shape[0])
         return images, labels
     
