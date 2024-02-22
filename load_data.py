@@ -202,19 +202,15 @@ class FaceDataset(Dataset):
     def _load_data(self):
         face_images = np.load(f"{self.root}/face_correspond_64.npy")
         face_images = face_images[:6000]
-        print(face_images.shape)
 
         baseball_images = np.load(f"{self.root}/baseball_64.npy")
         baseball_images = baseball_images[:2000]
-        print(baseball_images.shape)
 
         apple_images = np.load(f"{self.root}/apple_64.npy")
         apple_images = apple_images[:2000]
-        print(apple_images.shape)
 
         circle_images = np.load(f"{self.root}/circle_64.npy")
         circle_images = circle_images[:2000]
-        print(circle_images.shape)
 
         images = np.concatenate((face_images, baseball_images, apple_images, circle_images), axis=0, dtype='float')
         images = images / max(images.flatten())
@@ -226,7 +222,6 @@ class FaceDataset(Dataset):
         
         if self.transform is not None:
             img = self.transform(img)
-            print(max(img.flatten()))
 
         if self.target_transform is not None:
             target = self.target_transform(target)
