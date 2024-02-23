@@ -290,12 +290,12 @@ def get_MalariaCellImagesDataset_split(root: str = f"{root}/data/cell_images_spl
     test_loader = DataLoader(test_data, batch_size=batch_size, sampler=SubsetRandomSampler(test_idx))
     return train_loader, valid_loader, test_loader
 
-def get_FaceDataloader(root: str = f"{root}/data/face_dataset/", valid_size=0.0, test_size = 0.2, batch_size=128, shuffle=True):
+def get_FaceDataloader(root: str = f"{root}/data/face_dataset/", resize=[64,64], valid_size=0.0, test_size = 0.2, batch_size=128, shuffle=True):
     def target_to_oh(target):
         NUM_CLASS = 2  # hard code here, can do partial
         one_hot = torch.eye(NUM_CLASS)[target.long()]
         return one_hot
-    dataset = FaceDataset(root = root, transform=transforms.Compose([transforms.ToTensor(),]), target_transform=target_to_oh)
+    dataset = FaceDataset(root = root, transform=transforms.Compose([transforms.ToTensor(),transforms.Resize([*resize]),]), target_transform=target_to_oh)
     num_train = len(dataset)
     indices = list(range(num_train))
     if shuffle:
@@ -406,7 +406,7 @@ def load_data(dataset: str = 'mnist', root: str = '.', batch_size: int = 256, in
     elif dataset == 'malaria_split':
         train_dataloader, valid_dataloader, test_dataloader = get_MalariaCellImagesDataset_split(root=f"{root}/data/cell_images_split/", resize=[*input_size], valid_size=0.0, test_size = 0.2, batch_size=batch_size, shuffle=True)
     elif dataset == 'face_dataset':
-        train_dataloader, valid_dataloader, test_dataloader = get_FaceDataloader(root=f"{root}/data/face_dataset/", valid_size=0.0, test_size = 0.2, batch_size=128, shuffle=True)
+        train_dataloader, valid_dataloader, test_dataloader = get_FaceDataloader(root=f"{root}/data/face_dataset/", resize=[*input_size], valid_size=0.0, test_size = 0.2, batch_size=128, shuffle=True)
     else:
         train_dataloader = DataLoader(training_data, batch_size=batch_size, shuffle=True)
         test_dataloader = DataLoader(test_data, batch_size=batch_size, shuffle=True)
