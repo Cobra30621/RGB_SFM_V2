@@ -28,8 +28,8 @@ class RGB_SFMCNN(nn.Module):
 
         
         # TODO 檢查是否各個block的initial function
-        self.RGB_conv2d = self._make_RGBBlock(75, Conv2d_kernel[0], stride = strides[0], w = 8.66, percent = percent[0], initial='uniform', device=device)
-        self.GRAY_conv2d = self._make_ConvBlock(1, 25, Conv2d_kernel[0], stride = strides[0], w = 7.45, percent = percent[0], initial = 'kaiming', device=device)
+        self.RGB_conv2d = self._make_RGBBlock(75, Conv2d_kernel[0], stride = strides[0], w = w_arr[0], percent = percent[0], initial='uniform', device=device)
+        self.GRAY_conv2d = self._make_ConvBlock(1, 25, Conv2d_kernel[0], stride = strides[0], w = w_arr[0], percent = percent[0], initial = 'kaiming', device=device)
         self.SFM = SFM(filter = SFM_filters[0], device = device)
 
         self.convs = nn.ModuleList([
@@ -315,7 +315,7 @@ class triangle_cReLU(nn.Module):
         # print(f'threshold = {threshold}')
 
         # #2. 每個channel獨立計算threshold
-        # threshold, _ = d.topk(int((1 - self.percent) * d.shape[1]), dim=1)
+        # threshold, _ = d.topk(int(self.percent * d.shape[1]), dim=1, largest=False)
         # threshold = threshold[:, -1, :, :][:, None, :, :]
         # # 將 threshold 中大於 w 的元素設為 w
         # threshold[threshold > w_tmp] = w_tmp
