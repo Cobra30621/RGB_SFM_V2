@@ -306,12 +306,10 @@ class triangle_cReLU(nn.Module):
         # print(f'd = {d[0]}')
 
         # 1. 取所有數字的對應percent值當作唯一threshold
-        tmp = d.reshape(d.shape[0], -1)
-        tmp, _ = torch.sort(tmp, dim=-1)
-        # 計算在每個 batch 中的索引位置
-        index = (self.percent * tmp.shape[1]).long()
-        # 通過索引取得百分比元素的值
-        threshold = tmp[:, index]
+        d_flatten = d.reshape(d.shape[0], -1)
+        top_k, _ = d_flatten.topk(int(self.percent * d_flatten.shape[1]), dim=1, largest=False)
+        threshold = top_k[:, -1]
+        # 將 threshold 中大於 w 的元素設為 w
         threshold[threshold>w_tmp] = w_tmp
         threshold = threshold.view(-1,1,1,1)
         # print(f'threshold = {threshold}')
@@ -325,6 +323,10 @@ class triangle_cReLU(nn.Module):
 
         # #3. 取beta
         # threshold  = w_tmp * (1 - self.beta)
+
+        # # 4. threshold 取 最大值 * weight
+        # topk, _ = d.topk(k = 1, dim=1)
+        # threshold = topk * self.percent
 
         d = torch.where(d > threshold, w_tmp, d).view(*d.shape)
         result = (torch.ones_like(d) - torch.div(d, w_tmp))
