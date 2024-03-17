@@ -219,8 +219,9 @@ class triangle_cReLU(nn.Module):
 
         # 1. 取所有數字的對應percent值當作唯一threshold
         d_flatten = d.reshape(d.shape[0], -1)
-        top_k, _ = d_flatten.topk(int(self.percent * d_flatten.shape[1]), dim=1, largest=False)
+        top_k, _ = d_flatten.topk(math.ceil(self.percent * d_flatten.shape[1]), dim=1, largest=False)
         threshold = top_k[:, -1]
+        # 將 threshold 中大於 w 的元素設為 w
         threshold[threshold>w_tmp] = w_tmp
         threshold = threshold.view(-1,1,1,1)
         # print(f'threshold = {threshold}')
