@@ -111,6 +111,7 @@ class RGB_SFMCNN(nn.Module):
         rgb_output = self.RGB_conv2d(x)
         gray_output = self.GRAY_conv2d(Grayscale()(x))
         output = torch.concat(([rgb_output, gray_output]), dim=1)
+        output = self.SFM(output)
         output = self.convs[0](output)
         # print(torch.max(output), torch.min(output))
         output = self.fc1(output.reshape(x.shape[0], -1))
