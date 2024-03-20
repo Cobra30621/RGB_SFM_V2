@@ -32,8 +32,7 @@ class RGB_SFMCNN(nn.Module):
         self.GRAY_conv2d = self._make_ConvBlock(1, 25, Conv2d_kernel[0], stride = strides[0], w = w_arr[0], percent = percent[0], initial = 'kaiming', device=device)
         self.SFM = SFM(filter = SFM_filters[0], device = device)
 
-        self.convs = nn.ModuleList([
-            nn.Sequential(
+        self.convs = nn.Sequential(
                 *[self._make_BasicBlock(channels[i], 
                                         channels[i+1], 
                                         Conv2d_kernel[i], 
@@ -53,7 +52,6 @@ class RGB_SFMCNN(nn.Module):
                                      w=w_arr[-1], 
                                      device = device)
             )
-        ])
 
 
         self.fc1 = nn.Sequential(
@@ -112,7 +110,7 @@ class RGB_SFMCNN(nn.Module):
         gray_output = self.GRAY_conv2d(Grayscale()(x))
         output = torch.concat(([rgb_output, gray_output]), dim=1)
         output = self.SFM(output)
-        output = self.convs[0](output)
+        output = self.convs(output)
         # print(torch.max(output), torch.min(output))
         output = self.fc1(output.reshape(x.shape[0], -1))
         return output
