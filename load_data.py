@@ -169,7 +169,7 @@ class MultiColorShapesDataset(Dataset):
 
                 image = read_image(os.path.join(root, name))
                 image = image.permute(1,2,0)
-                black_color = torch.tensor([0.0, 0.0, 0.0])  # 黑色的 RGB 值
+                black_color = torch.tensor([0, 0, 0], dtype=torch.uint8)  # 黑色的 RGB 值
                 # 定义背景颜色和蓝色球颜色的阈值
                 background_threshold = 0.8  # 背景的阈值（每个通道大于这个值的像素被认为是背景）
                 # 找到背景和蓝色球的像素位置
