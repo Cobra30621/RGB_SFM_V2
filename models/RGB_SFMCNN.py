@@ -143,6 +143,9 @@ class RGB_Conv2d(nn.Module):
         self.weights = torch.cat([weights_R, weights_G, weights_B], dim=-1).to(device=device, dtype=dtype)
         self.weights = nn.Parameter(self.weights)
 
+        self.black_block = torch.zeros((1,3)).to(device=device, dtype=dtype)
+        self.white_block = torch.ones((1,3)).to(device=device, dtype=dtype)
+
         self.out_channels = out_channels
         self.kernel_size = kernel_size
         self.stride = stride
@@ -151,7 +154,8 @@ class RGB_Conv2d(nn.Module):
         
     def forward(self, input):
         # weights shape = (out_channels, 3, prod(self.kernel_size))
-        weights = self.weights.reshape(*self.weights.shape, 1)
+        weights = torch.cat([self.weights, self.black_block, self.white_block], dim=0)
+        weights = weights.reshape(*weights.shape, 1)
         weights = weights.repeat(1,1,math.prod(self.kernel_size))
 
         output_width = math.floor((input.shape[-1] + self.padding * 2 - (self.kernel_size[0] - 1) - 1) / self.stride + 1)
