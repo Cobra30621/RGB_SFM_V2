@@ -169,7 +169,6 @@ class RGB_Conv2d(nn.Module):
         # result shape = (batch_num, output_width * output_height, self.out_channels)
         result = torch.pow(windows - weights, 2).reshape(batch_num, output_width * output_height, self.out_channels, -1)
         result = torch.sum(result, dim=-1)
-        print(result.shape, result.max(), result.min())
         result = torch.sqrt(result + 1e-8)
 
         result = result.permute(0,2,1).reshape(batch_num,self.out_channels,output_height,output_width)
