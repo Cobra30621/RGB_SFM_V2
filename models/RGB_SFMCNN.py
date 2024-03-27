@@ -157,7 +157,6 @@ class RGB_Conv2d(nn.Module):
         weights = torch.cat([self.weights, self.black_block, self.white_block], dim=0)
         weights = weights.reshape(*weights.shape, 1)
         weights = weights.repeat(1,1,math.prod(self.kernel_size))
-        print(weights.shape)
 
         output_width = math.floor((input.shape[-1] + self.padding * 2 - (self.kernel_size[0] - 1) - 1) / self.stride + 1)
         output_height = math.floor((input.shape[-2] + self.padding * 2 - (self.kernel_size[1] - 1) - 1) / self.stride + 1)
