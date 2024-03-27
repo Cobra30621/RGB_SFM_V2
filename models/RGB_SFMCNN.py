@@ -125,9 +125,9 @@ class RGB_Conv2d(nn.Module):
                  device=None,
                  dtype=None) -> None:
         super().__init__() # TODO RGB_Conv2d function
-        weights_R = torch.empty((out_channels, 1))
-        weights_G = torch.empty((out_channels, 1))
-        weights_B = torch.empty((out_channels, 1))
+        weights_R = torch.empty((out_channels-2, 1))
+        weights_G = torch.empty((out_channels-2, 1))
+        weights_B = torch.empty((out_channels-2, 1))
 
         if initial == "kaiming":
             torch.nn.init.kaiming_uniform_(weights_R)
@@ -157,6 +157,7 @@ class RGB_Conv2d(nn.Module):
         weights = torch.cat([self.weights, self.black_block, self.white_block], dim=0)
         weights = weights.reshape(*weights.shape, 1)
         weights = weights.repeat(1,1,math.prod(self.kernel_size))
+        print(weights.shape)
 
         output_width = math.floor((input.shape[-1] + self.padding * 2 - (self.kernel_size[0] - 1) - 1) / self.stride + 1)
         output_height = math.floor((input.shape[-2] + self.padding * 2 - (self.kernel_size[1] - 1) - 1) / self.stride + 1)
@@ -169,7 +170,8 @@ class RGB_Conv2d(nn.Module):
         # result shape = (batch_num, output_width * output_height, self.out_channels)
         result = torch.pow(windows - weights, 2).reshape(batch_num, output_width * output_height, self.out_channels, -1)
         result = torch.sum(result, dim=-1)
-        result = torch.sqrt(result)
+        print(result.shape, result.max(), result.min())
+        result = torch.sqrt(result + 1e-8)
 
         result = result.permute(0,2,1).reshape(batch_num,self.out_channels,output_height,output_width)
         return result
