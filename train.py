@@ -32,10 +32,17 @@ def train(train_dataloader: DataLoader, valid_dataloader: DataLoader, model: nn.
                 X = X.to(device); y= y.to(device)
                 pred = model(X)
                 loss = loss_fn(pred, y)
-
-                optimizer.zero_grad()
+                # 反向传播
                 loss.backward()
+                # 更新模型参数
                 optimizer.step()
+                
+                with torch.no_grad():
+                    model.RGB_conv2d[0].weights.clamp_(0,1)
+
+                print(model.RGB_conv2d[0].weights.min(), model.RGB_conv2d[0].weights.max())
+                # 清零梯度
+                optimizer.zero_grad()
                 
                 losses += loss.detach().item()
                 size += len(X)
@@ -104,9 +111,6 @@ def eval(dataloader: DataLoader, model: nn.Module, loss_fn, need_table = True, d
             
             losses += loss.detach().item()
             size += len(X)
-            
-            model.RGB_conv2d[0].weights = torch.clip(model.RGB_conv2d[0].weights, min=0, max=1)
-
             correct += (pred.argmax(1) == y.argmax(1)).type(torch.float).sum().item()
 
             if need_table:
