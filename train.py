@@ -36,11 +36,10 @@ def train(train_dataloader: DataLoader, valid_dataloader: DataLoader, model: nn.
                 loss.backward()
                 # 更新模型参数
                 optimizer.step()
-                
+
                 with torch.no_grad():
                     model.RGB_conv2d[0].weights.clamp_(0,1)
-
-                print(model.RGB_conv2d[0].weights.min(), model.RGB_conv2d[0].weights.max())
+                    
                 # 清零梯度
                 optimizer.zero_grad()
                 
