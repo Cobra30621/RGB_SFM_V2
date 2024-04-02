@@ -105,6 +105,8 @@ def eval(dataloader: DataLoader, model: nn.Module, loss_fn, need_table = True, d
             losses += loss.detach().item()
             size += len(X)
             
+            model.RGB_conv2d[0].weights = torch.clip(model.RGB_conv2d[0].weights, min=0, max=1)
+
             correct += (pred.argmax(1) == y.argmax(1)).type(torch.float).sum().item()
 
             if need_table:
