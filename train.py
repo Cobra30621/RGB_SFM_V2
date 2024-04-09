@@ -37,9 +37,9 @@ def train(train_dataloader: DataLoader, valid_dataloader: DataLoader, model: nn.
                 # 更新模型参数
                 optimizer.step()
 
-                with torch.no_grad():
-                    normalize_weights = (model.RGB_conv2d[0].weights - torch.min(model.RGB_conv2d[0].weights)) / (torch.max(model.RGB_conv2d[0].weights) - torch.min(model.RGB_conv2d[0].weights))
-                    model.RGB_conv2d[0].weights = nn.Parameter(normalize_weights)
+                # with torch.no_grad():
+                #     normalize_weights = (model.RGB_conv2d[0].weights - torch.min(model.RGB_conv2d[0].weights)) / (torch.max(model.RGB_conv2d[0].weights) - torch.min(model.RGB_conv2d[0].weights))
+                #     model.RGB_conv2d[0].weights = nn.Parameter(normalize_weights)
                     
                 # 清零梯度
                 optimizer.zero_grad()
