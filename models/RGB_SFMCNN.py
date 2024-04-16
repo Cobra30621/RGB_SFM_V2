@@ -5,11 +5,18 @@ from torch.nn.common_types import _size_2_t
 from torch.nn import init
 from torch import nn
 from torch import Tensor
-from torchvision.transforms import Grayscale
 
+
+import torchvision.transforms
 import torch.nn.functional as F
 import torch
 import math
+
+# 二值化
+class ThresholdTransform(object):
+        def __call__(self,x):
+            threshold = x.mean()
+            return (x>threshold).to(x.dtype)
 
 class RGB_SFMCNN(nn.Module):
     def __init__(self, 
@@ -107,7 +114,12 @@ class RGB_SFMCNN(nn.Module):
     
     def forward(self, x):
         rgb_output = self.RGB_conv2d(x)
-        gray_output = self.GRAY_conv2d(Grayscale()(x))
+
+        gray_transform = torchvision.transforms.Compose([
+            torchvision.transforms.Grayscale(),
+            ThresholdTransform()
+        ])
+        gray_output = self.GRAY_conv2d(gray_transform(x))
         output = torch.concat(([rgb_output, gray_output]), dim=1)
         output = self.SFM(output)
         output = self.convs(output)
