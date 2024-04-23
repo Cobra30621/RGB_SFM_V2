@@ -41,13 +41,12 @@ def train(train_dataloader: DataLoader, valid_dataloader: DataLoader, model: nn.
                 #     normalize_weights = (model.RGB_conv2d[0].weights - torch.min(model.RGB_conv2d[0].weights)) / (torch.max(model.RGB_conv2d[0].weights) - torch.min(model.RGB_conv2d[0].weights))
                 #     model.RGB_conv2d[0].weights = nn.Parameter(normalize_weights)
 
-                with torch.no_grad():
-                    for name, module in model.named_modules():
-                        for param_name, param in module.named_parameters():
-                            if param_name[-6:] == "weight" and param_name[0:5] == "convs":
-                                print(param_name, torch.max(param), torch.min(param))
-                                param = (param - torch.min(param)) / (torch.max(param) - torch.min(param))
-                                model.state_dict()[param_name].copy_(param)
+                # with torch.no_grad():
+                #     for name, module in model.named_modules():
+                #         for param_name, param in module.named_parameters():
+                #             if param_name[-6:] == "weight" and param_name[0:5] == "convs":
+                #                 param = (param - torch.min(param)) / (torch.max(param) - torch.min(param))
+                #                 model.state_dict()[param_name].copy_(param)
                     
                 # 清零梯度
                 optimizer.zero_grad()
