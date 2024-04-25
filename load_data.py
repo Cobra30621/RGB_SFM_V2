@@ -416,7 +416,7 @@ def load_data(dataset: str = 'mnist', root: str = '.', batch_size: int = 256, in
     elif dataset == 'malaria_split':
         train_dataloader, valid_dataloader, test_dataloader = get_MalariaCellImagesDataset_split(root=f"{root}/data/cell_images_split/", resize=[*input_size], valid_size=0.0, test_size = 0.2, batch_size=batch_size, shuffle=True)
     elif dataset == 'face_dataset':
-        train_dataloader, valid_dataloader, test_dataloader = get_FaceDataloader(root=f"{root}/data/face_dataset/", resize=[*input_size], valid_size=0.0, test_size = 0.2, batch_size=128, shuffle=True)
+        train_dataloader, valid_dataloader, test_dataloader = get_FaceDataloader(root=f"{root}/data/face_dataset/Origin/", resize=[*input_size], valid_size=0.0, test_size = 0.2, batch_size=128, shuffle=True)
     else:
         train_dataloader = DataLoader(training_data, batch_size=batch_size, shuffle=True)
         test_dataloader = DataLoader(test_data, batch_size=batch_size, shuffle=True)
