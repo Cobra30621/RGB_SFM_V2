@@ -2,21 +2,24 @@ import os
 import torch
 import wandb
 import numpy as np
+import time
+import copy
 
-from torch import nn
+from torch import nn, optim
 from tqdm.autonotebook import tqdm
 from torch.utils.data import DataLoader
-from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torchsummary import summary
 
-from models import CNN, ResNet, AlexNet, LeNet, GoogLeNet, MLP
-from models_new import SOMNetwork
 from load_data import load_data
+from config import *
+import models
 
-def train(train_dataloader: DataLoader, test_dataloader: DataLoader, model: nn.Module, loss_fn, optimizer, scheduler, epoch):
-    min_loss = float('inf')
+def train(train_dataloader: DataLoader, valid_dataloader: DataLoader, model: nn.Module, loss_fn, optimizer, scheduler, epoch, device):
+    # best_valid_loss = float('inf')
+    best_valid_acc = 0
     count = 0
-    patience = 10
+    patience = 20
+    checkpoint = {}
     with torch.autograd.set_detect_anomaly(True):
         for e in range(epoch):
             print(f"------------------------------EPOCH {e}------------------------------")
@@ -28,168 +31,155 @@ def train(train_dataloader: DataLoader, test_dataloader: DataLoader, model: nn.M
             for batch, (X, y) in progress:
                 X = X.to(device); y= y.to(device)
                 pred = model(X)
-                correct += (pred.argmax(1) == y).type(torch.float).sum().item()
                 loss = loss_fn(pred, y)
-                
-                optimizer.zero_grad()
+                # 反向传播
                 loss.backward()
+                # 更新模型参数
                 optimizer.step()
-                
-                losses += loss.item()
-                size += len(X)
-                progress.set_description("Loss: {:.7f}, Accuracy: {:.7f}".format(losses/(batch+1), correct/size))
 
-            test_acc, test_loss, _ = test(test_dataloader, model, loss_fn, False)
-            print(f"Test Accuracy: {test_acc}%, Test Loss: {test_loss}")
-            scheduler.step(test_loss)
+                # with torch.no_grad():
+                #     normalize_weights = (model.RGB_conv2d[0].weights - torch.min(model.RGB_conv2d[0].weights)) / (torch.max(model.RGB_conv2d[0].weights) - torch.min(model.RGB_conv2d[0].weights))
+                #     model.RGB_conv2d[0].weights = nn.Parameter(normalize_weights)
+
+                # with torch.no_grad():
+                #     for name, module in model.named_modules():
+                #         for param_name, param in module.named_parameters():
+                #             if param_name[-6:] == "weight" and param_name[0:5] == "convs":
+                #                 param = (param - torch.min(param)) / (torch.max(param) - torch.min(param))
+                #                 model.state_dict()[param_name].copy_(param)
+                    
+                # 清零梯度
+                optimizer.zero_grad()
+                
+                losses += loss.detach().item()
+                size += len(X)
+                
+                correct += (pred.argmax(1) == y.argmax(1)).type(torch.float).sum().item()
+
+                train_loss = losses/(batch+1)
+                train_acc = correct/size
+                progress.set_description("Loss: {:.7f}, Accuracy: {:.7f}".format(train_loss, train_acc))
+
+            valid_acc, valid_loss, _ = eval(valid_dataloader, model, loss_fn, False, device = device)
+            print(f"Test Loss: {valid_loss}, Test Accuracy: {valid_acc}")
+            if scheduler:
+                scheduler.step(valid_loss)
 
             metrics = {
-                "train/loss": losses/(batch+1),
+                "train/loss": train_loss,
                 "train/epoch": e,
-                "train/accuracy": correct/size,
+                "train/accuracy": train_acc,
                 "train/learnrate": optimizer.param_groups[0]['lr'],
-                "test/loss": test_loss,
-                "test/accuracy": test_acc
+                "valid/loss": valid_loss,
+                "valid/accuracy": valid_acc
             }
             wandb.log(metrics, step=e)
 
-            # early stopping 
-            if test_loss >= min_loss:
+            #early stopping
+            if valid_acc < best_valid_acc:
                 count += 1
-                if count >= patience:
-                    break
+                # if count >= patience:
+                #     break
             else:
                 count = 0
-                max_accuracy = test_loss
-            
-def test(dataloader: DataLoader, model: nn.Module, loss_fn, need_table = True):
-    size = 0
-    num_batches = len(dataloader)
-    test_loss, correct = 0, 0
+                best_valid_loss = valid_loss
+                best_valid_acc = valid_acc
+                cur_train_loss = train_loss
+                cur_train_acc = train_acc
+                del checkpoint
+                checkpoint = {}
+                print(f'best epoch: {e}')
+                checkpoint['model_weights'] = model.state_dict()
+                checkpoint['optimizer'] = optimizer.state_dict()
+                checkpoint['scheduler'] = scheduler.state_dict()
+                checkpoint['train_loss'] = train_loss
+                checkpoint['train_acc'] = train_acc
+                checkpoint['valid_loss'] = valid_loss
+                checkpoint['valid_acc'] = valid_acc
+                torch.save(checkpoint, f'{config["save_dir"]}/epochs{e}.pth')
+                # print(model)
+                
+    print(model)
+                    
+    return cur_train_loss, cur_train_acc, best_valid_loss, best_valid_acc, checkpoint
 
+def eval(dataloader: DataLoader, model: nn.Module, loss_fn, need_table = True, device=None):
+    progress = tqdm(enumerate(dataloader), desc="Loss: ", total=len(dataloader))
     model.eval()
+    losses = 0
+    correct = 0
+    size = 0
     table = []
-    for X, y in dataloader:
-        X = X.to(device); y= y.to(device)
-        pred = model(X)
-        test_loss += loss_fn(pred, y).item()
-        correct += (pred.argmax(1) == y).type(torch.float).sum().item()
-        size += len(X)
-
-        if need_table:
-            # tensor to cpu
-            loss = loss_fn(pred, y).item()
-            c = (pred.argmax(1) == y).type(torch.float).sum().item() / len(X)
-            X = X.cpu()
-            y = y.cpu()
+    with torch.no_grad():
+        for batch, (X, y) in progress:
+            X = X.to(device); y= y.to(device)
+            pred = model(X)
+            loss = loss_fn(pred, y)
             
-            # sample first image in batch 
-            if X[0].shape[0] == 3:
-                X = np.transpose(np.array(X[0]), (1, 2, 0))
-            else:
-                X = np.array(X[0])
-            table.append([wandb.Image(X), y[0], pred[0].argmax(), loss, c])
+            losses += loss.detach().item()
+            size += len(X)
+            correct += (pred.argmax(1) == y.argmax(1)).type(torch.float).sum().item()
 
-    test_loss /= num_batches
-    correct = (correct / size) * 100
-    return correct, test_loss, table
+            if need_table:
+                X = X.cpu()
+                y = y.cpu()
+                
+                # sample first image in batch 
+                if X[0].shape[0] == 3:
+                    X = np.transpose(np.array(X[0]), (1, 2, 0))
+                else:
+                    X = np.array(X[0])
+                table.append([wandb.Image(X), y[0], pred.argmax(1)[0], loss, (pred.argmax(1) == y.argmax(1)).type(torch.float).sum().item()])
 
+            test_loss = losses/(batch+1)
+            test_acc = correct/size
+            progress.set_description("Loss: {:.7f}, Accuracy: {:.7f}".format(test_loss, test_acc))
+    return test_acc, test_loss, table
 
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-print(f"Using {device} device")
-root = os.path.dirname(__file__)
-current_model = 'SFM' # SFM, mlp, cnn, resnet50, alexnet, lenet, googlenet
-dataset = 'malaria' # mnist, fashion, cifar10, malaria, malaria_split
-input_size = (28, 28)
-in_channels = 3 # 1, 3
-rbf = 'guass' # gauss, triangle
-
-batch_size = 256
-epoch = 200
-lr = 1e-3
-layer = 4
-stride = 4
-description = f"try change rbf to triangle with early stop and lr scheduler, no change std, lr = 1e-3, SFM combine filter = (2, 2)"
-
-if current_model == 'SFM': 
-    model = SOMNetwork(in_channels=in_channels, out_channels=2).to("cuda")
-elif current_model == 'cnn':
-    model = CNN(in_channels=in_channels).to(device)
-elif current_model == 'mlp':
-    model = MLP().to(device)
-elif current_model == 'resnet18':
-    model = ResNet().to(device)
-elif current_model == 'resnet34':
-    model = ResNet(layers=34).to(device)
-elif current_model == 'resnet50':
-    model = ResNet(layers=50).to(device)
-elif current_model == 'resnet101':
-    model = ResNet(layers=101).to(device)
-elif current_model == 'resnet152':
-    model = ResNet(layers=152).to(device)
-elif current_model == 'alexnet':
-    model = AlexNet().to(device)
-elif current_model == 'lenet':
-    model = LeNet().to(device)
-elif current_model == 'googlenet':
-    model = GoogLeNet().to(device)
-    
-run_name = f"{dataset}_{layer}layer_{stride}stride_{rbf}" if current_model == 'SFM' else f"{dataset}_{current_model}"
-if not os.path.exists(f"{root}/result/{run_name}"):
-   os.makedirs(f"{root}/result/{run_name}")
-
-train_dataloader, test_dataloader = load_data(dataset=dataset, root=root, batch_size=batch_size, input_size=input_size)
+config['save_dir'] = increment_path(config['save_dir'], exist_ok = False)
+Path(config['save_dir']).mkdir(parents=True, exist_ok=True)
 
 # start a new wandb run to track this script
 wandb.init(
     # set the wandb project where this run will be logged
-    project="paper experiment",
+    project=project,
 
-    name = f"{dataset}_{current_model}_data{len(train_dataloader.sampler) + len(test_dataloader.sampler)}",
+    name = name,
 
     notes = description,
+    
+    tags = tags,
 
-    group = "RGB_Plan_v1",
+    group = group,
     
     # track hyperparameters and run metadata
-    config={
-    "learning_rate": lr,
-    "layer": layer,
-    "stride": stride,
-    "epochs": epoch,
-    "architecture": current_model,
-    "dataset": dataset,
-    "train_data_num": len(train_dataloader.sampler),
-    "test_data_num": len(test_dataloader.sampler),
-    "total_data_num": len(train_dataloader.sampler) + len(test_dataloader.sampler),
-    "batch_size": batch_size,
-    "SFM filter": "(2, 2)",
-    "lr scheduler": "ReduceLROnPlateau",
-    "optimizer": "Adam",
-    "loss_fn": "CrossEntropyLoss"
-    }
+    config=config
 )
 
+train_dataloader, test_dataloader = load_data(dataset=config['dataset'], root=config['root'], batch_size=config['batch_size'], input_size=config['input_shape'])
+
+model = getattr(getattr(models, config['model']['name']), config['model']['name'])(**dict(config['model']['args']))
+model = model.to(config['device'])
 print(model)
-summary(model, input_size = (in_channels, *input_size))
+summary(model, input_size = (config['model']['args']['in_channels'], *config['input_shape']))
 
-art = wandb.Artifact(f"{current_model}_{run_name}", type="model")
-art.add_file(f'{root}/models_new.py')
+loss_fn = getattr(nn, config['loss_fn'])()
+optimizer = getattr(optim, config['optimizer']['name'])(model.parameters(), lr=config['lr'], **dict(config['optimizer']['args']))
+scheduler = getattr(optim.lr_scheduler, config['lr_scheduler']['name'])(optimizer, **dict(config['lr_scheduler']['args']))
 
-loss_fn = nn.CrossEntropyLoss()
-optimizer = torch.optim.Adam(model.parameters(), lr=lr)
-# optimizer = torch.optim.SGD(model.parameters(), lr=lr, momentum=0.9)
-scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=5)
+shutil.copyfile(f'./models/{config["model"]["name"]}.py', f'{config["save_dir"]}/{config["model"]["name"]}.py')
+shutil.copyfile(f'./config.py', f'{config["save_dir"]}/config.py')
 
-wandb.watch(model, loss_fn, log="all", log_freq=1)
-train(train_dataloader, test_dataloader, model, loss_fn, optimizer, scheduler, epoch)
-
-# Train model
-train_acc, train_loss, train_table = test(train_dataloader, model, loss_fn)
+# wandb.watch(model, loss_fn, log="all", log_freq=1)
+train_loss, train_acc, valid_loss, valid_acc, checkpoint = train(train_dataloader, test_dataloader, model, loss_fn, optimizer, scheduler, config['epoch'], device = config['device'])
 print("Train: \n\tAccuracy: {}, Avg loss: {} \n".format(train_acc, train_loss))
+print("Valid: \n\tAccuracy: {}, Avg loss: {} \n".format(valid_acc, valid_loss))
 
 # Test model
-test_acc, test_loss, test_table = test(test_dataloader, model, loss_fn)
+model = getattr(getattr(models, config['model']['name']), config['model']['name'])(**dict(config['model']['args']))
+model.load_state_dict(checkpoint['model_weights'])
+model.to(device)
+test_acc, test_loss, test_table = eval(test_dataloader, model, loss_fn, device = config['device'], need_table=False)
 print("Test: \n\tAccuracy: {}, Avg loss: {} \n".format(test_acc, test_loss))
 
 # Record result into Wandb
@@ -199,13 +189,12 @@ wandb.summary['test_accuracy'] = test_acc
 wandb.summary['test_avg_loss'] = test_loss
 record_table = wandb.Table(columns=["Image", "Answer", "Predict", "batch_Loss", "batch_Correct"], data = test_table)
 wandb.log({"Test Table": record_table})
+print(f'checkpoint keys: {checkpoint.keys()}')
 
-checkpoint = {'model': SOMNetwork(in_channels=in_channels, out_channels=2),
-          'state_dict': model.state_dict(),
-          'optimizer' : optimizer.state_dict(),
-          'scheduler': scheduler.state_dict()}
-
-torch.save(checkpoint, f'{root}/result/{run_name}/{current_model}_{epoch}_{run_name}_final.pth')
-art.add_file(f'{root}/result/{run_name}/{current_model}_{epoch}_{run_name}_final.pth')
+torch.save(checkpoint, f'{config["save_dir"]}/{config["model"]["name"]}_best.pth')
+art = wandb.Artifact(f'{config["model"]["name"]}_{config["dataset"]}', type="model")
+art.add_file(f'{config["save_dir"]}/{config["model"]["name"]}_best.pth')
+art.add_file(f'{config["save_dir"]}/{config["model"]["name"]}.py')
+art.add_file(f'{config["save_dir"]}/config.py')
 wandb.log_artifact(art, aliases = ["latest"])
 wandb.finish()
