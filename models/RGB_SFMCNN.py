@@ -33,7 +33,6 @@ class RGB_SFMCNN(nn.Module):
                  **kwargs) -> None:
         super().__init__()
 
-        
         # TODO 檢查是否各個block的initial function
         if rbfs[0][0] == 'triangle':
             self.RGB_conv2d = self._make_RGBBlock(channels[0][0], 
@@ -50,7 +49,7 @@ class RGB_SFMCNN(nn.Module):
                                                   Conv2d_kernel[0], 
                                                   stride = strides[0],
                                                   padding=paddings[0],
-                                                  rbf =  rbfs[0][1],
+                                                  rbf =  rbfs[0][0],
                                                   initial='uniform', 
                                                   device=device,
                                                   std = kwargs['stds'][0][0],
@@ -63,7 +62,7 @@ class RGB_SFMCNN(nn.Module):
                                                     stride = strides[0],
                                                     padding=paddings[0],
                                                     rbf =  rbfs[0][1],
-                                                    initial='uniform', 
+                                                    initial='kaiming', 
                                                     device=device,
                                                     w = kwargs['w_arr'][0][1],
                                                     percent = kwargs['percents'][0][1]
@@ -181,10 +180,10 @@ class RGB_SFMCNN(nn.Module):
                     kernel_size,
                     stride:int = 1,
                     padding:int = 0,
-                    rbf = 'traingle',
+                    rbf = 'triangle',
                     device:str = "cuda",
                     **kwargs):
-        if rbf == 'traingle':
+        if rbf == 'triangle':
             return nn.Sequential(
                 RBF_Conv2d(3, out_channels, kernel_size=kernel_size, stride = stride, padding = padding, device = device),
                 triangle_cReLU(w=kwargs['w'], percent=kwargs['percent'], requires_grad = True, device=device),
@@ -202,10 +201,10 @@ class RGB_SFMCNN(nn.Module):
                     kernel_size,
                     stride:int = 1,
                     padding:int = 0,
-                    rbf = 'traingle',
+                    rbf = 'triangle',
                     device:str = "cuda",
                     **kwargs):
-        if rbf == 'traingle':
+        if rbf == 'triangle':
             return nn.Sequential(
                 RBF_Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride = stride, padding = padding, device = device),
                 triangle_cReLU(w=kwargs['w'], percent=kwargs['percent'], requires_grad = True, device=device),

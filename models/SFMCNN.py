@@ -127,10 +127,10 @@ class SFMCNN(nn.Module):
                     kernel_size,
                     stride:int = 1,
                     padding:int = 0,
-                    rbf = 'traingle',
+                    rbf = 'triangle',
                     device:str = "cuda",
                     **kwargs):
-        if rbf == 'traingle':
+        if rbf == 'triangle':
             return nn.Sequential(
                 RBF_Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride = stride, padding = padding, device = device),
                 triangle_cReLU(w=kwargs['w'], percent=kwargs['percent'], requires_grad = True, device=device),
