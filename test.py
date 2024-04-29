@@ -31,7 +31,7 @@ def test(dataloader: DataLoader, model: nn.Module, loss_fn, device=None):
 
     return test_acc, test_loss
 
-checkpoint = torch.load('epochs48.pth')
+checkpoint = torch.load('pth/face_dataset_pth/0424_SFMCNN_best_jq0g56bj.pth')
 
 model = getattr(getattr(models, config['model']['name']), config['model']['name'])(**dict(config['model']['args']))
 model = model.to(config['device'])
