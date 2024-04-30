@@ -201,8 +201,9 @@ class triangle(nn.Module):
 
     def forward(self, d):
         w_tmp = self.w
-        d[d>=w_tmp] = w_tmp
-        return torch.ones_like(d) - torch.div(d, w_tmp)
+        d_copy = d.clone()
+        d_copy[d_copy>=w_tmp] = w_tmp
+        return torch.ones_like(d_copy) - torch.div(d_copy, w_tmp)
     
     def extra_repr(self) -> str:
         return f"w = {self.w.item()}"
