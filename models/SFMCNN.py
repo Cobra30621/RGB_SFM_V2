@@ -97,6 +97,13 @@ class SFMCNN(nn.Module):
                 cReLU(bias=activate_param[1]),
                 SFM(filter = filter, device = device)
             )
+        elif rbf == 'guass and cReLU_percent':
+            return nn.Sequential(
+                RBF_Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride = stride, padding = padding, device = device),
+                gauss(std=activate_param[0], device=device),
+                cReLU_percent(percent=activate_param[1]),
+                SFM(filter = filter, device = device)
+            )
 
     def _make_ConvBlock(self,
                     in_channels, 
@@ -123,6 +130,12 @@ class SFMCNN(nn.Module):
                 RBF_Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride = stride, padding = padding, device = device),
                 triangle(w=activate_param[0], requires_grad=True, device=device),
                 cReLU(bias=activate_param[1]),
+            )
+        elif rbf == 'guass and cReLU_percent':
+            return nn.Sequential(
+                RBF_Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride = stride, padding = padding, device = device),
+                gauss(std=activate_param[0], device=device),
+                cReLU_percent(percent=activate_param[1]),
             )
 
 
@@ -238,6 +251,26 @@ class cReLU(nn.Module):
     
     def extra_repr(self) -> str:
         return f"bias={self.bias.item()}"
+    
+class cReLU_percent(nn.Module):
+    def __init__(self, 
+                 percent: float = 0.5,
+                 requires_grad: bool = True,
+                 device:str = "cuda") -> None:
+        super().__init__()
+        self.percent = torch.tensor([percent]).to(device)
+    
+    def forward(self, x):
+        x_flatten = x.reshape(x.shape[0], -1)
+        top_k, _ = x_flatten.topk(math.ceil(self.percent * x_flatten.shape[1]), dim=1, largest=True)
+        threshold = top_k[:, -1]
+        threshold = threshold.view(-1,1,1,1)
+
+        result = torch.where(x >= threshold, x, 0).view(*x.shape)
+        return result
+    
+    def extra_repr(self) -> str:
+        return f"percent={self.percent.item()}"
 
 class triangle_cReLU(nn.Module):
     def __init__(self, 
