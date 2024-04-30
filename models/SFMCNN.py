@@ -111,6 +111,7 @@ class SFMCNN(nn.Module):
                     kernel_size,
                     stride:int = 1,
                     padding:int = 0,
+                    initial: str = "kaiming",
                     rbf = 'triangle',
                     device:str = "cuda",
                     activate_param = [0,0]):
