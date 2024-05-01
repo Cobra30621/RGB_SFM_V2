@@ -87,14 +87,14 @@ class SFMCNN(nn.Module):
             return nn.Sequential(
                 RBF_Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride = stride, padding = padding, initial = initial,device = device),
                 gauss(std=activate_param[0], device=device),
-                cReLU(bias=activate_param[1]),
+                cReLU_old(bias=activate_param[1]),
                 SFM(filter = filter, device = device)
             )
-        elif rbf == 'triangle and cReLU':
+        elif rbf == 'triangle and cReLU_old':
             return nn.Sequential(
                 RBF_Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride = stride, padding = padding, device = device),
                 triangle(w=activate_param[0], requires_grad=True, device=device),
-                cReLU(bias=activate_param[1]),
+                cReLU_old(bias=activate_param[1]),
                 SFM(filter = filter, device = device)
             )
         elif rbf == 'guass and cReLU_percent':
@@ -124,13 +124,13 @@ class SFMCNN(nn.Module):
             return nn.Sequential(
                 RBF_Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride = stride, padding = padding, initial = initial,device = device),
                 gauss(std=activate_param[0], device=device),
-                cReLU(bias=activate_param[1]),
+                cReLU_old(bias=activate_param[1]),
             )
-        elif rbf == 'triangle and cReLU':
+        elif rbf == 'triangle and cReLU_old':
             return nn.Sequential(
                 RBF_Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride = stride, padding = padding, device = device),
                 triangle(w=activate_param[0], requires_grad=True, device=device),
-                cReLU(bias=activate_param[1]),
+                cReLU_old(bias=activate_param[1]),
             )
         elif rbf == 'guass and cReLU_percent':
             return nn.Sequential(
@@ -230,12 +230,13 @@ class gauss(nn.Module):
             self.std = nn.Parameter(self.std)
 
     def forward(self, d):
-        return torch.exp(torch.pow(d, 2) / (-2 * torch.pow(self.std, 2)))
+        std = d.std(dim=1)[:, None, :, :].repeat(1, d.shape[1], 1, 1)
+        return torch.exp(torch.pow(d, 2) / (-2 * torch.pow(std, 2)))
     
     def extra_repr(self) -> str:
         return f"std={self.std.item()}"
 
-class cReLU(nn.Module):
+class cReLU_old(nn.Module):
     def __init__(self, 
                  bias: float = 0.7,
                  requires_grad: bool = True,
@@ -246,6 +247,11 @@ class cReLU(nn.Module):
             self.bias = nn.Parameter(self.bias, requires_grad = True)
     
     def forward(self, x):
+        # print(f'max = {x[0].max(dim=0)}')
+        # print(f'min = {x[0].min(dim=0)}')
+        # print(f'mean = {x[0].mean(dim=0)}')
+        # print(f'std = {x[0].std(dim=0)}')
+        # input()
         bias_tmp = self.bias
         result = x * torch.ge(x, bias_tmp.repeat(x.shape[0]).view(-1,1,1,1)).float()
         return result
@@ -264,14 +270,14 @@ class cReLU_percent(nn.Module):
     
     def forward(self, x):
         # 1. 取所有數字的對應percent值當作唯一threshold
-        # x_flatten = x.reshape(x.shape[0], -1)
-        # top_k, _ = x_flatten.topk(math.ceil(self.percent * x_flatten.shape[1]), dim=1, largest=True)
-        # threshold = top_k[:, -1]
-        # threshold = threshold.view(-1,1,1,1)
+        x_flatten = x.reshape(x.shape[0], -1)
+        top_k, _ = x_flatten.topk(math.ceil(self.percent * x_flatten.shape[1]), dim=1, largest=True)
+        threshold = top_k[:, -1]
+        threshold = threshold.view(-1,1,1,1)
 
         # 2. 每個channel獨立計算threshold
-        threshold, _ = x.topk(int(self.percent * x.shape[1]), dim=1, largest=True)
-        threshold = threshold[:, -1, :, :][:, None, :, :]
+        # threshold, _ = x.topk(int(self.percent * x.shape[1]), dim=1, largest=True)
+        # threshold = threshold[:, -1, :, :][:, None, :, :]
 
         result = torch.where(x >= threshold, x, 0).view(*x.shape)
         return result
