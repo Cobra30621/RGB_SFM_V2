@@ -38,7 +38,7 @@ class SFMCNN(nn.Module):
                 activate_param = activate_params[i])
             basicBlocks.append(basicBlock)
 
-        convblock = self._make_BasicBlock(
+        convblock = self._make_ConvBlock(
             channels[-2], 
             channels[-1], 
             Conv2d_kernel[-1], 
@@ -216,6 +216,7 @@ class triangle(nn.Module):
     def forward(self, d):
         w_tmp = self.w
         d_copy = d.clone()
+        d_copy[d_copy>=w_tmp] = w_tmp
         return torch.ones_like(d_copy) - torch.div(d_copy, w_tmp)
     
     def extra_repr(self) -> str:
@@ -257,20 +258,26 @@ class cReLU_percent(nn.Module):
                  percent: float = 0.5,
                  requires_grad: bool = True,
                  device:str = "cuda") -> None:
+        # percent代表要留多少比例的數字
         super().__init__()
         self.percent = torch.tensor([percent]).to(device)
     
     def forward(self, x):
+        # 1. 取所有數字的對應percent值當作唯一threshold
         x_flatten = x.reshape(x.shape[0], -1)
         top_k, _ = x_flatten.topk(math.ceil(self.percent * x_flatten.shape[1]), dim=1, largest=True)
         threshold = top_k[:, -1]
         threshold = threshold.view(-1,1,1,1)
 
+        # 2. 每個channel獨立計算threshold
+        # threshold, _ = x.topk(int(self.percent * x.shape[1]), dim=1, largest=True)
+        # threshold = threshold[:, -1, :, :][:, None, :, :]
+
         result = torch.where(x >= threshold, x, 0).view(*x.shape)
         return result
     
     def extra_repr(self) -> str:
-        return f"percent={self.percent.item()}"
+        return f"percent={self.percent.item()}, threshold plan1"
 
 class triangle_cReLU(nn.Module):
     def __init__(self, 
