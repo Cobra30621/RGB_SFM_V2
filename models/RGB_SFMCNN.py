@@ -30,192 +30,69 @@ class RGB_SFMCNN(nn.Module):
                  paddings,
                  fc_input,
                  device,
-                 **kwargs) -> None:
+                 activate_params) -> None:
         super().__init__()
 
         # TODO 檢查是否各個block的initial function
-        if rbfs[0][0] == 'triangle':
-            self.RGB_conv2d = self._make_RGBBlock(channels[0][0], 
-                                                  Conv2d_kernel[0], 
-                                                  stride = strides[0],
-                                                  padding=paddings[0],
-                                                  rbf =  rbfs[0][0],
-                                                  initial='uniform', 
-                                                  device=device,
-                                                  w = kwargs['w_arr'][0][0],
-                                                  percent = kwargs['percents'][0][0])
-        elif rbfs[0][0] == 'gauss':
-            self.RGB_conv2d = self._make_RGBBlock(channels[0][0], 
-                                                  Conv2d_kernel[0], 
-                                                  stride = strides[0],
-                                                  padding=paddings[0],
-                                                  rbf =  rbfs[0][0],
-                                                  initial='uniform', 
-                                                  device=device,
-                                                  std = kwargs['stds'][0][0],
-                                                  bias = kwargs['biass'][0][0])
-        if rbfs[0][1] == 'triangle':
-            self.GRAY_conv2d = self._make_ConvBlock(
-                                                    1,
-                                                    channels[0][1], 
-                                                    Conv2d_kernel[0], 
-                                                    stride = strides[0],
-                                                    padding=paddings[0],
-                                                    rbf =  rbfs[0][1],
-                                                    initial='kaiming', 
-                                                    device=device,
-                                                    w = kwargs['w_arr'][0][1],
-                                                    percent = kwargs['percents'][0][1]
-                                                )
-        elif rbfs[0][1] == 'gauss':
-            self.GRAY_conv2d = self._make_ConvBlock(
-                                                    1,
-                                                    channels[0][1], 
-                                                    Conv2d_kernel[0], 
-                                                    stride = strides[0],
-                                                    padding=paddings[0],
-                                                    rbf =  rbfs[0][1],
-                                                    initial='kaiming', 
-                                                    device=device,
-                                                    std = kwargs['stds'][0][1],
-                                                    bias = kwargs['biass'][0][1]
-                                                )
+        self.RGB_conv2d = self._make_RGBBlock(
+            3,
+            channels[0][0], 
+            Conv2d_kernel[0], 
+            stride = strides[0],
+            padding=paddings[0],
+            rbf =  rbfs[0][0],
+            initial='uniform', 
+            device=device,
+            activate_param = activate_params[0][0])
+
+        self.GRAY_conv2d = self._make_ConvBlock(
+            1,
+            channels[0][1], 
+            Conv2d_kernel[0], 
+            stride = strides[0],
+            padding=paddings[0],
+            rbf =  rbfs[0][1],
+            initial='kaiming', 
+            device=device,
+            activate_param = activate_params[0][1]
+        )
         self.SFM = SFM(filter = SFM_filters[0], device = device)
 
         basicBlocks = []
-        for i in range(1,len(SFM_filters)):
-            if rbfs[i] == 'triangle':
-                basicBlock = self._make_BasicBlock(
-                    sum(channels[i-1]), 
-                    channels[i], 
-                    Conv2d_kernel[i], 
-                    stride = strides[i],
-                    padding = paddings[i], 
-                    filter = SFM_filters[i],
-                    rbf = rbfs[i],  
-                    initial="kaiming",
-                    device = device,
-                    percent = kwargs['percents'][i],
-                    w = kwargs['w_arr'][i])
-            elif rbfs[i] == 'gauss':
-                basicBlock = self._make_BasicBlock(
-                    sum(channels[i-1]), 
-                    channels[i], 
-                    Conv2d_kernel[i], 
-                    stride = strides[i],
-                    padding = paddings[i], 
-                    filter = SFM_filters[i],
-                    rbf = rbfs[i],  
-                    initial="kaiming",
-                    device = device,
-                    std = kwargs['stds'][i],
-                    bias = kwargs['biass'][i]
-                )
+        for i in range(1, len(SFM_filters)):
+            basicBlock = self._make_BasicBlock(
+                sum(channels[i-1]), 
+                channels[i], 
+                Conv2d_kernel[i], 
+                stride = strides[i],
+                padding = paddings[i], 
+                filter = SFM_filters[i],
+                rbf = rbfs[i],  
+                initial="kaiming",
+                device = device,
+                activate_param = activate_params[i])
             basicBlocks.append(basicBlock)
 
-        if rbfs[-1] == 'triangle':
-            convblock = self._make_BasicBlock(
-                channels[-2], 
-                channels[-1], 
-                Conv2d_kernel[-1], 
-                stride = strides[-1],
-                padding = paddings[-1], 
-                rbf = rbfs[-1],
-                device = device,
-                percent = kwargs['percents'][-1],
-                w = kwargs['w_arr'][-1]
-            )
-        elif rbfs[-1] == 'gauss':
-            convblock = self._make_ConvBlock(
-                channels[-2], 
-                channels[-1], 
-                Conv2d_kernel[-1], 
-                stride = strides[-1],
-                padding = paddings[-1], 
-                rbf = rbfs[-1],
-                device = device,
-                std = kwargs['stds'][-1],
-                bias = kwargs['biass'][-1]
-            )
+        convblock = self._make_ConvBlock(
+            channels[-2], 
+            channels[-1], 
+            Conv2d_kernel[-1], 
+            stride = strides[-1],
+            padding = paddings[-1], 
+            rbf = rbfs[-1],
+            device = device,
+            activate_param = activate_params[-1]
+        )
 
-
-        # TODO 檢查是否各個block的initial function
         self.convs = nn.Sequential(
                 *basicBlocks,
                 convblock
             )
-
-
+        
         self.fc1 = nn.Sequential(
             nn.Linear(fc_input, out_channels)
         )
 
-    def _make_BasicBlock(self,
-                    in_channels:int, 
-                    out_channels:int, 
-                    kernel_size:tuple,
-                    stride:int = 1,
-                    padding:int = 0,
-                    filter:tuple = (1,1),
-                    rbf = "triangle",
-                    initial: str = "kaiming",
-                    device:str = "cuda",
-                    **kwargs):
-        if rbf == "triangle":
-            return nn.Sequential(
-                RBF_Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride = stride, padding = padding, initial = initial,device = device),
-                triangle_cReLU(w=kwargs['w'], percent=kwargs['percent'], requires_grad = True, device=device),
-                SFM(filter = filter, device = device)
-            )
-        elif rbf == "gauss":
-            return nn.Sequential(
-                RBF_Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride = stride, padding = padding, initial = initial,device = device),
-                gauss(std=kwargs['std'], device=device),
-                cReLU(bias=kwargs['bias']),
-                SFM(filter = filter, device = device)
-            )
-    
-    def _make_RGBBlock(self,
-                    out_channels, 
-                    kernel_size,
-                    stride:int = 1,
-                    padding:int = 0,
-                    rbf = 'triangle',
-                    device:str = "cuda",
-                    **kwargs):
-        if rbf == 'triangle':
-            return nn.Sequential(
-                RBF_Conv2d(3, out_channels, kernel_size=kernel_size, stride = stride, padding = padding, device = device),
-                triangle_cReLU(w=kwargs['w'], percent=kwargs['percent'], requires_grad = True, device=device),
-            )
-        elif rbf == 'gauss':
-            return nn.Sequential(
-                RBF_Conv2d(3, out_channels, kernel_size=kernel_size, stride = stride, padding = padding, device = device),
-                gauss(std=kwargs['std'], device=device),
-                cReLU(bias=kwargs['bias']),
-            )
-
-    def _make_ConvBlock(self,
-                    in_channels, 
-                    out_channels, 
-                    kernel_size,
-                    stride:int = 1,
-                    padding:int = 0,
-                    rbf = 'triangle',
-                    device:str = "cuda",
-                    **kwargs):
-        if rbf == 'triangle':
-            return nn.Sequential(
-                RBF_Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride = stride, padding = padding, device = device),
-                triangle_cReLU(w=kwargs['w'], percent=kwargs['percent'], requires_grad = True, device=device),
-            )
-        elif rbf == 'gauss':
-            return nn.Sequential(
-                RBF_Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride = stride, padding = padding, device = device),
-                gauss(std=kwargs['std'], device=device),
-                cReLU(bias=kwargs['bias']),
-            )
-    
     def forward(self, x):
         rgb_output = self.RGB_conv2d(x)
 
@@ -230,9 +107,118 @@ class RGB_SFMCNN(nn.Module):
         # print(torch.max(output), torch.min(output))
         output = self.fc1(output.reshape(x.shape[0], -1))
         return output
+
+    def _make_RGBBlock(self,
+                    in_channels:int, 
+                    out_channels:int, 
+                    kernel_size:tuple,
+                    stride:int = 1,
+                    padding:int = 0,
+                    rbf = "triangle",
+                    initial: str = "kaiming",
+                    device:str = "cuda",
+                    activate_param = [0,0]):
+        if rbf == "triangle":
+            return nn.Sequential(
+                RGB_Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride = stride, padding = padding, initial = initial,device = device),
+                triangle_cReLU(w=activate_param[0], percent=activate_param[1], requires_grad = True, device=device),
+            )
+        elif rbf == "gauss":
+            return nn.Sequential(
+                RGB_Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride = stride, padding = padding, initial = initial,device = device),
+                gauss(std=activate_param[0], device=device),
+                cReLU(bias=activate_param[1]),
+            )
+        elif rbf == 'triangle and cReLU':
+            return nn.Sequential(
+                RGB_Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride = stride, padding = padding, device = device),
+                triangle(w=activate_param[0], requires_grad=True, device=device),
+                cReLU(bias=activate_param[1]),
+            )
+        elif rbf == 'guass and cReLU_percent':
+            return nn.Sequential(
+                RGB_Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride = stride, padding = padding, device = device),
+                gauss(std=activate_param[0], device=device),
+                cReLU_percent(percent=activate_param[1]),
+            )
+
+
+    def _make_BasicBlock(self,
+                    in_channels:int, 
+                    out_channels:int, 
+                    kernel_size:tuple,
+                    stride:int = 1,
+                    padding:int = 0,
+                    filter:tuple = (1,1),
+                    rbf = "triangle",
+                    initial: str = "kaiming",
+                    device:str = "cuda",
+                    activate_param = [0,0]):
+        if rbf == "triangle":
+            return nn.Sequential(
+                RBF_Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride = stride, padding = padding, initial = initial,device = device),
+                triangle_cReLU(w=activate_param[0], percent=activate_param[1], requires_grad = True, device=device),
+                SFM(filter = filter, device = device)
+            )
+        elif rbf == "gauss":
+            return nn.Sequential(
+                RBF_Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride = stride, padding = padding, initial = initial,device = device),
+                gauss(std=activate_param[0], device=device),
+                cReLU(bias=activate_param[1]),
+                SFM(filter = filter, device = device)
+            )
+        elif rbf == 'triangle and cReLU':
+            return nn.Sequential(
+                RBF_Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride = stride, padding = padding, device = device),
+                triangle(w=activate_param[0], requires_grad=True, device=device),
+                cReLU(bias=activate_param[1]),
+                SFM(filter = filter, device = device)
+            )
+        elif rbf == 'guass and cReLU_percent':
+            return nn.Sequential(
+                RBF_Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride = stride, padding = padding, device = device),
+                gauss(std=activate_param[0], device=device),
+                cReLU_percent(percent=activate_param[1]),
+                SFM(filter = filter, device = device)
+            )
+
+    def _make_ConvBlock(self,
+                    in_channels, 
+                    out_channels, 
+                    kernel_size,
+                    stride:int = 1,
+                    padding:int = 0,
+                    initial: str = "kaiming",
+                    rbf = 'triangle',
+                    device:str = "cuda",
+                    activate_param = [0,0]):
+        if rbf == "triangle":
+            return nn.Sequential(
+                RBF_Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride = stride, padding = padding, initial = initial,device = device),
+                triangle_cReLU(w=activate_param[0], percent=activate_param[1], requires_grad = True, device=device),
+            )
+        elif rbf == "gauss":
+            return nn.Sequential(
+                RBF_Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride = stride, padding = padding, initial = initial,device = device),
+                gauss(std=activate_param[0], device=device),
+                cReLU(bias=activate_param[1]),
+            )
+        elif rbf == 'triangle and cReLU':
+            return nn.Sequential(
+                RBF_Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride = stride, padding = padding, device = device),
+                triangle(w=activate_param[0], requires_grad=True, device=device),
+                cReLU(bias=activate_param[1]),
+            )
+        elif rbf == 'guass and cReLU_percent':
+            return nn.Sequential(
+                RBF_Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride = stride, padding = padding, device = device),
+                gauss(std=activate_param[0], device=device),
+                cReLU_percent(percent=activate_param[1]),
+            )
     
 class RGB_Conv2d(nn.Module):
     def __init__(self,
+                 in_channels:int,
                  out_channels: int,
                  kernel_size: int,
                  stride: int = 1,
@@ -406,6 +392,26 @@ class cReLU(nn.Module):
     
     def extra_repr(self) -> str:
         return f"bias={self.bias.item()}"
+    
+class cReLU_percent(nn.Module):
+    def __init__(self, 
+                 percent: float = 0.5,
+                 requires_grad: bool = True,
+                 device:str = "cuda") -> None:
+        super().__init__()
+        self.percent = torch.tensor([percent]).to(device)
+    
+    def forward(self, x):
+        x_flatten = x.reshape(x.shape[0], -1)
+        top_k, _ = x_flatten.topk(math.ceil(self.percent * x_flatten.shape[1]), dim=1, largest=True)
+        threshold = top_k[:, -1]
+        threshold = threshold.view(-1,1,1,1)
+
+        result = torch.where(x >= threshold, x, 0).view(*x.shape)
+        return result
+    
+    def extra_repr(self) -> str:
+        return f"percent={self.percent.item()}"
 
 class triangle_cReLU(nn.Module):
     def __init__(self, 
