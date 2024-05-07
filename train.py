@@ -38,15 +38,20 @@ def train(train_dataloader: DataLoader, valid_dataloader: DataLoader, model: nn.
                 optimizer.step()
 
                 # with torch.no_grad():
-                #     normalize_weights = (model.RGB_conv2d[0].weights - torch.min(model.RGB_conv2d[0].weights)) / (torch.max(model.RGB_conv2d[0].weights) - torch.min(model.RGB_conv2d[0].weights))
+                #     weights = model.RGBBlocks[0][0].weights
+                #     normalize_weights = (weights - torch.min(weights)) / (torch.max(weights) - torch.min(weights))
+                #     model.RGBBlocks[0][0].weights = nn.Parameter(normalize_weights)
+
+                # with torch.no_grad():
+                #     weights = model.RGB_conv2d[0].weights
+                #     normalize_weights = (weights - torch.min(weights)) / (torch.max(weights) - torch.min(weights))
                 #     model.RGB_conv2d[0].weights = nn.Parameter(normalize_weights)
 
                 # with torch.no_grad():
-                #     for name, module in model.named_modules():
-                #         for param_name, param in module.named_parameters():
-                #             if param_name[-6:] == "weight" and param_name[0:5] == "convs":
-                #                 param = (param - torch.min(param)) / (torch.max(param) - torch.min(param))
-                #                 model.state_dict()[param_name].copy_(param)
+                #     weights = model.convs[0][0].weight
+                #     normalize_weights = (weights - torch.min(weights)) / (torch.max(weights) - torch.min(weights))
+                #     model.convs[0][0].weight = nn.Parameter(normalize_weights)
+
                     
                 # 清零梯度
                 optimizer.zero_grad()
