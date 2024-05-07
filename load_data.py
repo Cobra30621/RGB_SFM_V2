@@ -80,7 +80,7 @@ class CustomMNISTDataset(Dataset):
 
     def __len__(self) -> int:
         return len(self.data)
-
+    
 class RGBSimpleShapeDataset(Dataset):
     def __init__(self,
         root: str,
@@ -196,6 +196,56 @@ class MultiColorShapesDataset(Dataset):
     
     def __len__(self):
         return len(self.data)
+    
+class RGBSimpleShape6kDataset(Dataset):
+    def __init__(self,
+        root: str,
+        train: bool = True,
+        augmentation: bool = False,
+        transform: Optional[Callable] = None,
+        target_transform: Optional[Callable] = None,
+    ) -> None:
+        self.root = root
+        self.transform = transform
+        self.target_transform = target_transform
+        
+        self.train = train
+        self.augmentation = augmentation
+        labels = ['Circle_red', 'Circle_green', 'Circle_blue', 
+                    'Square_red', 'Square_green', 'Square_blue',
+                    'Triangle_red', 'Triangle_green', 'Triangle_blue']
+        self.label_to_num = {k:i for i,k in enumerate(labels)}
+        self.num_to_label = {i:k for i,k in enumerate(labels)}
+        self.data, self.targets = self._load_data()
+    
+    def _load_data(self):
+        image_file = f"{self.root}/{'Train' if self.train else 'Test'}/"
+        image_dataset = []
+        label_dataset = []
+        for root, dirs, files in os.walk(image_file):
+            for name in files:
+                name_split = '_'.join(name.split('_')[:2])
+                label = self.label_to_num[name_split]
+                y_onehot = np.eye(9)[label]
+                y_onehot = torch.from_numpy(y_onehot)
+                label_dataset.append(y_onehot)
+                image = read_image(os.path.join(root, name))
+                image_dataset.append(image)
+
+        return image_dataset, label_dataset
+    
+    def __getitem__(self, index: int) -> Tuple[Any, Any]:
+        img, target = self.data[index], self.targets[index]
+        if self.transform is not None:
+            img = self.transform(img)
+        if self.target_transform is not None:
+            target = self.target_transform(target)
+        return img, target
+    
+    def __len__(self):
+        return len(self.data)
+
+
 
 class FaceDataset(Dataset):
     def __init__(self,
@@ -332,7 +382,7 @@ def load_data(dataset: str = 'mnist', root: str = '.', batch_size: int = 256, in
     
     
     if dataset == 'mnist':
-        training_data = CustomMNISTDataset(
+        train_data = CustomMNISTDataset(
             root=f'{root}/data/MNIST',
             train=True,
             transform=ToTensor()
@@ -346,7 +396,7 @@ def load_data(dataset: str = 'mnist', root: str = '.', batch_size: int = 256, in
         )
         
     elif dataset == 'fashion':
-        training_data = datasets.FashionMNIST(
+        train_data = datasets.FashionMNIST(
             root=f"{root}/data",
             train=True,
             download=True,
@@ -361,7 +411,7 @@ def load_data(dataset: str = 'mnist', root: str = '.', batch_size: int = 256, in
         )
         
     elif dataset == 'cifar10':
-        training_data = datasets.CIFAR10(
+        train_data = datasets.CIFAR10(
             root=f"{root}/data",
             train=True,
             download=True,
@@ -375,7 +425,7 @@ def load_data(dataset: str = 'mnist', root: str = '.', batch_size: int = 256, in
             transform=ToTensor()
         )
     elif dataset == 'rgb_simple_shape':
-        training_data = RGBSimpleShapeDataset(
+        train_data = RGBSimpleShapeDataset(
             root=f"{root}/data/rgb-simple-shapes",
             train=True,
             transform = transforms.Compose([
@@ -393,7 +443,7 @@ def load_data(dataset: str = 'mnist', root: str = '.', batch_size: int = 256, in
             ]),
         )
     elif dataset == 'MultiColor_Shapes_Database':
-        training_data = MultiColorShapesDataset(
+        train_data = MultiColorShapesDataset(
             root=f"{root}/data/MultiColor_Shapes_Database",
             train=True,
             transform = transforms.Compose([
@@ -411,6 +461,25 @@ def load_data(dataset: str = 'mnist', root: str = '.', batch_size: int = 256, in
             ]),
         )
 
+    elif dataset == 'RGBSimpleShape6kDataset':
+        train_data = RGBSimpleShape6kDataset(
+            root=f"{root}/data/RGB_shapes_6k",
+            train=True,
+            transform = transforms.Compose([
+                transforms.Resize([*input_size]),
+                ConvertImageDtype(torch.float)
+            ]),
+        )
+
+        test_data = RGBSimpleShape6kDataset(
+            root=f"{root}/data/RGB_shapes_6k",
+            train=False,
+            transform = transforms.Compose([
+                transforms.Resize([*input_size]),
+                ConvertImageDtype(torch.float)
+            ]),
+        )
+
     if dataset == 'malaria':
         train_dataloader, valid_dataloader, test_dataloader = get_MalariaCellImagesDataset(root=f"{root}/data/cell_images/", resize=[*input_size], valid_size=0.0, test_size = 0.2, batch_size=batch_size, shuffle=True)
     elif dataset == 'malaria_split':
@@ -418,7 +487,7 @@ def load_data(dataset: str = 'mnist', root: str = '.', batch_size: int = 256, in
     elif dataset == 'face_dataset':
         train_dataloader, valid_dataloader, test_dataloader = get_FaceDataloader(root=f"{root}/data/face_dataset/Origin/", resize=[*input_size], valid_size=0.0, test_size = 0.2, batch_size=128, shuffle=True)
     else:
-        train_dataloader = DataLoader(training_data, batch_size=batch_size, shuffle=True)
+        train_dataloader = DataLoader(train_data, batch_size=batch_size, shuffle=True)
         test_dataloader = DataLoader(test_data, batch_size=batch_size, shuffle=True)
     
     return train_dataloader, test_dataloader
