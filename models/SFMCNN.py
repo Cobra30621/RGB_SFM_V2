@@ -81,7 +81,7 @@ class SFMCNN(nn.Module):
             return nn.Sequential(
                 RBF_Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride = stride, padding = padding, initial = initial,device = device),
                 # triangle_cReLU(w=activate_param[0], percent=activate_param[1], requires_grad = True, device=device),
-                triangle(w=activate_param[0], requires_grad=False, device=device),
+                triangle(w=activate_param[0], requires_grad=True, device=device),
                 cReLU_percent(percent=activate_param[1]),
                 SFM(filter = filter, device = device)
             )
@@ -121,7 +121,7 @@ class SFMCNN(nn.Module):
             return nn.Sequential(
                 RBF_Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride = stride, padding = padding, initial = initial,device = device),
                 # triangle_cReLU(w=activate_param[0], percent=activate_param[1], requires_grad = True, device=device),
-                triangle(w=activate_param[0], requires_grad=False, device=device),
+                triangle(w=activate_param[0], requires_grad=True, device=device),
                 cReLU_percent(percent=activate_param[1]),
             )
         elif rbf == "gauss":
