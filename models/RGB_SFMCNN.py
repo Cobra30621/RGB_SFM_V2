@@ -156,31 +156,32 @@ class RGB_SFMCNN(nn.Module):
                     filter:tuple = (1,1),
                     rbf = "triangle",
                     initial: str = "kaiming",
+                    is_weight_cdist = False,
                     device:str = "cuda",
                     activate_param = [0,0]):
         if rbf == "triangle":
             return nn.Sequential(
-                RBF_Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride = stride, padding = padding, initial = initial,device = device),
+                RBF_Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride = stride, padding = padding, initial = initial, is_weight_cdist=is_weight_cdist, device = device),
                 triangle_cReLU(w=activate_param[0], percent=activate_param[1], requires_grad = True, device=device),
                 SFM(filter = filter, device = device)
             )
         elif rbf == "gauss":
             return nn.Sequential(
-                RBF_Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride = stride, padding = padding, initial = initial,device = device),
+                RBF_Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride = stride, padding = padding, initial = initial, is_weight_cdist=is_weight_cdist, device = device),
                 gauss(std=activate_param[0], device=device),
                 cReLU(bias=activate_param[1]),
                 SFM(filter = filter, device = device)
             )
         elif rbf == 'triangle and cReLU':
             return nn.Sequential(
-                RBF_Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride = stride, padding = padding, device = device),
+                RBF_Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride = stride, padding = padding, is_weight_cdist=is_weight_cdist, device = device),
                 triangle(w=activate_param[0], requires_grad=True, device=device),
                 cReLU(bias=activate_param[1]),
                 SFM(filter = filter, device = device)
             )
         elif rbf == 'guass and cReLU_percent':
             return nn.Sequential(
-                RBF_Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride = stride, padding = padding, device = device),
+                RBF_Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride = stride, padding = padding, is_weight_cdist=is_weight_cdist, device = device),
                 gauss(std=activate_param[0], device=device),
                 cReLU_percent(percent=activate_param[1]),
                 SFM(filter = filter, device = device)
