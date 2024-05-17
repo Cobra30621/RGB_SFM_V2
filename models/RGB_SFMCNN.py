@@ -324,25 +324,56 @@ class RBF_Conv2d(nn.Module):
         # print(f"RBF weights = {self.weight[0]}")
         output_width = math.floor((input.shape[-1] + self.padding * 2 - (self.kernel_size[0] - 1) - 1) / self.stride[0] + 1)
         output_height = math.floor((input.shape[-2] + self.padding * 2 - (self.kernel_size[1] - 1) - 1) / self.stride[1] + 1)
+        # Unfold output = (batch, output_width * output_height, C×∏(kernel_size))
         windows = F.unfold(input, kernel_size = self.kernel_size, stride = self.stride, padding = self.padding).permute(0, 2, 1)
 
         # TODO weight取平方
         # # 將weight取平方保證其範圍落在 0 ~ 1 之間
         # weights = torch.pow(self.weight, 2)
 
-        #1. 取絕對值距離
+        # 1. 取絕對值距離
         # weight_expand = self.weight.unsqueeze(1).unsqueeze(2)
         # result = (windows - weight_expand).permute(1,0,2,3)
         # result = torch.abs(result).sum(dim=-1)
         
-        #2. 取歐基里德距離
-        result = torch.cdist(windows, self.weight).permute(0, 2, 1)
+        # 2. 取歐基里德距離
+        # windows = (batch, output_width * output_height, C×∏(kernel_size))
+        # weight = (out_channel, C×∏(kernel_size))
+        # output = (batch, out_channel, output_width * output_height)
+        result = self.weight_cdist(windows=windows, weights=self.weight)
 
         result = result.reshape(result.shape[0], result.shape[1], output_height, output_width)
         return result
     
     def extra_repr(self) -> str:
         return f"initial = {self.initial}, weight shape = {(self.out_channels, self.in_channels, *self.kernel_size)}"
+
+    def weight_cdist(self, windows, weights):
+        N, L, C, kernel_size, out_channels = windows.shape[0], windows.shape[1], self.in_channels, self.kernel_size, self.out_channels
+        
+        # Initialize the weight tensor
+        w = torch.zeros(C,device=windows.device)
+        w[:75] = 0.25
+        w[75:] = 0.75
+        
+        # Compute the weighted squared differences
+        windows_expanded = windows.unsqueeze(1)  # Shape (N, 1, L, C * kernel_size * kernel_size)
+        weights_expanded = weights.unsqueeze(0).unsqueeze(2)  # Shape (1, out_channels, 1, C * kernel_size * kernel_size)
+
+        diff = windows_expanded - weights_expanded  # Shape (N, out_channels, L, C * kernel_size * kernel_size)
+        squared_diff = diff ** 2  # Shape (N, out_channels, L, C * kernel_size * kernel_size)
+
+        # Sum over each kernel_size * kernel_size block
+        squared_diff_reshaped = squared_diff.view(N, out_channels, L, C, kernel_size[0] * kernel_size[1])
+        block_sums = squared_diff_reshaped.sum(dim=-1)  # Shape (N, out_channels, L, C)
+
+        # Multiply by the weights
+        weighted_block_sums = block_sums * w  # Broadcasting w to match block_sums shape
+
+        # Sum over the feature dimension and take the square root
+        distances = torch.sqrt(weighted_block_sums.sum(dim=-1))  # Shape (N, out_channels, L)
+
+        return distances
 
 class triangle(nn.Module):
     def __init__(self, 
