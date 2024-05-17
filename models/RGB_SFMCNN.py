@@ -60,6 +60,9 @@ class RGB_SFMCNN(nn.Module):
 
         basicBlocks = []
         for i in range(1, len(SFM_filters)):
+            is_weight_cdist = False
+            if i == 1:
+                is_weight_cdist = True
             basicBlock = self._make_BasicBlock(
                 sum(channels[i-1]), 
                 channels[i], 
@@ -69,6 +72,7 @@ class RGB_SFMCNN(nn.Module):
                 filter = SFM_filters[i],
                 rbf = rbfs[i],  
                 initial="kaiming",
+                is_weight_cdist = is_weight_cdist,
                 device = device,
                 activate_param = activate_params[i])
             basicBlocks.append(basicBlock)
@@ -292,6 +296,7 @@ class RBF_Conv2d(nn.Module):
                  stride: int = 1,
                  padding: int = 0,
                  initial:str = "kaiming",
+                 is_weight_cdist = False,
                  device=None,
                  dtype=None):
         super().__init__()
@@ -302,6 +307,7 @@ class RBF_Conv2d(nn.Module):
         self.out_channels = out_channels
         self.in_channels = in_channels
         self.initial = initial
+        self.is_weight_cdist = is_weight_cdist
 
         self.weight = torch.empty((out_channels, in_channels * self.kernel_size[0] * self.kernel_size[1]), **factory_kwargs)
         self.reset_parameters(initial)
@@ -340,13 +346,16 @@ class RBF_Conv2d(nn.Module):
         # windows = (batch, output_width * output_height, C×∏(kernel_size))
         # weight = (out_channel, C×∏(kernel_size))
         # output = (batch, out_channel, output_width * output_height)
-        result = self.weight_cdist(windows=windows, weights=self.weight)
+        if self.is_weight_cdist:
+            result = self.weight_cdist(windows=windows, weights=self.weight)
+        else:
+            result = torch.cdist(windows, self.weight).permute(0, 2, 1)
 
         result = result.reshape(result.shape[0], result.shape[1], output_height, output_width)
         return result
     
     def extra_repr(self) -> str:
-        return f"initial = {self.initial}, weight shape = {(self.out_channels, self.in_channels, *self.kernel_size)}"
+        return f"initial = {self.initial}, is_weight_cdist = {self.is_weight_cdist},weight shape = {(self.out_channels, self.in_channels, *self.kernel_size)}"
 
     def weight_cdist(self, windows, weights):
         N, L, C, kernel_size, out_channels = windows.shape[0], windows.shape[1], self.in_channels, self.kernel_size, self.out_channels
