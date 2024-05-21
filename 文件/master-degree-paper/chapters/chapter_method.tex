@@ -2,26 +2,84 @@
 \begin{document}
 
 \chapter{研究方法}
-\section{對以卷積神經網路為基礎的具可解釋性的深度學習模型之改進}
-\subsection{優化模型流程與新增平行處理}
 
-\subsection{優化空間位置保留機制之設計}
-
-\subsection{優化放射狀基底函數}
-
-
-
-
-\section{以卷積神經網路為基礎的RGB三通道可解釋性模型}
-
-
+\section{以卷積神經網路為基礎的RGB彩色可解釋性模型}
 \subsection{模型架構}
 
-\subsection{模型參數}
+此章節將介紹本論文所提出的可解釋性模型整體架構與每個部分的功能，並說明資料在模型中的運作方式，模型架構圖如\cref{fig:model_arch}。
+整個模型可以分成三個部分，色彩感知層、輪廓感知層和特徵傳遞層。
 
-\subsection{RGB三通道卷積模組設計與實現}
+\fig[1][fig:model_arch][H]{model_arch.png}[模型架構圖][模型架構圖]
 
-\subsection{模型流程}
+
+色彩感知區塊基於 Thomas Young 所提出的三色視覺理論(Trichromacy Theory)\cite{}，透過模擬眼球中的三種類型的視錐細胞，提取與學習影像中不同區塊的RGB的比例，以提取影像中每個區塊的色彩特徵。
+輪廓感知區塊透過將影像進行灰階化後使用高斯卷積層來提取影像中輪廓和邊緣的特徵。
+特徵感知區塊使用了 CIM 模型模擬了大腦皮質的運作模式並對其進行優化，每一層的 Block 都會將底層的特徵資訊整合並傳遞到下一層進行學習。 特徵傳遞層的 Block 可以分成三個部分，高斯卷積模組，特徵增強模組，空間合併模組，
+高斯卷積模組負責學習與提取輸入的特徵，特徵增強模組負責過濾不重要的特徵，空間合併模組則模擬皮層的資訊合併，融合眼球跳動的概念，將輸入的資訊根據空間位置關係進行合併。
+
+
+\subsection{演算法流程}
+Step 1：決定整個模型的架構與參數
+
+Step 2：對輸入的彩色影像做灰階化產生對應的灰階影像
+
+Step 3：將彩色影像和灰階影像分別輸入色彩提取層和輪廓提取層提取出色彩特徵與輪廓特徵
+
+Step 4：在獲得色彩特徵與輪廓特徵時將他們 concat 在一起形成一個綜合特徵
+
+Step 5：將綜合特徵輸入特徵傳遞層進行綜合特徵的學習與合併
+
+Step 6：將完整的特徵資訊輸入全連接層學習分類特徵
+
+Step 7：將色彩提取區塊的 weight 正規化至 [0,1] 之間
+
+Step 8：計算 loss value 並進行反向傳播
+
+\pagebreak
+
+\section{色彩提取區塊設計與實現}
+
+此章節將說明本論文所提出的色彩提取區塊設計與實現，
+該區塊主要是透過將 filter 的初始化為不同的RGB色彩值來作為該區塊的 weights ，並使用高斯卷積模組計算出影像中不同區塊之色彩與filter的相似度，後將結果送入特徵增強模組，最終形成影像的色彩特徵。
+這樣的方法目的在於模擬人眼中的三類視錐細胞基於RGB值來感知不同外界的色彩的過程，並透過卷積操作來去模擬人眼的眼球跳動，從而重現人眼獲得色彩特徵的完整流程。
+以下將針對filter 初始化、高斯卷積模組、特徵增強模組優化設計三個部分進行詳細說明。
+
+	\subsection{Filter初始化}
+
+	由於色彩提取區塊的輸入為彩色影像其輸入通道分別為紅、綠、 藍三色的通道，
+	我們令輸出的通道數為 \textit{C}$_{out}$ 、 kernel 的長、寬為 \textit{H}$_{kernel}$ 、 \textit{W}$_{kernel}$，
+	因此， Filter 的形狀為 $\left(C_{out} , 3, H_{kernel}, W_{kernel}\right)$。
+	我們將 Filter 視為 \textit{C}$_{out}$ 個不同RGB色彩的 \textit{H}$_{kernel}$ * \textit{W}$_{kernel}$ 的色塊，
+	這樣設置的目的是希望可以讓色彩提取區塊專注於學習影像中不同區域的色彩分布和色彩特徵，而不需要額外去學習輪廓特徵
+
+	在實作中，我們先使用 Kaiming Uniform 的方式將RGB三個通道分別初始化出\textit{C}$_{out}$個，
+	根據 kaiming 論文\cite{DBLP:journals/corr/HeZR015}中的方式將每個值初始化範圍為$[-\sqrt{\frac{6}{\text{fan\_in}}}, \sqrt{\frac{6}{\text{fan\_in}}}]$,
+	$\text{fan\_in}$ 為輸入通道數。
+	此處的目的是希望初始化出 \textit{C}$_{out}$ 種不同的RGB色彩,形成 $\left(C_{out} , 3\right)$ 的值，
+	並且再將這 \textit{C}$_{out}$ 的色彩重複擴張成 \textit{H}$_{kernel}$ * \textit{W}$_{kernel}$ 的色塊。
+
+	我們在實作中選擇使用 Kaiming Uniform 的原因是因為 Kaiming Uniformm 相較於常用的 Uniform 初始化和 Xavier Uniform\cite{pmlr-v9-glorot10a} 初始化多考慮了整流線性單位函數(ReLU)的存在，
+	Uniform 初始化的方式無法解決隨著神經網路的增加而導致梯度消失的問題，
+	Xavier Uniform 為了解決梯度消失問題加入了 rescale 函數 $\frac{1} / \sqrt{\text{n}}$但卻只適用於激活函數為線性函數的情況下，
+	而 Kaiming Uniform 在解決梯度消失的問題時同時考慮了激活函數為非線性函數的情況並在\cite{DBLP:journals/corr/HeZR015}透過實驗證明了kaiming uniform 在神經網路在不影響準確度的同時更快收斂。
+	由於我們的模型中在特徵增強模組中使用的非線性函數ReLU的變形去進行特徵增強，因此選擇了 Kaiming Uniform 來去進行後面的實驗。
+
+	\subsection{高斯卷積模組}
+
+	\subsection{特徵增強模組之優化設計}
+
+	\subsection{訓練過程的正規化}
+
+\section{特徵感知區塊的設計與實現}
+
+	\subsection{模型效能優化設計}
+
+	\subsection{空間位置保留機制之優化設計}
+
+\section{可解釋性}
+	\subsection{色彩感知區塊之可解釋性}
+	\subsection{輪廓感知區塊之可解釋性}
+	\subsection{特徵感知區塊之可解釋性}
 
 \section{量化推論成果之方法}
 
