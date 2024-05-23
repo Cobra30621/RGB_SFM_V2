@@ -38,21 +38,11 @@ def train(train_dataloader: DataLoader, valid_dataloader: DataLoader, model: nn.
                 # 更新模型参数
                 optimizer.step()
 
-                # with torch.no_grad():
-                #     weights = model.RGBBlocks[0][0].weights
-                #     normalize_weights = (weights - torch.min(weights)) / (torch.max(weights) - torch.min(weights))
-                #     model.RGBBlocks[0][0].weights = nn.Parameter(normalize_weights)
-
-                # with torch.no_grad():
-                #     weights = model.RGB_conv2d[0].weights
-                #     normalize_weights = (weights - torch.min(weights)) / (torch.max(weights) - torch.min(weights))
-                #     model.RGB_conv2d[0].weights = nn.Parameter(normalize_weights)
-
-                # with torch.no_grad():
-                #     weights = model.convs[0][0].weight
-                #     normalize_weights = (weights - torch.min(weights)) / (torch.max(weights) - torch.min(weights))
-                #     model.convs[0][0].weight = nn.Parameter(normalize_weights)
-
+                if X.shape[1] != 1:
+                    with torch.no_grad():
+                        weights = model.RGB_conv2d[0].weights
+                        normalize_weights = (weights - torch.min(weights)) / (torch.max(weights) - torch.min(weights))
+                        model.RGB_conv2d[0].weights = nn.Parameter(normalize_weights)
                     
                 # 清零梯度
                 optimizer.zero_grad()
