@@ -11,6 +11,7 @@ from torch.utils.data import DataLoader
 from torchsummary import summary
 
 from load_data import load_data
+from dataloader import get_dataloader
 from config import *
 import models
 
@@ -161,7 +162,7 @@ wandb.init(
     config=config
 )
 
-train_dataloader, test_dataloader = load_data(dataset=config['dataset'], root=config['root'], batch_size=config['batch_size'], input_size=config['input_shape'])
+train_dataloader, test_dataloader = get_dataloader(dataset=config['dataset'], root=config['root'] + '/data/', batch_size=config['batch_size'], input_size=config['input_shape'])
 
 model = getattr(getattr(models, config['model']['name']), config['model']['name'])(**dict(config['model']['args']))
 model = model.to(config['device'])
