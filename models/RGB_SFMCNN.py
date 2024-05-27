@@ -33,6 +33,11 @@ class RGB_SFMCNN(nn.Module):
                  activate_params) -> None:
         super().__init__()
 
+        self.gray_transform = torchvision.transforms.Compose([
+            torchvision.transforms.Grayscale(),
+            ThresholdTransform()
+        ])
+
         # TODO 檢查是否各個block的initial function
         self.RGB_conv2d = self._make_RGBBlock(
             3,
@@ -62,7 +67,7 @@ class RGB_SFMCNN(nn.Module):
         for i in range(1, len(SFM_filters)):
             is_weight_cdist = False
             if i == 1:
-                is_weight_cdist = True
+                is_weight_cdist = False
             basicBlock = self._make_BasicBlock(
                 sum(channels[i-1]), 
                 channels[i], 
@@ -99,12 +104,7 @@ class RGB_SFMCNN(nn.Module):
 
     def forward(self, x):
         rgb_output = self.RGB_conv2d(x)
-
-        gray_transform = torchvision.transforms.Compose([
-            torchvision.transforms.Grayscale(),
-            ThresholdTransform()
-        ])
-        gray_output = self.GRAY_conv2d(gray_transform(x))
+        gray_output = self.GRAY_conv2d(self.gray_transform(x))
         output = torch.concat(([rgb_output, gray_output]), dim=1)
         output = self.SFM(output)
         output = self.convs(output)
