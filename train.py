@@ -10,7 +10,6 @@ from tqdm.autonotebook import tqdm
 from torch.utils.data import DataLoader
 from torchsummary import summary
 
-from load_data import load_data
 from dataloader import get_dataloader
 from config import *
 import models
