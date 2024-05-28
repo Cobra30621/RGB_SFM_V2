@@ -6,6 +6,8 @@ from .MultiColorShapes import MultiColorShapesDataset
 from .FaceDataset import FaceDataset
 from .Malaria import MalariaCellDataset
 from .RGB_circle import RGBCircle
+from .MultiGrayShapes import MultiGrayShapesDataset
+from .MultiEdgeShapes import MultiEdgeShapesDataset
 from torchvision import transforms
 
 dataset_classes = {
@@ -14,6 +16,8 @@ dataset_classes = {
     'face_dataset': FaceDataset,
     'malaria':MalariaCellDataset,
     'RGB_Circle':RGBCircle,
+    'MultiGrayShapesDataset': MultiGrayShapesDataset,
+    'MultiEdgeShapes': MultiEdgeShapesDataset,
 }
 
 def get_dataloader(dataset, root: str = '.', batch_size=32, input_size: tuple = (28, 28)):
