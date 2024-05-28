@@ -26,7 +26,7 @@ print(images.shape, labels.shape)
 
 # Load Model
 models = {'SFMCNN': SFMCNN, 'RGB_SFMCNN':RGB_SFMCNN}
-checkpoint_filename = '0521_RGB_SFMCNN_best_h4reqwyh'
+checkpoint_filename = '0528_SFMCNN_best_j1uo1m10'
 checkpoint = torch.load(f'./pth/{config["dataset"]}_pth/{checkpoint_filename}.pth')
 model = models[arch['name']](**dict(config['model']['args']))
 model.load_state_dict(checkpoint['model_weights'])
@@ -138,15 +138,15 @@ print('CI saving ...')
 CIs_save_path = save_path + 'CIs/'
 os.makedirs(CIs_save_path, exist_ok=True)
 if arch['args']['in_channels'] == 1:
-	plot_map(CIs[0].reshape(int(CIs[0].shape[0]**0.5), int(CIs[0].shape[0]**0.5), *CIs[0].shape[2:]).detach().numpy(), path=CIs_save_path+'/CIs_0')
+	plot_map(CIs[0].reshape(int(CIs[0].shape[0]**0.5), int(CIs[0].shape[0]**0.5), *CIs[0].shape[2:]).detach().numpy(), vmax=1, vmin=0, path=CIs_save_path+'/CIs_0')
+	plot_map(CIs[1].reshape(int(CIs[1].shape[0]**0.5), int(CIs[1].shape[0]**0.5), *CIs[1].shape[2:]).detach().numpy(), vmax=1, vmin=0, path=CIs_save_path+'/CIs_1')
+	plot_map(CIs[2].reshape(int(CIs[2].shape[0]**0.5), int(CIs[2].shape[0]**0.5), *CIs[2].shape[2:]).detach().numpy(), vmax=1, vmin=0, path=CIs_save_path+'/CIs_2')
+	plot_map(CIs[3].reshape(int(CIs[3].shape[0]**0.5), int(CIs[3].shape[0]**0.5), *CIs[3].shape[2:]).detach().numpy(), vmax=1, vmin=0, path=CIs_save_path+'/CIs_3')
+else:
+	plot_map(CIs['RGB_Conv2d'].reshape(5, 15, *CIs['RGB_Conv2d'].shape[2:]).detach().numpy(), path=CIs_save_path+'/CIs_RGB_Conv2d')
+	plot_map(CIs['Gray_Conv2d'].reshape(5, 5, *CIs['Gray_Conv2d'].shape[2:]).detach().numpy(), path=CIs_save_path+'/CIs_Gray_Conv2d')
 	plot_map(CIs[1].reshape(int(CIs[1].shape[0]**0.5), int(CIs[1].shape[0]**0.5), *CIs[1].shape[2:]).detach().numpy(), path=CIs_save_path+'/CIs_1')
 	plot_map(CIs[2].reshape(int(CIs[2].shape[0]**0.5), int(CIs[2].shape[0]**0.5), *CIs[2].shape[2:]).detach().numpy(), path=CIs_save_path+'/CIs_2')
-	plot_map(CIs[3].reshape(int(CIs[3].shape[0]**0.5), int(CIs[3].shape[0]**0.5), *CIs[3].shape[2:]).detach().numpy(), path=CIs_save_path+'/CIs_3')
-else:
-	plot_map(CIs['RGB_Conv2d'].reshape(5, 15, *CIs['RGB_Conv2d'].shape[2:]).detach().numpy(), path=FMs_save_path+'/CIs_RGB_Conv2d')
-	plot_map(CIs['Gray_Conv2d'].reshape(5, 5, *CIs['Gray_Conv2d'].shape[2:]).detach().numpy(), path=FMs_save_path+'/CIs_Gray_Conv2d')
-	plot_map(CIs[1].reshape(int(CIs[1].shape[0]**0.5), int(CIs[1].shape[0]**0.5), *CIs[1].shape[2:]).detach().numpy(), path=FMs_save_path+'/CIs_1')
-	plot_map(CIs[2].reshape(int(CIs[2].shape[0]**0.5), int(CIs[2].shape[0]**0.5), *CIs[2].shape[2:]).detach().numpy(), path=FMs_save_path+'/CIs_2')
 
 print('CI saved')
 
