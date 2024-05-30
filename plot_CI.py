@@ -26,7 +26,7 @@ print(images.shape, labels.shape)
 
 # Load Model
 models = {'SFMCNN': SFMCNN, 'RGB_SFMCNN':RGB_SFMCNN}
-checkpoint_filename = '0528_SFMCNN_best_j1uo1m10'
+checkpoint_filename = '0529_SFMCNN_best_61y2x079'
 checkpoint = torch.load(f'./pth/{config["dataset"]}_pth/{checkpoint_filename}.pth')
 model = models[arch['name']](**dict(config['model']['args']))
 model.load_state_dict(checkpoint['model_weights'])
