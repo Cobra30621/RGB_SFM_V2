@@ -66,8 +66,6 @@ Step 8：計算 loss value 並進行反向傳播
 
 	\subsection{彩色卷積模組}
 
-	\subsection{特徵增強模組之優化設計}
-
 	\subsection{訓練過程的正規化}
 
 \section{輪廓感知區塊之設計}
@@ -94,6 +92,8 @@ Step 8：計算 loss value 並進行反向傳播
 	其次，這個步驟並不會增加準確度或是增加效能，反而是多一些所轉置與Reshape所需要的時間。
 	基於以上原因我們決定將此步驟捨棄，使過程容易理解、減少所需時間。
 
+	\colorbox {yellow}{加入我們刪除了原先模型流程中的哪個步驟}
+
 	其次，在實作上我們優化了高斯卷積層的卷積操作，
 	CIM的原始實作方法是逐個計算每個 Windows 和濾波器之間的歐式距離並將結果輸入進高斯函數得出相似度。
 	我們改進了這個實作過程，利用了 GPU 的多核優勢，
@@ -102,7 +102,46 @@ Step 8：計算 loss value 並進行反向傳播
 	這樣的實作方式使得整體模型的訓練速度可以大幅提高，
 	也完整利用GPU的效能，提升了模型效率。
 
+	\colorbox {yellow}{可以加入原本的卷積方式和平行處理的方式的示意圖}
+
+	\subsection{特徵增強模組之優化設計}
+	在特徵增強模組
+
+
 	\subsection{空間位置保留機制之優化設計}
+	在空間保留機制模組上，
+	CIM為了保留 $RM$ 之間的空間位置關係簡化了眼球跳動的方式，
+	加入了一個可訓練的時間遺忘函數 $\alpha$ 進入合併公式\cref{eq:eq-sf}。
+	CIM之合併公式:\\
+		$RM_{c}$為合併後的RM，$RM_{k}$為第k張RM，$n$為輸入資訊的數量，$\alpha$為一個可訓練的參數
+		\begin{equation}
+		    \label{eq:eq-sf}
+		    RM_{c}=\frac{1}{n} \sum_{k = 0}^{n-1} \alpha^{k} \times RM_{k}  \qquad ,\ where\ n = \textit{H}^{i}_{SF} \times \textit{W}^{i}_{SF}
+		\end{equation}
+	這樣會導致越早被看到(時間越早)的數值需要乘的$\alpha^{k}$的k值越大，
+	在合併時的加權也就越小。
+	儘管這種做法確實可以使$RM$呈現出空間上的關係，
+	然而當我們需要合併的$RM_{k}$越多時，
+	隨著$k$ 值越來越大，$\alpha^{k}$會快速變小。
+	這樣便造成當我們將$RM_{k}$ 乘上過小的的$\alpha^{k}$後，
+	便會變得這個數值便會在$RM_{c}$中變得無足輕重。
+	
+	\colorbox {yellow}{可以放入$\alpha$的指數變化圖}
+
+	對於大小較大的影像而言這種方法是有問題的，
+	這會使得影像逐漸喪失一部分$ RM_{k} $ 所擷取的特徵。
+	因此我們提出了將 $\alpha$ 的方法從$\alpha^{k}$，
+	改成從[ $0.9 \sim 0.99$ ]之間進行等距採樣，
+	得到 $k$ 個值代替 $\alpha^{k}$ 按照時序順序去乘以 $RM_{k}$ ，
+	我們將第 $k$ 個RM所對應的 $\alpha$ 稱為 $\beta_{k}$，
+	如此便可以改善當需要合併的 $RM$ 數量過多時 $\alpha^{k}$ 過小的問題，
+	同時也保留了CIM當初設計時希望保留的 $RM$ 之間的對應空間關係。\\
+	改善後的合併公式如\cref{eq:eq-sf-update}，$\beta_{k}$從[$0.9 \sim 0.99$]之間取出的第$k$個值:\\
+		\begin{equation}
+		    \label{eq:eq-sf-update}
+		    RM_{c}=\frac{1}{n} \sum_{k = 0}^{n-1} \beta_{k} \times RM_{k}  \qquad ,\ where\ n = \textit{H}^{i}_{SF} \times \textit{W}^{i}_{SF}
+		\end{equation}
+	\colorbox {yellow}{可以放等距取值示意圖}
 
 
 
