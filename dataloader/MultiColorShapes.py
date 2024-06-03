@@ -40,6 +40,7 @@ class MultiColorShapesDataset(Dataset):
                 label_dataset.append(y_onehot)
 
                 image = read_image(os.path.join(root, name))
+                image = self.reverse_bgcolor(image)
                 image = image.detach().numpy().transpose(1,2,0)
                 image_dataset.append(image)
 

@@ -17,6 +17,11 @@ class ThresholdTransform(object):
         def __call__(self,x):
             threshold = x.mean()
             return (x>threshold).to(x.dtype)
+        
+class Renormalize(object):
+        def __call__(self,image):
+            _max, _min = torch.max(image), torch.min(image)
+            return (image - _min) / _max
 
 class RGB_SFMCNN(nn.Module):
     def __init__(self, 
@@ -35,7 +40,7 @@ class RGB_SFMCNN(nn.Module):
 
         self.gray_transform = torchvision.transforms.Compose([
             torchvision.transforms.Grayscale(),
-            ThresholdTransform()
+            Renormalize()
         ])
 
         # TODO 檢查是否各個block的initial function
