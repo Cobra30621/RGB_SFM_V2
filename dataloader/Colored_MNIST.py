@@ -34,7 +34,7 @@ class Colored_MNIST(Dataset):
                 i+=1
         
         self.data = np.load(f"{self.root}/Color_MNIST/{'Train' if self.train else 'Test'}_imgs.npy")
-        self.data = self.data.astype(np.float)
+        self.data = self.data.astype(float)
 
         self.targets = np.load(f"{self.root}/Color_MNIST/{'Train' if self.train else 'Test'}_labels.npy")
         self.targets = list(map(lambda x: np.eye(30)[self.label_to_idx[x]], self.targets))
@@ -46,8 +46,6 @@ class Colored_MNIST(Dataset):
             img = self.transform(img)
         if torch.max(img) > 1:
             img /= 255
-        plt.imshow(img.permute(1,2,0))
-        plt.show()
 
         if self.target_transform is not None:
             target = self.target_transform(target)
