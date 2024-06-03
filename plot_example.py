@@ -25,7 +25,7 @@ with torch.no_grad():
 
 	# Load Model
 	models = {'SFMCNN': SFMCNN, 'RGB_SFMCNN':RGB_SFMCNN}
-	checkpoint_filename = '0529_SFMCNN_best_61y2x079'
+	checkpoint_filename = '0603_RGB_SFMCNN_best_6b2a88eu'
 	checkpoint = torch.load(f'./pth/{config["dataset"]}_pth/{checkpoint_filename}.pth')
 	model = models[arch['name']](**dict(config['model']['args']))
 	model.load_state_dict(checkpoint['model_weights'])
@@ -204,7 +204,7 @@ with torch.no_grad():
 
 			# Gray_Conv2d
 			layer_num = 'Gray_Conv2d'
-			plot_shape = (5,5)
+			plot_shape = (10,15)
 			RM = layers[layer_num](model.gray_transform(test_img).unsqueeze(0))[0]
 			print(f"{layer_num}_RM: {RM.shape}")
 			RM_H, RM_W = RM.shape[1], RM.shape[2]
