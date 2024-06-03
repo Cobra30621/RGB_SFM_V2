@@ -108,7 +108,6 @@ class RGB_SFMCNN(nn.Module):
         output = torch.concat(([rgb_output, gray_output]), dim=1)
         output = self.SFM(output)
         output = self.convs(output)
-        # print(torch.max(output), torch.min(output))
         output = self.fc1(output.reshape(x.shape[0], -1))
         return output
 
@@ -260,29 +259,80 @@ class RGB_Conv2d(nn.Module):
         self.initial = initial
         
     def forward(self, input):
-        # weights shape = (out_channels, 3, prod(self.kernel_size))
-        weights = torch.cat([self.weights, self.black_block, self.white_block], dim=0)
-        weights = weights.reshape(*weights.shape, 1)
-        weights = weights.repeat(1,1,math.prod(self.kernel_size))
+        # 1. 計算色塊歐式距離
+        # # weights shape = (out_channels, 3, prod(self.kernel_size))
+        # weights = torch.cat([self.weights, self.black_block, self.white_block], dim=0)
+        # weights = weights.reshape(*weights.shape, 1)
+        # weights = weights.repeat(1,1,math.prod(self.kernel_size))
 
+        # output_width = math.floor((input.shape[-1] + self.padding * 2 - (self.kernel_size[0] - 1) - 1) / self.stride + 1)
+        # output_height = math.floor((input.shape[-2] + self.padding * 2 - (self.kernel_size[1] - 1) - 1) / self.stride + 1)
+        # batch_num = input.shape[0]
+
+        # # windows shape = (batch_num, output_width * output_height, 1, 3, prod(self.kernel_size))
+        # windows = F.unfold(input, kernel_size = self.kernel_size, stride = self.stride, padding = self.padding).permute(0, 2, 1)
+        # windows = windows.reshape(*windows.shape[:-1], 3, math.prod(self.kernel_size)).unsqueeze(2)
+
+        # # result shape = (batch_num, output_width * output_height, self.out_channels)
+        # result = torch.pow(windows - weights, 2).reshape(batch_num, output_width * output_height, self.out_channels, -1)
+        # result = torch.sum(result, dim=-1)
+        # result = torch.sqrt(result + 1e-8)
+
+        # result = result.permute(0,2,1).reshape(batch_num,self.out_channels,output_height,output_width)
+
+        # 2. 計算代表色距離
         output_width = math.floor((input.shape[-1] + self.padding * 2 - (self.kernel_size[0] - 1) - 1) / self.stride + 1)
         output_height = math.floor((input.shape[-2] + self.padding * 2 - (self.kernel_size[1] - 1) - 1) / self.stride + 1)
         batch_num = input.shape[0]
 
-        # windows shape = (batch_num, output_width * output_height, 1, 3, prod(self.kernel_size))
+        # weights shape = (out_channels, 3)
+        weights = torch.cat([self.weights, self.black_block, self.white_block], dim=0)
+
+        # windows shape = (batch_num, output_width * output_height, 1, 3)
         windows = F.unfold(input, kernel_size = self.kernel_size, stride = self.stride, padding = self.padding).permute(0, 2, 1)
-        windows = windows.reshape(*windows.shape[:-1], 3, math.prod(self.kernel_size)).unsqueeze(2)
+        windows = windows.reshape(*windows.shape[:-1], 3, math.prod(self.kernel_size))
+        windows_RGBcolor = windows.mean(dim=-1).unsqueeze(-2)
 
-        # result shape = (batch_num, output_width * output_height, self.out_channels)
-        result = torch.pow(windows - weights, 2).reshape(batch_num, output_width * output_height, self.out_channels, -1)
-        result = torch.sum(result, dim=-1)
-        result = torch.sqrt(result + 1e-8)
-
+        result = self.batched_LAB_distance(windows_RGBcolor, weights)
+        result = result/765
         result = result.permute(0,2,1).reshape(batch_num,self.out_channels,output_height,output_width)
         return result
+    
     def extra_repr(self) -> str:
         return f"initial = {self.initial}, weight shape = {self.weights.shape}"
 
+    def rgb_to_hsv(self, RGB):
+        r, g, b = RGB
+        maxc = max(r, g, b)
+        minc = min(r, g, b)
+        v = maxc
+        if minc == maxc:
+            return 0.0, 0.0, v
+        s = (maxc-minc) / maxc
+        rc = (maxc-r) / (maxc-minc)
+        gc = (maxc-g) / (maxc-minc)
+        bc = (maxc-b) / (maxc-minc)
+        if r == maxc:
+            h = bc-gc
+        elif g == maxc:
+            h = 2.0+rc-bc
+        else:
+            h = 4.0+gc-rc
+        h = (h/6.0) % 1.0
+        return h, s, v
+    
+    def batched_LAB_distance(self, windows_RGBcolor, weights_RGBcolor):
+        R_1,G_1,B_1 = windows_RGBcolor[:, :, :, 0] * 255, windows_RGBcolor[:, :, :, 1] * 255, windows_RGBcolor[:, :, :, 2] * 255
+        R_2,G_2,B_2 = weights_RGBcolor[:, 0] * 255, weights_RGBcolor[:, 1] * 255, weights_RGBcolor[:, 2] * 255
+        rmean = torch.mean(torch.concat([R_1.flatten(), R_2.flatten()]))
+        R = R_1 - R_2
+        G = G_1 -G_2
+        B = B_1 - B_2
+        return torch.sqrt((2+rmean/256)*(R**2)+4*(G**2)+(2+(255-rmean)/256)*(B**2) + 1e-8)
+    
+    def rgb_to_lab(self, RGB):
+        pass
+        
         
 
 '''
