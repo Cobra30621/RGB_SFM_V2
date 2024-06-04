@@ -25,7 +25,7 @@ with torch.no_grad():
 
 	# Load Model
 	models = {'SFMCNN': SFMCNN, 'RGB_SFMCNN':RGB_SFMCNN}
-	checkpoint_filename = '0603_RGB_SFMCNN_best_6b2a88eu'
+	checkpoint_filename = '0604_RGB_SFMCNN_best_zxd1v36g'
 	checkpoint = torch.load(f'./pth/{config["dataset"]}_pth/{checkpoint_filename}.pth')
 	model = models[arch['name']](**dict(config['model']['args']))
 	model.load_state_dict(checkpoint['model_weights'])
@@ -194,12 +194,13 @@ with torch.no_grad():
 			RM = layers[layer_num](test_img.unsqueeze(0))[0]
 			print(f"{layer_num}_RM: {RM.shape}")
 			RM_H, RM_W = RM.shape[1], RM.shape[2]
-			plot_map(RM.permute(1,2,0).reshape(RM_H,RM_W,*plot_shape,1).detach().numpy(), path=RM_save_path + f'{layer_num}_RM')
 			FM_H, FM_W = FMs[layer_num].shape[2], FMs[layer_num].shape[3]
 			RM_FM = FMs[layer_num][torch.topk(RM, k=1, dim=0, largest=True).indices.flatten()].permute(0,2,3,1).reshape(RM_H,RM_W,FM_H,FM_W,arch['args']['in_channels'])
-			plot_map(RM_FM.detach().numpy(), path=RM_CI_save_path + f'{layer_num}_RM_FM')
 			CI_H, CI_W = CIs[layer_num].shape[2], CIs[layer_num].shape[3]
 			RM_CI = CIs[layer_num][torch.topk(RM, k=1, dim=0, largest=True).indices.flatten()].reshape(RM_H,RM_W,CI_H,CI_W,arch['args']['in_channels'])
+			
+			plot_map(RM.permute(1,2,0).reshape(RM_H,RM_W,*plot_shape,1).detach().numpy(), path=RM_save_path + f'{layer_num}_RM')
+			plot_map(RM_FM.detach().numpy(), path=RM_CI_save_path + f'{layer_num}_RM_FM')
 			plot_map(RM_CI, path=RM_CI_save_path + f'{layer_num}_RM_CI')
 
 			# Gray_Conv2d
@@ -208,9 +209,10 @@ with torch.no_grad():
 			RM = layers[layer_num](model.gray_transform(test_img).unsqueeze(0))[0]
 			print(f"{layer_num}_RM: {RM.shape}")
 			RM_H, RM_W = RM.shape[1], RM.shape[2]
-			plot_map(RM.permute(1,2,0).reshape(RM_H,RM_W,*plot_shape,1).detach().numpy(), path=RM_save_path + f'{layer_num}_RM')
 			CI_H, CI_W = CIs[layer_num].shape[2], CIs[layer_num].shape[3]
 			RM_CI = CIs[layer_num][torch.topk(RM, k=1, dim=0, largest=True).indices.flatten()].reshape(RM_H,RM_W,CI_H,CI_W,1)
+			
+			plot_map(RM.permute(1,2,0).reshape(RM_H,RM_W,*plot_shape,1).detach().numpy(), path=RM_save_path + f'{layer_num}_RM')
 			plot_map(RM_CI, path=RM_CI_save_path + f'{layer_num}_RM_CI')
 
 			# Layer 1
@@ -218,9 +220,10 @@ with torch.no_grad():
 			RM = layers[layer_num](test_img.unsqueeze(0))[0]
 			print(f"Layer{layer_num}_RM: {RM.shape}")
 			RM_H, RM_W = RM.shape[1], RM.shape[2]
-			plot_map(RM.permute(1,2,0).reshape(RM_H,RM_W,int(RM.shape[0] ** 0.5),int(RM.shape[0] ** 0.5),1), path=RM_save_path + f'{layer_num}_RM')
 			CI_H, CI_W = CIs[layer_num].shape[2], CIs[layer_num].shape[3]
 			RM_CI = CIs[layer_num][torch.topk(RM, k=1, dim=0, largest=True).indices.flatten()].reshape(RM_H,RM_W,CI_H,CI_W,arch['args']['in_channels'])
+			
+			plot_map(RM.permute(1,2,0).reshape(RM_H,RM_W,int(RM.shape[0] ** 0.5),int(RM.shape[0] ** 0.5),1), path=RM_save_path + f'{layer_num}_RM')
 			plot_map(RM_CI, path=RM_CI_save_path + f'Layer{layer_num}_RM_CI')
 
 			# Layer 2
@@ -228,9 +231,10 @@ with torch.no_grad():
 			RM = layers[layer_num](test_img.unsqueeze(0))[0]
 			print(f"Layer{layer_num}_RM: {RM.shape}")
 			RM_H, RM_W = RM.shape[1], RM.shape[2]
-			plot_map(RM.permute(1,2,0).reshape(RM_H,RM_W,int(RM.shape[0] ** 0.5),int(RM.shape[0] ** 0.5),1), path=RM_save_path + f'{layer_num}_RM')
 			CI_H, CI_W = CIs[layer_num].shape[2], CIs[layer_num].shape[3]
 			RM_CI = CIs[layer_num][torch.topk(RM, k=1, dim=0, largest=True).indices.flatten()].reshape(RM_H,RM_W,CI_H,CI_W,arch['args']['in_channels'])
+			
+			plot_map(RM.permute(1,2,0).reshape(RM_H,RM_W,int(RM.shape[0] ** 0.5),int(RM.shape[0] ** 0.5),1), path=RM_save_path + f'{layer_num}_RM')
 			plot_map(RM_CI, path=RM_CI_save_path + f'Layer{layer_num}_RM_CI')
 
 

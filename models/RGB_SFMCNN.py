@@ -149,7 +149,40 @@ class RGB_SFMCNN(nn.Module):
                 gauss(std=activate_param[0], device=device),
                 cReLU_percent(percent=activate_param[1]),
             )
-
+    
+    def _make_ConvBlock(self,
+                    in_channels, 
+                    out_channels, 
+                    kernel_size,
+                    stride:int = 1,
+                    padding:int = 0,
+                    initial: str = "kaiming",
+                    rbf = 'triangle',
+                    device:str = "cuda",
+                    activate_param = [0,0]):
+        if rbf == "triangle":
+            return nn.Sequential(
+                Gray_Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride = stride, padding = padding, initial = initial,device = device),
+                triangle_cReLU(w=activate_param[0], percent=activate_param[1], requires_grad = True, device=device),
+            )
+        elif rbf == "gauss":
+            return nn.Sequential(
+                Gray_Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride = stride, padding = padding, initial = initial,device = device),
+                gauss(std=activate_param[0], device=device),
+                cReLU(bias=activate_param[1]),
+            )
+        elif rbf == 'triangle and cReLU':
+            return nn.Sequential(
+                Gray_Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride = stride, padding = padding, device = device),
+                triangle(w=activate_param[0], requires_grad=True, device=device),
+                cReLU(bias=activate_param[1]),
+            )
+        elif rbf == 'guass and cReLU_percent':
+            return nn.Sequential(
+                Gray_Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride = stride, padding = padding, device = device),
+                gauss(std=activate_param[0], device=device),
+                cReLU_percent(percent=activate_param[1]),
+            )
 
     def _make_BasicBlock(self,
                     in_channels:int, 
@@ -224,7 +257,11 @@ class RGB_SFMCNN(nn.Module):
                 gauss(std=activate_param[0], device=device),
                 cReLU_percent(percent=activate_param[1]),
             )
-    
+
+'''
+    RGB 卷積層
+    return output shape = (batches, channels, height, width)
+'''
 class RGB_Conv2d(nn.Module):
     def __init__(self,
                  in_channels:int,
@@ -299,7 +336,7 @@ class RGB_Conv2d(nn.Module):
         windows_RGBcolor = windows.mean(dim=-1).unsqueeze(-2)
 
         result = self.batched_LAB_distance(windows_RGBcolor, weights)
-        result = result/765
+        result = result / 765
         result = result.permute(0,2,1).reshape(batch_num,self.out_channels,output_height,output_width)
         return result
     
@@ -337,8 +374,106 @@ class RGB_Conv2d(nn.Module):
     
     def rgb_to_lab(self, RGB):
         pass
+
+
+'''
+    Gray 卷積層
+    return output shape = (batches, channels, height, width)
+'''
+class Gray_Conv2d(nn.Module):
+    def __init__(self,
+                 in_channels:int,
+                 out_channels: int,
+                 kernel_size: int,
+                 stride: int = 1,
+                 padding: int = 0,
+                 initial:str = "kaiming",
+                 is_weight_cdist = False,
+                 device=None,
+                 dtype=None):
+        super().__init__()
+        self.kernel_size = _pair(kernel_size)
+        self.stride = _pair(stride)
+        self.padding = padding
+        factory_kwargs = {'device':device, 'dtype':dtype}
+        self.out_channels = out_channels
+        self.in_channels = in_channels
+        self.initial = initial
+        self.is_weight_cdist = is_weight_cdist
+
+        self.weight = torch.empty((out_channels, in_channels * self.kernel_size[0] * self.kernel_size[1]), **factory_kwargs)
+        self.reset_parameters(initial)
+    
+    def reset_parameters(self, initial) -> None:
+        if initial == "kaiming":
+            # kaiming 初始化
+            # bound  = sqrt(6/(1 + a^2 * fan))
+            # fan = self.weight.size(1) * 1
+            init.kaiming_uniform_(self.weight)
+        elif initial == "uniform":
+            init.uniform_(self.weight)
+        else:
+            raise "RBF_Conv2d initial error"
+
+        self.weight = nn.Parameter(self.weight)
+    
+    def forward(self, input: Tensor) -> Tensor:
+        # print(input[0, 0, :, :])
+        # print(f"RBF weights = {self.weight[0]}")
+        output_width = math.floor((input.shape[-1] + self.padding * 2 - (self.kernel_size[0] - 1) - 1) / self.stride[0] + 1)
+        output_height = math.floor((input.shape[-2] + self.padding * 2 - (self.kernel_size[1] - 1) - 1) / self.stride[1] + 1)
+        # Unfold output = (batch, output_width * output_height, C×∏(kernel_size))
+        windows = F.unfold(input, kernel_size = self.kernel_size, stride = self.stride, padding = self.padding).permute(0, 2, 1)
+
+        # TODO weight取平方
+        # # 將weight取平方保證其範圍落在 0 ~ 1 之間
+        # weights = torch.pow(self.weight, 2)
+
+        # 1. 取絕對值距離
+        # weight_expand = self.weight.unsqueeze(1).unsqueeze(2)
+        # result = (windows - weight_expand).permute(1,0,2,3)
+        # result = torch.abs(result).sum(dim=-1)
         
+        # 2. 取歐基里德距離
+        # windows = (batch, output_width * output_height, C×∏(kernel_size))
+        # weight = (out_channel, C×∏(kernel_size))
+        # output = (batch, out_channel, output_width * output_height)
+        if self.is_weight_cdist:
+            result = self.weight_cdist(windows=windows, weights=self.weight)
+        else:
+            result = torch.cdist(windows, self.weight).permute(0, 2, 1)
+        result = result.reshape(result.shape[0], result.shape[1], output_height, output_width)
+        return result
+    
+    def extra_repr(self) -> str:
+        return f"initial = {self.initial}, is_weight_cdist = {self.is_weight_cdist},weight shape = {(self.out_channels, self.in_channels, *self.kernel_size)}"
+
+    def weight_cdist(self, windows, weights):
+        N, L, C, kernel_size, out_channels = windows.shape[0], windows.shape[1], self.in_channels, self.kernel_size, self.out_channels
         
+        # Initialize the weight tensor
+        w = torch.zeros(C,device=windows.device)
+        w[:75] = 0.25
+        w[75:] = 0.75
+        
+        # Compute the weighted squared differences
+        windows_expanded = windows.unsqueeze(1)  # Shape (N, 1, L, C * kernel_size * kernel_size)
+        weights_expanded = weights.unsqueeze(0).unsqueeze(2)  # Shape (1, out_channels, 1, C * kernel_size * kernel_size)
+
+        diff = windows_expanded - weights_expanded  # Shape (N, out_channels, L, C * kernel_size * kernel_size)
+        squared_diff = diff ** 2  # Shape (N, out_channels, L, C * kernel_size * kernel_size)
+
+        # Sum over each kernel_size * kernel_size block
+        squared_diff_reshaped = squared_diff.view(N, out_channels, L, C, kernel_size[0] * kernel_size[1])
+        block_sums = squared_diff_reshaped.sum(dim=-1)  # Shape (N, out_channels, L, C)
+
+        # Multiply by the weights
+        weighted_block_sums = block_sums * w  # Broadcasting w to match block_sums shape
+
+        # Sum over the feature dimension and take the square root
+        distances = torch.sqrt(weighted_block_sums.sum(dim=-1))  # Shape (N, out_channels, L)
+
+        return distances
 
 '''
     RBF 卷積層
@@ -466,7 +601,10 @@ class gauss(nn.Module):
             self.std = nn.Parameter(self.std)
 
     def forward(self, d):
-        return torch.exp(torch.pow(d, 2) / (-2 * torch.pow(self.std, 2)))
+        std = torch.std(d.reshape(d.shape[0], -1), dim = -1).reshape(-1, 1, 1, 1)
+        std = std.repeat(1, *d.shape[1:])
+        result = torch.exp(torch.pow(d, 2) / (-2 * torch.pow(std, 2)))
+        return result
     
     def extra_repr(self) -> str:
         return f"std={self.std.item()}"
