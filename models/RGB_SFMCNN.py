@@ -603,7 +603,7 @@ class gauss(nn.Module):
     def forward(self, d):
         self.std = torch.std(d.reshape(d.shape[0], -1), dim = -1).reshape(-1, 1, 1, 1)
         self.std = self.std.repeat(1, *d.shape[1:])
-        result = torch.exp(torch.pow(d, 2) / (-2 * torch.pow(std, 2)))
+        result = torch.exp(torch.pow(d, 2) / (-2 * torch.pow(self.std, 2)))
         return result
     
     def extra_repr(self) -> str:
