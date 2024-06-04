@@ -594,7 +594,7 @@ class triangle(nn.Module):
         return f"w = {self.w.item()}"
 
 class gauss(nn.Module):
-    def __init__(self, std, requires_grad: bool = True, device:str = "cuda"):
+    def __init__(self, std, requires_grad: bool = False, device:str = "cuda"):
         super().__init__()
         self.std = torch.Tensor([std]).to(device)
         if requires_grad:
