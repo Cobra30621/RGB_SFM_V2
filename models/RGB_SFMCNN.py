@@ -601,8 +601,8 @@ class gauss(nn.Module):
             self.std = nn.Parameter(self.std)
 
     def forward(self, d):
-        std = torch.std(d.reshape(d.shape[0], -1), dim = -1).reshape(-1, 1, 1, 1)
-        std = std.repeat(1, *d.shape[1:])
+        self.std = torch.std(d.reshape(d.shape[0], -1), dim = -1).reshape(-1, 1, 1, 1)
+        self.std = self.std.repeat(1, *d.shape[1:])
         result = torch.exp(torch.pow(d, 2) / (-2 * torch.pow(std, 2)))
         return result
     
