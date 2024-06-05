@@ -176,247 +176,254 @@ else:
 # 		plot_map(RM_CI, path=RM_CI_save_path + f'{layer_num}_RM_CI')
 # 	return RM_CI
 
+label_to_idx = {}
+i = 0
+for c in ['red', 'green', 'blue']:
+    for n in range(10):
+        label_to_idx[c+'_'+str(n)] = i
+        i+=1
+idx_to_label = {value: key for key, value in label_to_idx.items()}
 
-	for test_id in range(images.shape[0]):
+for test_id in range(images.shape[0]):
+	
+	test_img = images[test_id]
+
+	# 隨機選擇一個圖片
+	# 455
+	# while True:
+	# 	test_id = random.randint(0, len(images))
+	# 	test_img = images[test_id]
+	# 	pred = model(test_img.unsqueeze(0)).argmax()
+	# 	label = labels[test_id].argmax()
+	# 	print(test_id, pred, label)
+	# 	if pred == label and pred == y:
+	# 		break
+	
+
+	save_path = f'./detect/{config["dataset"]}_{checkpoint_filename}/example/{idx_to_label[labels[test_id].argmax().item()]}/example_{test_id}/'
+	RM_save_path = f'{save_path}/RMs/'
+	RM_CI_save_path = f'{save_path}/RM_CIs/'
+	os.makedirs(RM_save_path, exist_ok=True)
+	os.makedirs(RM_CI_save_path, exist_ok=True)
+
+
+	if arch['args']['in_channels'] == 1:
+		torchvision.utils.save_image(test_img, save_path + f'origin_{test_id}.png')
+	else:
+		plt.imsave(save_path + f'origin_{test_id}.png', test_img.permute(1,2,0).detach().numpy())
+
+	segments = split(test_img.unsqueeze(0), kernel_size=arch['args']['Conv2d_kernel'][0], stride = (arch['args']['strides'][0], arch['args']['strides'][0]))[0]
+	plot_map(segments.permute(1,2,3,4,0), vmax=1, vmin=0, path=save_path + f'origin_split_{test_id}.png')
+
+	RM_CIs = {}
+
+	if arch['args']['in_channels'] == 1:
+		# Layer 0
+		layer_num = 0
+		RM = layers[layer_num](test_img.unsqueeze(0))[0]
+		print(f"Layer{layer_num}_RM: {RM.shape}")
+		RM_H, RM_W = RM.shape[1], RM.shape[2]
+		plot_map(RM.permute(1,2,0).reshape(RM_H,RM_W,int(RM.shape[0] ** 0.5),int(RM.shape[0] ** 0.5),1), path=RM_save_path + f'{layer_num}_RM')
+		CI_H, CI_W = CIs[layer_num].shape[2], CIs[layer_num].shape[3]
+		RM_CI = CIs[layer_num][torch.topk(RM, k=1, dim=0, largest=True).indices.flatten()].reshape(RM_H,RM_W,CI_H,CI_W,1)
+		plot_map(RM_CI, vmax=1, vmin=0, path=RM_CI_save_path + f'Layer{layer_num}_RM_CI')
+		RM_CIs[layer_num] = RM_CI
+
+		# Layer 1
+		layer_num = 1
+		RM = layers[layer_num](test_img.unsqueeze(0))[0]
+		print(f"Layer{layer_num}_RM: {RM.shape}")
+		RM_H, RM_W = RM.shape[1], RM.shape[2]
+		plot_map(RM.permute(1,2,0).reshape(RM_H,RM_W,int(RM.shape[0] ** 0.5),int(RM.shape[0] ** 0.5),1), path=RM_save_path + f'{layer_num}_RM')
+		CI_H, CI_W = CIs[layer_num].shape[2], CIs[layer_num].shape[3]
+		RM_CI = CIs[layer_num][torch.topk(RM, k=1, dim=0, largest=True).indices.flatten()].reshape(RM_H,RM_W,CI_H,CI_W,arch['args']['in_channels'])
+		plot_map(RM_CI, vmax=1, vmin=0, path=RM_CI_save_path + f'Layer{layer_num}_RM_CI')
+		RM_CIs[layer_num] = RM_CI
+
+		# Layer 2
+		layer_num = 2
+		RM = layers[layer_num](test_img.unsqueeze(0))[0]
+		print(f"Layer{layer_num}_RM: {RM.shape}")
+		RM_H, RM_W = RM.shape[1], RM.shape[2]
+		plot_map(RM.permute(1,2,0).reshape(RM_H,RM_W,int(RM.shape[0] ** 0.5),int(RM.shape[0] ** 0.5),1), path=RM_save_path + f'{layer_num}_RM')
+		CI_H, CI_W = CIs[layer_num].shape[2], CIs[layer_num].shape[3]
+		RM_CI = CIs[layer_num][torch.topk(RM, k=1, dim=0, largest=True).indices.flatten()].reshape(RM_H,RM_W,CI_H,CI_W,arch['args']['in_channels'])
+		plot_map(RM_CI, vmax=1, vmin=0, path=RM_CI_save_path + f'Layer{layer_num}_RM_CI')
+		RM_CIs[layer_num] = RM_CI
+
+		# Layer 3
+		layer_num = 3
+		RM = layers[layer_num](test_img.unsqueeze(0))[0]
+		print(f"Layer{layer_num}_RM: {RM.shape}")
+		RM_H, RM_W = RM.shape[1], RM.shape[2]
+		plot_map(RM.permute(1,2,0).reshape(RM_H,RM_W,int(RM.shape[0] ** 0.5),int(RM.shape[0] ** 0.5),1), path=RM_save_path + f'{layer_num}_RM')
+		CI_H, CI_W = CIs[layer_num].shape[2], CIs[layer_num].shape[3]
+		RM_CI = CIs[layer_num][torch.topk(RM, k=1, dim=0, largest=True).indices.flatten()].reshape(RM_H,RM_W,CI_H,CI_W,arch['args']['in_channels'])
+		plot_map(RM_CI, vmax=1, vmin=0, path=RM_CI_save_path + f'Layer{layer_num}_RM_CI')
+		RM_CIs[layer_num] = RM_CI
+
+	else:
+		# # RGB_Conv2d
+		# layer_num = 'RGB_Conv2d'
+		# plot_shape = (15,5)
+		# RM = layers[layer_num](test_img.unsqueeze(0))[0]
+		# print(f"{layer_num}_RM: {RM.shape}")
+		# RM_H, RM_W = RM.shape[1], RM.shape[2]
+		# FM_H, FM_W = FMs[layer_num].shape[2], FMs[layer_num].shape[3]
+		# RM_FM = FMs[layer_num][torch.topk(RM, k=1, dim=0, largest=True).indices.flatten()].permute(0,2,3,1).reshape(RM_H,RM_W,FM_H,FM_W,arch['args']['in_channels'])
+		# CI_H, CI_W = CIs[layer_num].shape[2], CIs[layer_num].shape[3]
+		# RM_CI = CIs[layer_num][torch.topk(RM, k=1, dim=0, largest=True).indices.flatten()].reshape(RM_H,RM_W,CI_H,CI_W,arch['args']['in_channels'])
+		# RM_CIs[layer_num] = RM_CI
 		
-		test_img = images[test_id]
+		# plot_map(RM.permute(1,2,0).reshape(RM_H,RM_W,*plot_shape,1).detach().numpy(), path=RM_save_path + f'{layer_num}_RM')
+		# plot_map(RM_FM.detach().numpy(), path=RM_CI_save_path + f'{layer_num}_RM_FM')
+		# plot_map(RM_CI, path=RM_CI_save_path + f'{layer_num}_RM_CI')
 
-		# 隨機選擇一個圖片
-		# 455
-		# while True:
-		# 	test_id = random.randint(0, len(images))
-		# 	test_img = images[test_id]
-		# 	pred = model(test_img.unsqueeze(0)).argmax()
-		# 	label = labels[test_id].argmax()
-		# 	print(test_id, pred, label)
-		# 	if pred == label and pred == y:
-		# 		break
-		
+		# # Gray_Conv2d
+		# layer_num = 'Gray_Conv2d'
+		# plot_shape = (10,15)
+		# RM = layers[layer_num](model.gray_transform(test_img).unsqueeze(0))[0]
+		# print(f"{layer_num}_RM: {RM.shape}")
+		# RM_H, RM_W = RM.shape[1], RM.shape[2]
+		# CI_H, CI_W = CIs[layer_num].shape[2], CIs[layer_num].shape[3]
+		# RM_CI = CIs[layer_num][torch.topk(RM, k=1, dim=0, largest=True).indices.flatten()].reshape(RM_H,RM_W,CI_H,CI_W,1)
+		# RM_CIs[layer_num] = RM_CI
 
-		save_path = f'./detect/{config["dataset"]}_{checkpoint_filename}/example_{test_id}/'
-		RM_save_path = f'./detect/{config["dataset"]}_{checkpoint_filename}/example_{test_id}/RMs/'
-		RM_CI_save_path = f'./detect/{config["dataset"]}_{checkpoint_filename}/example_{test_id}/RM_CIs/'
-		os.makedirs(RM_save_path, exist_ok=True)
-		os.makedirs(RM_CI_save_path, exist_ok=True)
+		# plot_map(RM.permute(1,2,0).reshape(RM_H,RM_W,*plot_shape,1).detach().numpy(), path=RM_save_path + f'{layer_num}_RM')
+		# plot_map(RM_CI, path=RM_CI_save_path + f'{layer_num}_RM_CI')
 
+		# # Layer 1
+		# layer_num = 1
+		# RM = layers[layer_num](test_img.unsqueeze(0))[0]
+		# print(f"Layer{layer_num}_RM: {RM.shape}")
+		# RM_H, RM_W = RM.shape[1], RM.shape[2]
+		# CI_H, CI_W = CIs[layer_num].shape[2], CIs[layer_num].shape[3]
+		# RM_CI = CIs[layer_num][torch.topk(RM, k=1, dim=0, largest=True).indices.flatten()].reshape(RM_H,RM_W,CI_H,CI_W,arch['args']['in_channels'])
+		# RM_CIs[layer_num] = RM_CI
 
-		if arch['args']['in_channels'] == 1:
-			torchvision.utils.save_image(test_img, save_path + f'origin_{test_id}.png')
-		else:
-			plt.imsave(save_path + f'origin_{test_id}.png', test_img.permute(1,2,0).detach().numpy())
+		# plot_map(RM.permute(1,2,0).reshape(RM_H,RM_W,int(RM.shape[0] ** 0.5),int(RM.shape[0] ** 0.5),1), path=RM_save_path + f'{layer_num}_RM')
+		# plot_map(RM_CI, path=RM_CI_save_path + f'Layer{layer_num}_RM_CI')
 
-		segments = split(test_img.unsqueeze(0), kernel_size=arch['args']['Conv2d_kernel'][0], stride = (arch['args']['strides'][0], arch['args']['strides'][0]))[0]
-		plot_map(segments.permute(1,2,3,4,0), vmax=1, vmin=0, path=save_path + f'origin_split_{test_id}.png')
+		# # Layer 2
+		# layer_num = 2
+		# RM = layers[layer_num](test_img.unsqueeze(0))[0]
+		# print(f"Layer{layer_num}_RM: {RM.shape}")
+		# RM_H, RM_W = RM.shape[1], RM.shape[2]
+		# CI_H, CI_W = CIs[layer_num].shape[2], CIs[layer_num].shape[3]
+		# RM_CI = CIs[layer_num][torch.topk(RM, k=1, dim=0, largest=True).indices.flatten()].reshape(RM_H,RM_W,CI_H,CI_W,arch['args']['in_channels'])
+		# RM_CIs[layer_num] = RM_CI
 
-		RM_CIs = {}
-
-		if arch['args']['in_channels'] == 1:
-			# Layer 0
-			layer_num = 0
-			RM = layers[layer_num](test_img.unsqueeze(0))[0]
-			print(f"Layer{layer_num}_RM: {RM.shape}")
-			RM_H, RM_W = RM.shape[1], RM.shape[2]
-			plot_map(RM.permute(1,2,0).reshape(RM_H,RM_W,int(RM.shape[0] ** 0.5),int(RM.shape[0] ** 0.5),1), path=RM_save_path + f'{layer_num}_RM')
-			CI_H, CI_W = CIs[layer_num].shape[2], CIs[layer_num].shape[3]
-			RM_CI = CIs[layer_num][torch.topk(RM, k=1, dim=0, largest=True).indices.flatten()].reshape(RM_H,RM_W,CI_H,CI_W,1)
-			plot_map(RM_CI, vmax=1, vmin=0, path=RM_CI_save_path + f'Layer{layer_num}_RM_CI')
-			RM_CIs[layer_num] = RM_CI
-
-			# Layer 1
-			layer_num = 1
-			RM = layers[layer_num](test_img.unsqueeze(0))[0]
-			print(f"Layer{layer_num}_RM: {RM.shape}")
-			RM_H, RM_W = RM.shape[1], RM.shape[2]
-			plot_map(RM.permute(1,2,0).reshape(RM_H,RM_W,int(RM.shape[0] ** 0.5),int(RM.shape[0] ** 0.5),1), path=RM_save_path + f'{layer_num}_RM')
-			CI_H, CI_W = CIs[layer_num].shape[2], CIs[layer_num].shape[3]
-			RM_CI = CIs[layer_num][torch.topk(RM, k=1, dim=0, largest=True).indices.flatten()].reshape(RM_H,RM_W,CI_H,CI_W,arch['args']['in_channels'])
-			plot_map(RM_CI, vmax=1, vmin=0, path=RM_CI_save_path + f'Layer{layer_num}_RM_CI')
-			RM_CIs[layer_num] = RM_CI
-
-			# Layer 2
-			layer_num = 2
-			RM = layers[layer_num](test_img.unsqueeze(0))[0]
-			print(f"Layer{layer_num}_RM: {RM.shape}")
-			RM_H, RM_W = RM.shape[1], RM.shape[2]
-			plot_map(RM.permute(1,2,0).reshape(RM_H,RM_W,int(RM.shape[0] ** 0.5),int(RM.shape[0] ** 0.5),1), path=RM_save_path + f'{layer_num}_RM')
-			CI_H, CI_W = CIs[layer_num].shape[2], CIs[layer_num].shape[3]
-			RM_CI = CIs[layer_num][torch.topk(RM, k=1, dim=0, largest=True).indices.flatten()].reshape(RM_H,RM_W,CI_H,CI_W,arch['args']['in_channels'])
-			plot_map(RM_CI, vmax=1, vmin=0, path=RM_CI_save_path + f'Layer{layer_num}_RM_CI')
-			RM_CIs[layer_num] = RM_CI
-
-			# Layer 3
-			layer_num = 3
-			RM = layers[layer_num](test_img.unsqueeze(0))[0]
-			print(f"Layer{layer_num}_RM: {RM.shape}")
-			RM_H, RM_W = RM.shape[1], RM.shape[2]
-			plot_map(RM.permute(1,2,0).reshape(RM_H,RM_W,int(RM.shape[0] ** 0.5),int(RM.shape[0] ** 0.5),1), path=RM_save_path + f'{layer_num}_RM')
-			CI_H, CI_W = CIs[layer_num].shape[2], CIs[layer_num].shape[3]
-			RM_CI = CIs[layer_num][torch.topk(RM, k=1, dim=0, largest=True).indices.flatten()].reshape(RM_H,RM_W,CI_H,CI_W,arch['args']['in_channels'])
-			plot_map(RM_CI, vmax=1, vmin=0, path=RM_CI_save_path + f'Layer{layer_num}_RM_CI')
-			RM_CIs[layer_num] = RM_CI
-
-		else:
-			# # RGB_Conv2d
-			# layer_num = 'RGB_Conv2d'
-			# plot_shape = (15,5)
-			# RM = layers[layer_num](test_img.unsqueeze(0))[0]
-			# print(f"{layer_num}_RM: {RM.shape}")
-			# RM_H, RM_W = RM.shape[1], RM.shape[2]
-			# FM_H, FM_W = FMs[layer_num].shape[2], FMs[layer_num].shape[3]
-			# RM_FM = FMs[layer_num][torch.topk(RM, k=1, dim=0, largest=True).indices.flatten()].permute(0,2,3,1).reshape(RM_H,RM_W,FM_H,FM_W,arch['args']['in_channels'])
-			# CI_H, CI_W = CIs[layer_num].shape[2], CIs[layer_num].shape[3]
-			# RM_CI = CIs[layer_num][torch.topk(RM, k=1, dim=0, largest=True).indices.flatten()].reshape(RM_H,RM_W,CI_H,CI_W,arch['args']['in_channels'])
-			# RM_CIs[layer_num] = RM_CI
-			
-			# plot_map(RM.permute(1,2,0).reshape(RM_H,RM_W,*plot_shape,1).detach().numpy(), path=RM_save_path + f'{layer_num}_RM')
-			# plot_map(RM_FM.detach().numpy(), path=RM_CI_save_path + f'{layer_num}_RM_FM')
-			# plot_map(RM_CI, path=RM_CI_save_path + f'{layer_num}_RM_CI')
-
-			# # Gray_Conv2d
-			# layer_num = 'Gray_Conv2d'
-			# plot_shape = (10,15)
-			# RM = layers[layer_num](model.gray_transform(test_img).unsqueeze(0))[0]
-			# print(f"{layer_num}_RM: {RM.shape}")
-			# RM_H, RM_W = RM.shape[1], RM.shape[2]
-			# CI_H, CI_W = CIs[layer_num].shape[2], CIs[layer_num].shape[3]
-			# RM_CI = CIs[layer_num][torch.topk(RM, k=1, dim=0, largest=True).indices.flatten()].reshape(RM_H,RM_W,CI_H,CI_W,1)
-			# RM_CIs[layer_num] = RM_CI
-
-			# plot_map(RM.permute(1,2,0).reshape(RM_H,RM_W,*plot_shape,1).detach().numpy(), path=RM_save_path + f'{layer_num}_RM')
-			# plot_map(RM_CI, path=RM_CI_save_path + f'{layer_num}_RM_CI')
-
-			# # Layer 1
-			# layer_num = 1
-			# RM = layers[layer_num](test_img.unsqueeze(0))[0]
-			# print(f"Layer{layer_num}_RM: {RM.shape}")
-			# RM_H, RM_W = RM.shape[1], RM.shape[2]
-			# CI_H, CI_W = CIs[layer_num].shape[2], CIs[layer_num].shape[3]
-			# RM_CI = CIs[layer_num][torch.topk(RM, k=1, dim=0, largest=True).indices.flatten()].reshape(RM_H,RM_W,CI_H,CI_W,arch['args']['in_channels'])
-			# RM_CIs[layer_num] = RM_CI
-
-			# plot_map(RM.permute(1,2,0).reshape(RM_H,RM_W,int(RM.shape[0] ** 0.5),int(RM.shape[0] ** 0.5),1), path=RM_save_path + f'{layer_num}_RM')
-			# plot_map(RM_CI, path=RM_CI_save_path + f'Layer{layer_num}_RM_CI')
-
-			# # Layer 2
-			# layer_num = 2
-			# RM = layers[layer_num](test_img.unsqueeze(0))[0]
-			# print(f"Layer{layer_num}_RM: {RM.shape}")
-			# RM_H, RM_W = RM.shape[1], RM.shape[2]
-			# CI_H, CI_W = CIs[layer_num].shape[2], CIs[layer_num].shape[3]
-			# RM_CI = CIs[layer_num][torch.topk(RM, k=1, dim=0, largest=True).indices.flatten()].reshape(RM_H,RM_W,CI_H,CI_W,arch['args']['in_channels'])
-			# RM_CIs[layer_num] = RM_CI
-
-			# plot_map(RM.permute(1,2,0).reshape(RM_H,RM_W,int(RM.shape[0] ** 0.5),int(RM.shape[0] ** 0.5),1), path=RM_save_path + f'{layer_num}_RM')
-			# plot_map(RM_CI, path=RM_CI_save_path + f'Layer{layer_num}_RM_CI')
+		# plot_map(RM.permute(1,2,0).reshape(RM_H,RM_W,int(RM.shape[0] ** 0.5),int(RM.shape[0] ** 0.5),1), path=RM_save_path + f'{layer_num}_RM')
+		# plot_map(RM_CI, path=RM_CI_save_path + f'Layer{layer_num}_RM_CI')
 
 
-			# 平行架構
-			# RGB_convs_0
-			layer_num = 'RGB_convs_0'
-			plot_shape = (2,15)
-			RM = layers[layer_num](test_img.unsqueeze(0))[0]
-			print(f"{layer_num}_RM: {RM.shape}")
-			RM_H, RM_W = RM.shape[1], RM.shape[2]
-			FM_H, FM_W = FMs[layer_num].shape[2], FMs[layer_num].shape[3]
-			RM_FM = FMs[layer_num][torch.topk(RM, k=1, dim=0, largest=True).indices.flatten()].permute(0,2,3,1).reshape(RM_H,RM_W,FM_H,FM_W,arch['args']['in_channels'])
-			CI_H, CI_W = CIs[layer_num].shape[2], CIs[layer_num].shape[3]
-			RM_CI = CIs[layer_num][torch.topk(RM, k=1, dim=0, largest=True).indices.flatten()].reshape(RM_H,RM_W,CI_H,CI_W,arch['args']['in_channels'])
-			RM_CIs[layer_num] = RM_CI
-			plot_map(RM.permute(1,2,0).reshape(RM_H,RM_W,*plot_shape,1).detach().numpy(), path=RM_save_path + f'{layer_num}_RM')
-			plot_map(RM_FM.detach().numpy(), path=RM_CI_save_path + f'{layer_num}_RM_FM')
-			plot_map(RM_CI, path=RM_CI_save_path + f'{layer_num}_RM_CI')
+		# 平行架構
+		# RGB_convs_0
+		layer_num = 'RGB_convs_0'
+		plot_shape = (2,15)
+		RM = layers[layer_num](test_img.unsqueeze(0))[0]
+		print(f"{layer_num}_RM: {RM.shape}")
+		RM_H, RM_W = RM.shape[1], RM.shape[2]
+		FM_H, FM_W = FMs[layer_num].shape[2], FMs[layer_num].shape[3]
+		RM_FM = FMs[layer_num][torch.topk(RM, k=1, dim=0, largest=True).indices.flatten()].permute(0,2,3,1).reshape(RM_H,RM_W,FM_H,FM_W,arch['args']['in_channels'])
+		CI_H, CI_W = CIs[layer_num].shape[2], CIs[layer_num].shape[3]
+		RM_CI = CIs[layer_num][torch.topk(RM, k=1, dim=0, largest=True).indices.flatten()].reshape(RM_H,RM_W,CI_H,CI_W,arch['args']['in_channels'])
+		RM_CIs[layer_num] = RM_CI
+		plot_map(RM.permute(1,2,0).reshape(RM_H,RM_W,*plot_shape,1).detach().numpy(), path=RM_save_path + f'{layer_num}_RM')
+		plot_map(RM_FM.detach().numpy(), path=RM_CI_save_path + f'{layer_num}_RM_FM')
+		plot_map(RM_CI, path=RM_CI_save_path + f'{layer_num}_RM_CI')
 
-			# RGB_convs_1
-			layer_num = 'RGB_convs_1'
-			RM = layers[layer_num](test_img.unsqueeze(0))[0]
-			plot_shape = (int(RM.shape[0] ** 0.5),int(RM.shape[0] ** 0.5))
-			print(f"Layer{layer_num}_RM: {RM.shape}")
-			RM_H, RM_W = RM.shape[1], RM.shape[2]
-			CI_H, CI_W = CIs[layer_num].shape[2], CIs[layer_num].shape[3]
-			RM_CI = CIs[layer_num][torch.topk(RM, k=1, dim=0, largest=True).indices.flatten()].reshape(RM_H,RM_W,CI_H,CI_W,arch['args']['in_channels'])
-			RM_CIs[layer_num] = RM_CI
-			plot_map(RM.permute(1,2,0).reshape(RM_H,RM_W,*plot_shape,1).detach().numpy(), path=RM_save_path + f'{layer_num}_RM')
-			plot_map(RM_CI, path=RM_CI_save_path + f'Layer{layer_num}_RM_CI')
+		# RGB_convs_1
+		layer_num = 'RGB_convs_1'
+		RM = layers[layer_num](test_img.unsqueeze(0))[0]
+		plot_shape = (int(RM.shape[0] ** 0.5),int(RM.shape[0] ** 0.5))
+		print(f"Layer{layer_num}_RM: {RM.shape}")
+		RM_H, RM_W = RM.shape[1], RM.shape[2]
+		CI_H, CI_W = CIs[layer_num].shape[2], CIs[layer_num].shape[3]
+		RM_CI = CIs[layer_num][torch.topk(RM, k=1, dim=0, largest=True).indices.flatten()].reshape(RM_H,RM_W,CI_H,CI_W,arch['args']['in_channels'])
+		RM_CIs[layer_num] = RM_CI
+		plot_map(RM.permute(1,2,0).reshape(RM_H,RM_W,*plot_shape,1).detach().numpy(), path=RM_save_path + f'{layer_num}_RM')
+		plot_map(RM_CI, path=RM_CI_save_path + f'Layer{layer_num}_RM_CI')
 
-			# RGB_convs_2
-			layer_num = 'RGB_convs_2'
-			RM = layers[layer_num](test_img.unsqueeze(0))[0]
-			plot_shape = (int(RM.shape[0] ** 0.5),int(RM.shape[0] ** 0.5))
-			print(f"Layer{layer_num}_RM: {RM.shape}")
-			RM_H, RM_W = RM.shape[1], RM.shape[2]
-			CI_H, CI_W = CIs[layer_num].shape[2], CIs[layer_num].shape[3]
-			RM_CI = CIs[layer_num][torch.topk(RM, k=1, dim=0, largest=True).indices.flatten()].reshape(RM_H,RM_W,CI_H,CI_W,arch['args']['in_channels'])
-			RM_CIs[layer_num] = RM_CI
-			plot_map(RM.permute(1,2,0).reshape(RM_H,RM_W,*plot_shape,1).detach().numpy(), path=RM_save_path + f'{layer_num}_RM')
-			plot_map(RM_CI, path=RM_CI_save_path + f'Layer{layer_num}_RM_CI')
+		# RGB_convs_2
+		layer_num = 'RGB_convs_2'
+		RM = layers[layer_num](test_img.unsqueeze(0))[0]
+		plot_shape = (int(RM.shape[0] ** 0.5),int(RM.shape[0] ** 0.5))
+		print(f"Layer{layer_num}_RM: {RM.shape}")
+		RM_H, RM_W = RM.shape[1], RM.shape[2]
+		CI_H, CI_W = CIs[layer_num].shape[2], CIs[layer_num].shape[3]
+		RM_CI = CIs[layer_num][torch.topk(RM, k=1, dim=0, largest=True).indices.flatten()].reshape(RM_H,RM_W,CI_H,CI_W,arch['args']['in_channels'])
+		RM_CIs[layer_num] = RM_CI
+		plot_map(RM.permute(1,2,0).reshape(RM_H,RM_W,*plot_shape,1).detach().numpy(), path=RM_save_path + f'{layer_num}_RM')
+		plot_map(RM_CI, path=RM_CI_save_path + f'Layer{layer_num}_RM_CI')
 
-			# Gray_convs_0
-			layer_num = 'Gray_convs_0'
-			plot_shape = (7,10)
-			RM = layers[layer_num](model.gray_transform(test_img).unsqueeze(0))[0]
-			print(f"{layer_num}_RM: {RM.shape}")
-			RM_H, RM_W = RM.shape[1], RM.shape[2]
-			CI_H, CI_W = CIs[layer_num].shape[2], CIs[layer_num].shape[3]
-			RM_CI = CIs[layer_num][torch.topk(RM, k=1, dim=0, largest=True).indices.flatten()].reshape(RM_H,RM_W,CI_H,CI_W,1)
-			print(test_id, torch.topk(RM, k=1, dim=0, largest=True))
-			RM_CIs[layer_num] = RM_CI
-			plot_map(RM.permute(1,2,0).reshape(RM_H,RM_W,*plot_shape,1).detach().numpy(), path=RM_save_path + f'{layer_num}_RM')
-			plot_map(RM_CI, path=RM_CI_save_path + f'{layer_num}_RM_CI')
+		# Gray_convs_0
+		layer_num = 'Gray_convs_0'
+		plot_shape = (7,10)
+		RM = layers[layer_num](model.gray_transform(test_img).unsqueeze(0))[0]
+		print(f"{layer_num}_RM: {RM.shape}")
+		RM_H, RM_W = RM.shape[1], RM.shape[2]
+		CI_H, CI_W = CIs[layer_num].shape[2], CIs[layer_num].shape[3]
+		RM_CI = CIs[layer_num][torch.topk(RM, k=1, dim=0, largest=True).indices.flatten()].reshape(RM_H,RM_W,CI_H,CI_W,1)
+		print(test_id, torch.topk(RM, k=1, dim=0, largest=True))
+		RM_CIs[layer_num] = RM_CI
+		plot_map(RM.permute(1,2,0).reshape(RM_H,RM_W,*plot_shape,1).detach().numpy(), path=RM_save_path + f'{layer_num}_RM')
+		plot_map(RM_CI, path=RM_CI_save_path + f'{layer_num}_RM_CI')
 
-			# Gray_convs_1
-			layer_num = 'Gray_convs_1'
-			RM = layers[layer_num](model.gray_transform(test_img).unsqueeze(0))[0]
-			plot_shape = (int(RM.shape[0] ** 0.5),int(RM.shape[0] ** 0.5))
-			print(f"Layer{layer_num}_RM: {RM.shape}")
-			RM_H, RM_W = RM.shape[1], RM.shape[2]
-			CI_H, CI_W = CIs[layer_num].shape[2], CIs[layer_num].shape[3]
-			RM_CI = CIs[layer_num][torch.topk(RM, k=1, dim=0, largest=True).indices.flatten()].reshape(RM_H,RM_W,CI_H,CI_W,1)
-			RM_CIs[layer_num] = RM_CI
-			plot_map(RM.permute(1,2,0).reshape(RM_H,RM_W,*plot_shape,1).detach().numpy(), path=RM_save_path + f'{layer_num}_RM')
-			plot_map(RM_CI, path=RM_CI_save_path + f'Layer{layer_num}_RM_CI')
+		# Gray_convs_1
+		layer_num = 'Gray_convs_1'
+		RM = layers[layer_num](model.gray_transform(test_img).unsqueeze(0))[0]
+		plot_shape = (int(RM.shape[0] ** 0.5),int(RM.shape[0] ** 0.5))
+		print(f"Layer{layer_num}_RM: {RM.shape}")
+		RM_H, RM_W = RM.shape[1], RM.shape[2]
+		CI_H, CI_W = CIs[layer_num].shape[2], CIs[layer_num].shape[3]
+		RM_CI = CIs[layer_num][torch.topk(RM, k=1, dim=0, largest=True).indices.flatten()].reshape(RM_H,RM_W,CI_H,CI_W,1)
+		RM_CIs[layer_num] = RM_CI
+		plot_map(RM.permute(1,2,0).reshape(RM_H,RM_W,*plot_shape,1).detach().numpy(), path=RM_save_path + f'{layer_num}_RM')
+		plot_map(RM_CI, path=RM_CI_save_path + f'Layer{layer_num}_RM_CI')
 
-			# Gray_convs_2
-			layer_num = 'Gray_convs_2'
-			RM = layers[layer_num](model.gray_transform(test_img).unsqueeze(0))[0]
-			plot_shape = (int(RM.shape[0] ** 0.5),int(RM.shape[0] ** 0.5))
-			print(f"Layer{layer_num}_RM: {RM.shape}")
-			RM_H, RM_W = RM.shape[1], RM.shape[2]
-			CI_H, CI_W = CIs[layer_num].shape[2], CIs[layer_num].shape[3]
-			RM_CI = CIs[layer_num][torch.topk(RM, k=1, dim=0, largest=True).indices.flatten()].reshape(RM_H,RM_W,CI_H,CI_W,1)
-			RM_CIs[layer_num] = RM_CI
-			plot_map(RM.permute(1,2,0).reshape(RM_H,RM_W,*plot_shape,1).detach().numpy(), path=RM_save_path + f'{layer_num}_RM')
-			plot_map(RM_CI, path=RM_CI_save_path + f'Layer{layer_num}_RM_CI')
+		# Gray_convs_2
+		layer_num = 'Gray_convs_2'
+		RM = layers[layer_num](model.gray_transform(test_img).unsqueeze(0))[0]
+		plot_shape = (int(RM.shape[0] ** 0.5),int(RM.shape[0] ** 0.5))
+		print(f"Layer{layer_num}_RM: {RM.shape}")
+		RM_H, RM_W = RM.shape[1], RM.shape[2]
+		CI_H, CI_W = CIs[layer_num].shape[2], CIs[layer_num].shape[3]
+		RM_CI = CIs[layer_num][torch.topk(RM, k=1, dim=0, largest=True).indices.flatten()].reshape(RM_H,RM_W,CI_H,CI_W,1)
+		RM_CIs[layer_num] = RM_CI
+		plot_map(RM.permute(1,2,0).reshape(RM_H,RM_W,*plot_shape,1).detach().numpy(), path=RM_save_path + f'{layer_num}_RM')
+		plot_map(RM_CI, path=RM_CI_save_path + f'Layer{layer_num}_RM_CI')
 
-		plt.close('all')
+	plt.close('all')
 
-		# kernel_size = [arch['args']['Conv2d_kernel'][0], arch['args']['Conv2d_kernel'][0] * torch.prod(torch.tensor(arch['args']['SFM_filters'][:1])),\
-		# 	arch['args']['Conv2d_kernel'][0] * torch.prod(torch.tensor(arch['args']['SFM_filters'][:2]))]
-		# label = labels[test_id]
+	# kernel_size = [arch['args']['Conv2d_kernel'][0], arch['args']['Conv2d_kernel'][0] * torch.prod(torch.tensor(arch['args']['SFM_filters'][:1])),\
+	# 	arch['args']['Conv2d_kernel'][0] * torch.prod(torch.tensor(arch['args']['SFM_filters'][:2]))]
+	# label = labels[test_id]
 
-		# for kernel_size, layer_name in zip(kernel_size, layer_names):
-		# 	if layer_name == 'Gray_Conv2d':
-	    #         split_img = split(gray_transform(test_img).unsqueeze(0), kernel_size, stride=kernel_size)
-	    #     else:
-	    #         split_img = split(test_img.unsqueeze(0), kernel_size, stride=kernel_size)
-	    #     split_img = split_img[0].permute(1,2,3,4,0).detach().numpy()
+	# for kernel_size, layer_name in zip(kernel_size, layer_names):
+	# 	if layer_name == 'Gray_Conv2d':
+    #         split_img = split(gray_transform(test_img).unsqueeze(0), kernel_size, stride=kernel_size)
+    #     else:
+    #         split_img = split(test_img.unsqueeze(0), kernel_size, stride=kernel_size)
+    #     split_img = split_img[0].permute(1,2,3,4,0).detach().numpy()
 
-	    #     RM_CI = RM_CIs[layer_name]['RM_CI']
-        # 	RM_CI_idx = RM_CIs[layer_name]['RM_CI_idx']
+    #     RM_CI = RM_CIs[layer_name]['RM_CI']
+    # 	RM_CI_idx = RM_CIs[layer_name]['RM_CI_idx']
 
-        # 	dist_arr = np.zeros((RM_CI.shape[:2]))
-	    #     for i in range(RM_CI.shape[0]):
-	    #         for j in range(RM_CI.shape[1]):
-	    #             dist_arr[i][j] = cdist(split_img[i][j], RM_CI[i][j])
+    # 	dist_arr = np.zeros((RM_CI.shape[:2]))
+    #     for i in range(RM_CI.shape[0]):
+    #         for j in range(RM_CI.shape[1]):
+    #             dist_arr[i][j] = cdist(split_img[i][j], RM_CI[i][j])
 
-        # 	dist_row_idx = dist_arr.argmin() // dist_arr.shape[1]
-	    #     dist_col_idx = dist_arr.argmin() % dist_arr.shape[1]
-	    #     train_img_idx = int(RM_CI_idx[dist_row_idx][dist_col_idx] // np.multiply(*dist_arr.shape))
-	    #     voting[train_labels[train_img_idx].item()] += 1
+    # 	dist_row_idx = dist_arr.argmin() // dist_arr.shape[1]
+    #     dist_col_idx = dist_arr.argmin() % dist_arr.shape[1]
+    #     train_img_idx = int(RM_CI_idx[dist_row_idx][dist_col_idx] // np.multiply(*dist_arr.shape))
+    #     voting[train_labels[train_img_idx].item()] += 1
 
-		# if max(list(voting.values())) == 1:
-		# 	pred = train_labels[train_img_idx].item()
-		# else:
-		# 	pred = max(voting, key=voting.get)
+	# if max(list(voting.values())) == 1:
+	# 	pred = train_labels[train_img_idx].item()
+	# else:
+	# 	pred = max(voting, key=voting.get)
 
 
 
