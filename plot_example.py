@@ -116,18 +116,20 @@ with torch.no_grad():
 		CIs[2], CI_idx, CI_values = get_ci(images, layers[2], kernel_size=kernel_size, stride=stride, sfm_filter=torch.prod(torch.tensor(arch['args']['SFM_filters'][:2]), dim=0))
 
 
-	for y in range(0,arch['args']['out_channels']):
+	for test_id in range(images.shape[0]):
+		
+		test_img = images[test_id]
 
 		# 隨機選擇一個圖片
 		# 455
-		while True:
-			test_id = random.randint(0, len(images))
-			test_img = images[test_id]
-			pred = model(test_img.unsqueeze(0)).argmax()
-			label = labels[test_id].argmax()
-			print(test_id, pred, label)
-			if pred == label and pred == y:
-				break
+		# while True:
+		# 	test_id = random.randint(0, len(images))
+		# 	test_img = images[test_id]
+		# 	pred = model(test_img.unsqueeze(0)).argmax()
+		# 	label = labels[test_id].argmax()
+		# 	print(test_id, pred, label)
+		# 	if pred == label and pred == y:
+		# 		break
 		
 
 		save_path = f'./detect/{config["dataset"]}_{checkpoint_filename}/example_{test_id}/'
@@ -145,6 +147,7 @@ with torch.no_grad():
 		segments = split(test_img.unsqueeze(0), kernel_size=arch['args']['Conv2d_kernel'][0], stride = (arch['args']['strides'][0], arch['args']['strides'][0]))[0]
 		plot_map(segments.permute(1,2,3,4,0), vmax=1, vmin=0, path=save_path + f'origin_split_{test_id}.png')
 
+		RM_CIs = {}
 
 		if arch['args']['in_channels'] == 1:
 			# Layer 0
@@ -156,6 +159,7 @@ with torch.no_grad():
 			CI_H, CI_W = CIs[layer_num].shape[2], CIs[layer_num].shape[3]
 			RM_CI = CIs[layer_num][torch.topk(RM, k=1, dim=0, largest=True).indices.flatten()].reshape(RM_H,RM_W,CI_H,CI_W,1)
 			plot_map(RM_CI, vmax=1, vmin=0, path=RM_CI_save_path + f'Layer{layer_num}_RM_CI')
+			RM_CIs[layer_num] = RM_CI
 
 			# Layer 1
 			layer_num = 1
@@ -166,6 +170,7 @@ with torch.no_grad():
 			CI_H, CI_W = CIs[layer_num].shape[2], CIs[layer_num].shape[3]
 			RM_CI = CIs[layer_num][torch.topk(RM, k=1, dim=0, largest=True).indices.flatten()].reshape(RM_H,RM_W,CI_H,CI_W,arch['args']['in_channels'])
 			plot_map(RM_CI, vmax=1, vmin=0, path=RM_CI_save_path + f'Layer{layer_num}_RM_CI')
+			RM_CIs[layer_num] = RM_CI
 
 			# Layer 2
 			layer_num = 2
@@ -176,6 +181,7 @@ with torch.no_grad():
 			CI_H, CI_W = CIs[layer_num].shape[2], CIs[layer_num].shape[3]
 			RM_CI = CIs[layer_num][torch.topk(RM, k=1, dim=0, largest=True).indices.flatten()].reshape(RM_H,RM_W,CI_H,CI_W,arch['args']['in_channels'])
 			plot_map(RM_CI, vmax=1, vmin=0, path=RM_CI_save_path + f'Layer{layer_num}_RM_CI')
+			RM_CIs[layer_num] = RM_CI
 
 			# Layer 3
 			layer_num = 3
@@ -186,6 +192,7 @@ with torch.no_grad():
 			CI_H, CI_W = CIs[layer_num].shape[2], CIs[layer_num].shape[3]
 			RM_CI = CIs[layer_num][torch.topk(RM, k=1, dim=0, largest=True).indices.flatten()].reshape(RM_H,RM_W,CI_H,CI_W,arch['args']['in_channels'])
 			plot_map(RM_CI, vmax=1, vmin=0, path=RM_CI_save_path + f'Layer{layer_num}_RM_CI')
+			RM_CIs[layer_num] = RM_CI
 
 		else:
 			# RGB_Conv2d
@@ -198,6 +205,7 @@ with torch.no_grad():
 			RM_FM = FMs[layer_num][torch.topk(RM, k=1, dim=0, largest=True).indices.flatten()].permute(0,2,3,1).reshape(RM_H,RM_W,FM_H,FM_W,arch['args']['in_channels'])
 			CI_H, CI_W = CIs[layer_num].shape[2], CIs[layer_num].shape[3]
 			RM_CI = CIs[layer_num][torch.topk(RM, k=1, dim=0, largest=True).indices.flatten()].reshape(RM_H,RM_W,CI_H,CI_W,arch['args']['in_channels'])
+			RM_CIs[layer_num] = RM_CI
 			
 			plot_map(RM.permute(1,2,0).reshape(RM_H,RM_W,*plot_shape,1).detach().numpy(), path=RM_save_path + f'{layer_num}_RM')
 			plot_map(RM_FM.detach().numpy(), path=RM_CI_save_path + f'{layer_num}_RM_FM')
@@ -211,7 +219,8 @@ with torch.no_grad():
 			RM_H, RM_W = RM.shape[1], RM.shape[2]
 			CI_H, CI_W = CIs[layer_num].shape[2], CIs[layer_num].shape[3]
 			RM_CI = CIs[layer_num][torch.topk(RM, k=1, dim=0, largest=True).indices.flatten()].reshape(RM_H,RM_W,CI_H,CI_W,1)
-			
+			RM_CIs[layer_num] = RM_CI
+
 			plot_map(RM.permute(1,2,0).reshape(RM_H,RM_W,*plot_shape,1).detach().numpy(), path=RM_save_path + f'{layer_num}_RM')
 			plot_map(RM_CI, path=RM_CI_save_path + f'{layer_num}_RM_CI')
 
@@ -222,7 +231,8 @@ with torch.no_grad():
 			RM_H, RM_W = RM.shape[1], RM.shape[2]
 			CI_H, CI_W = CIs[layer_num].shape[2], CIs[layer_num].shape[3]
 			RM_CI = CIs[layer_num][torch.topk(RM, k=1, dim=0, largest=True).indices.flatten()].reshape(RM_H,RM_W,CI_H,CI_W,arch['args']['in_channels'])
-			
+			RM_CIs[layer_num] = RM_CI
+
 			plot_map(RM.permute(1,2,0).reshape(RM_H,RM_W,int(RM.shape[0] ** 0.5),int(RM.shape[0] ** 0.5),1), path=RM_save_path + f'{layer_num}_RM')
 			plot_map(RM_CI, path=RM_CI_save_path + f'Layer{layer_num}_RM_CI')
 
@@ -233,9 +243,41 @@ with torch.no_grad():
 			RM_H, RM_W = RM.shape[1], RM.shape[2]
 			CI_H, CI_W = CIs[layer_num].shape[2], CIs[layer_num].shape[3]
 			RM_CI = CIs[layer_num][torch.topk(RM, k=1, dim=0, largest=True).indices.flatten()].reshape(RM_H,RM_W,CI_H,CI_W,arch['args']['in_channels'])
-			
+			RM_CIs[layer_num] = RM_CI
+
 			plot_map(RM.permute(1,2,0).reshape(RM_H,RM_W,int(RM.shape[0] ** 0.5),int(RM.shape[0] ** 0.5),1), path=RM_save_path + f'{layer_num}_RM')
 			plot_map(RM_CI, path=RM_CI_save_path + f'Layer{layer_num}_RM_CI')
+
+		plt.close('all')
+
+		# kernel_size = [arch['args']['Conv2d_kernel'][0], arch['args']['Conv2d_kernel'][0] * torch.prod(torch.tensor(arch['args']['SFM_filters'][:1])),\
+		# 	arch['args']['Conv2d_kernel'][0] * torch.prod(torch.tensor(arch['args']['SFM_filters'][:2]))]
+		# label = labels[test_id]
+
+		# for kernel_size, layer_name in zip(kernel_size, layer_names):
+		# 	if layer_name == 'Gray_Conv2d':
+	    #         split_img = split(gray_transform(test_img).unsqueeze(0), kernel_size, stride=kernel_size)
+	    #     else:
+	    #         split_img = split(test_img.unsqueeze(0), kernel_size, stride=kernel_size)
+	    #     split_img = split_img[0].permute(1,2,3,4,0).detach().numpy()
+
+	    #     RM_CI = RM_CIs[layer_name]['RM_CI']
+        # 	RM_CI_idx = RM_CIs[layer_name]['RM_CI_idx']
+
+        # 	dist_arr = np.zeros((RM_CI.shape[:2]))
+	    #     for i in range(RM_CI.shape[0]):
+	    #         for j in range(RM_CI.shape[1]):
+	    #             dist_arr[i][j] = cdist(split_img[i][j], RM_CI[i][j])
+
+        # 	dist_row_idx = dist_arr.argmin() // dist_arr.shape[1]
+	    #     dist_col_idx = dist_arr.argmin() % dist_arr.shape[1]
+	    #     train_img_idx = int(RM_CI_idx[dist_row_idx][dist_col_idx] // np.multiply(*dist_arr.shape))
+	    #     voting[train_labels[train_img_idx].item()] += 1
+
+		# if max(list(voting.values())) == 1:
+		# 	pred = train_labels[train_img_idx].item()
+		# else:
+		# 	pred = max(voting, key=voting.get)
 
 
 
