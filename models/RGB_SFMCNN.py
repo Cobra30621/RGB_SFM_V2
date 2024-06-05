@@ -55,7 +55,7 @@ class RGB_SFMCNN(nn.Module):
             device=device,
             activate_param = activate_params[0][0])
 
-        self.GRAY_conv2d = self._make_ConvBlock(
+        self.GRAY_conv2d = self._make_GrayBlock(
             1,
             channels[0][1], 
             Conv2d_kernel[0], 
@@ -150,7 +150,7 @@ class RGB_SFMCNN(nn.Module):
                 cReLU_percent(percent=activate_param[1]),
             )
     
-    def _make_ConvBlock(self,
+    def _make_GrayBlock(self,
                     in_channels, 
                     out_channels, 
                     kernel_size,
