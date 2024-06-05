@@ -56,6 +56,18 @@ class RGB_SFMCNN(nn.Module):
             device=device,
             activate_param = activate_params[0][0])
 
+        self.GRAY_conv2d = self._make_GrayBlock(
+            1,
+            channels[0][1], 
+            Conv2d_kernel[0], 
+            stride = strides[0],
+            padding=paddings[0],
+            rbf =  rbfs[0][1],
+            initial='kaiming', 
+            device=device,
+            activate_param = activate_params[0][1]
+        )
+
 
 
         self.RGB_convs = nn.Sequential(
@@ -87,15 +99,7 @@ class RGB_SFMCNN(nn.Module):
             )
 
         self.Gray_convs = nn.Sequential(
-                self._make_GrayBlock(1,
-                    channels[1][0], 
-                    Conv2d_kernel[0], 
-                    stride = strides[0],
-                    padding=paddings[0],
-                    rbf =  rbfs[0][0],
-                    initial='uniform', 
-                    device=device,
-                    activate_param = activate_params[0][0]),
+                self.GRAY_conv2d,
                 SFM(filter = SFM_filters[0], device = device),
                 self._make_BasicBlock(
                     channels[1][0], 
