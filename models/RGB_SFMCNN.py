@@ -370,12 +370,14 @@ class RGB_Conv2d(nn.Module):
         # windows shape = (batch_num, output_width * output_height, 1, 3)
         windows = F.unfold(input, kernel_size = self.kernel_size, stride = self.stride, padding = self.padding).permute(0, 2, 1)
         windows = windows.reshape(*windows.shape[:-1], 3, math.prod(self.kernel_size))
-        windows_RGBcolor = windows.mean(dim=-1).unsqueeze(-2)
+        windows_RGBcolor = windows.mean(dim=-1)
 
         # result = self.batched_LAB_distance(windows_RGBcolor, weights)
         # result = result / 765
 
-        result = (torch.pow((windows_RGBcolor - weights), 2).sum(dim=-1) + 1e-8).sqrt()
+        result = torch.cdist(windows_RGBcolor, weights)
+        print(result.shape)
+        input()
         result = result.permute(0,2,1).reshape(batch_num,self.out_channels,output_height,output_width)
         return result
     
