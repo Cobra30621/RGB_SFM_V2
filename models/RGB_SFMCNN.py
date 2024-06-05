@@ -304,7 +304,6 @@ class RGB_Conv2d(nn.Module):
         
         self.weights = torch.Tensor(weights).to(device=device, dtype=dtype)
         self.weights = self.weights / 255
-        self.weights = nn.Parameter(self.weights)
 
         self.black_block = torch.zeros((1,3)).to(device=device, dtype=dtype)
         self.white_block = torch.ones((1,3)).to(device=device, dtype=dtype)
