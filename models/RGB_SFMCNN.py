@@ -376,8 +376,6 @@ class RGB_Conv2d(nn.Module):
         # result = result / 765
 
         result = torch.cdist(windows_RGBcolor, weights)
-        print(result.shape)
-        input()
         result = result.permute(0,2,1).reshape(batch_num,self.out_channels,output_height,output_width)
         return result
     
