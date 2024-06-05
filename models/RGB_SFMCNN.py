@@ -321,7 +321,8 @@ class RGB_Conv2d(nn.Module):
                     [173, 46, 108],
                     [255, 0, 0],
                     [0, 255, 0],
-                    [0, 0, 255],]
+                    [0, 0, 255],
+                    [128, 128, 128]]
         
         self.weights = torch.Tensor(weights).to(device=device, dtype=dtype)
         self.weights = self.weights / 255
