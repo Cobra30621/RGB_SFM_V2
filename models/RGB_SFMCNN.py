@@ -273,22 +273,37 @@ class RGB_Conv2d(nn.Module):
                  device=None,
                  dtype=None) -> None:
         super().__init__() # TODO RGB_Conv2d function
-        weights_R = torch.empty((out_channels-2, 1))
-        weights_G = torch.empty((out_channels-2, 1))
-        weights_B = torch.empty((out_channels-2, 1))
-
-        if initial == "kaiming":
-            torch.nn.init.kaiming_uniform_(weights_R)
-            torch.nn.init.kaiming_uniform_(weights_G)
-            torch.nn.init.kaiming_uniform_(weights_B)
-        elif initial == "uniform":
-            torch.nn.init.uniform(weights_R)
-            torch.nn.init.uniform(weights_G)
-            torch.nn.init.uniform(weights_B)
-        else:
-            raise "RGB_Conv2d initial error"
+        # 24 色色相環 + RGB + black + white
+        weights = [[185, 31, 87], 
+                    [208, 47, 72],
+                    [221, 68, 59],
+                    [233, 91, 35],
+                    [230, 120, 0],
+                    [244, 157, 0],
+                    [241, 181, 0],
+                    [238, 201, 0],
+                    [210, 193, 0],
+                    [168, 187, 0],
+                    [88, 169, 29],
+                    [0, 161, 90],
+                    [0, 146, 110],
+                    [0, 133, 127],
+                    [0, 116, 136],
+                    [0, 112, 155],
+                    [0, 96, 156],
+                    [0, 91, 165],
+                    [26, 84, 165],
+                    [83, 74, 160],
+                    [112, 63, 150],
+                    [129, 55, 138],
+                    [143, 46, 124],
+                    [173, 46, 108],
+                    [255, 0, 0],
+                    [0, 255, 0],
+                    [0, 0, 255],]
         
-        self.weights = torch.cat([weights_R, weights_G, weights_B], dim=-1).to(device=device, dtype=dtype)
+        self.weights = torch.Tensor(weights).to(device=device, dtype=dtype)
+        self.weights = self.weights / 255
         self.weights = nn.Parameter(self.weights)
 
         self.black_block = torch.zeros((1,3)).to(device=device, dtype=dtype)
