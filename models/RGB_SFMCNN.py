@@ -58,7 +58,7 @@ class RGB_SFMCNN(nn.Module):
 
         self.GRAY_conv2d = self._make_GrayBlock(
             1,
-            channels[0][1], 
+            channels[1][0], 
             Conv2d_kernel[0], 
             stride = strides[0],
             padding=paddings[0],
