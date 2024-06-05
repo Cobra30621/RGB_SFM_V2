@@ -43,7 +43,8 @@ class RGB_SFMCNN(nn.Module):
             Renormalize()
         ])
 
-        # TODO 檢查是否各個block的initial function
+        is_weight_cdist = False
+
         self.RGB_conv2d = self._make_RGBBlock(
             3,
             channels[0][0], 
@@ -55,52 +56,70 @@ class RGB_SFMCNN(nn.Module):
             device=device,
             activate_param = activate_params[0][0])
 
-        self.GRAY_conv2d = self._make_GrayBlock(
-            1,
-            channels[0][1], 
-            Conv2d_kernel[0], 
-            stride = strides[0],
-            padding=paddings[0],
-            rbf =  rbfs[0][1],
-            initial='kaiming', 
-            device=device,
-            activate_param = activate_params[0][1]
-        )
-        self.SFM = SFM(filter = SFM_filters[0], device = device)
 
-        basicBlocks = []
-        for i in range(1, len(SFM_filters)):
-            is_weight_cdist = False
-            if i == 1:
-                is_weight_cdist = False
-            basicBlock = self._make_BasicBlock(
-                sum(channels[i-1]), 
-                channels[i], 
-                Conv2d_kernel[i], 
-                stride = strides[i],
-                padding = paddings[i], 
-                filter = SFM_filters[i],
-                rbf = rbfs[i],  
-                initial="kaiming",
-                is_weight_cdist = is_weight_cdist,
-                device = device,
-                activate_param = activate_params[i])
-            basicBlocks.append(basicBlock)
 
-        convblock = self._make_ConvBlock(
-            channels[-2], 
-            channels[-1], 
-            Conv2d_kernel[-1], 
-            stride = strides[-1],
-            padding = paddings[-1], 
-            rbf = rbfs[-1],
-            device = device,
-            activate_param = activate_params[-1]
-        )
+        self.RGB_convs = nn.Sequential(
+                self.RGB_conv2d,
+                SFM(filter = SFM_filters[0], device = device),
+                self._make_BasicBlock(
+                    channels[0][0], 
+                    channels[0][1], 
+                    Conv2d_kernel[1], 
+                    stride = strides[1],
+                    padding = paddings[1], 
+                    filter = SFM_filters[1],
+                    rbf = rbfs[1],  
+                    initial="kaiming",
+                    is_weight_cdist = is_weight_cdist,
+                    device = device,
+                    activate_param = activate_params[1]
+                    ),
+                self._make_ConvBlock(
+                    channels[0][1], 
+                    channels[0][2], 
+                    Conv2d_kernel[-1], 
+                    stride = strides[-1],
+                    padding = paddings[-1], 
+                    rbf = rbfs[-1],
+                    device = device,
+                    activate_param = activate_params[-1]
+                    )
+            )
 
-        self.convs = nn.Sequential(
-                *basicBlocks,
-                convblock
+        self.Gray_convs = nn.Sequential(
+                self._make_GrayBlock(1,
+                    channels[1][0], 
+                    Conv2d_kernel[0], 
+                    stride = strides[0],
+                    padding=paddings[0],
+                    rbf =  rbfs[0][0],
+                    initial='uniform', 
+                    device=device,
+                    activate_param = activate_params[0][0]),
+                SFM(filter = SFM_filters[0], device = device),
+                self._make_BasicBlock(
+                    channels[1][0], 
+                    channels[1][1], 
+                    Conv2d_kernel[1], 
+                    stride = strides[1],
+                    padding = paddings[1], 
+                    filter = SFM_filters[1],
+                    rbf = rbfs[1],  
+                    initial="kaiming",
+                    is_weight_cdist = is_weight_cdist,
+                    device = device,
+                    activate_param = activate_params[1]
+                    ),
+                self._make_ConvBlock(
+                    channels[1][1], 
+                    channels[1][2], 
+                    Conv2d_kernel[-1], 
+                    stride = strides[-1],
+                    padding = paddings[-1], 
+                    rbf = rbfs[-1],
+                    device = device,
+                    activate_param = activate_params[-1]
+                    )
             )
         
         self.fc1 = nn.Sequential(
@@ -108,11 +127,9 @@ class RGB_SFMCNN(nn.Module):
         )
 
     def forward(self, x):
-        rgb_output = self.RGB_conv2d(x)
-        gray_output = self.GRAY_conv2d(self.gray_transform(x))
+        rgb_output = self.RGB_convs(x)
+        gray_output = self.Gray_convs(self.gray_transform(x))
         output = torch.concat(([rgb_output, gray_output]), dim=1)
-        output = self.SFM(output)
-        output = self.convs(output)
         output = self.fc1(output.reshape(x.shape[0], -1))
         return output
 
@@ -304,7 +321,7 @@ class RGB_Conv2d(nn.Module):
         
         self.weights = torch.Tensor(weights).to(device=device, dtype=dtype)
         self.weights = self.weights / 255
-        self.weights = nn.Parameter(self.weights, requires_grad = False)
+        self.weights = nn.Parameter(self.weights, requires_grad=False)
 
         self.black_block = torch.zeros((1,3)).to(device=device, dtype=dtype)
         self.white_block = torch.ones((1,3)).to(device=device, dtype=dtype)
