@@ -429,6 +429,7 @@ class Gray_Conv2d(nn.Module):
         else:
             raise "RBF_Conv2d initial error"
 
+
         self.weight = nn.Parameter(self.weight)
     
     def forward(self, input: Tensor) -> Tensor:
@@ -608,15 +609,17 @@ class triangle(nn.Module):
         return f"w = {self.w.item()}"
 
 class gauss(nn.Module):
-    def __init__(self, std, requires_grad: bool = False, device:str = "cuda"):
+    def __init__(self, std, requires_grad: bool = True, device:str = "cuda"):
         super().__init__()
         self.std = torch.Tensor([std]).to(device)
         if requires_grad:
             self.std = nn.Parameter(self.std)
 
     def forward(self, d):
-        self.std = torch.std(d.reshape(d.shape[0], -1), dim = -1).reshape(-1, 1, 1, 1)
-        self.std = self.std.repeat(1, *d.shape[1:])
+        # print('Before Gauss:', torch.max(d), torch.min(d))
+        # self.std = torch.std(d.reshape(d.shape[0], -1), dim = -1).reshape(-1, 1, 1, 1)
+        # print('std:', torch.max(self.std), torch.min(self.std))
+        # self.std = self.std.repeat(1, *d.shape[1:])
         result = torch.exp(torch.pow(d, 2) / (-2 * torch.pow(self.std, 2)))
         return result
     
@@ -703,8 +706,6 @@ class triangle_cReLU(nn.Module):
 
         d = torch.where(d > threshold, w_tmp, d).view(*d.shape)
         result = (torch.ones_like(d) - torch.div(d, w_tmp))
-        # print(f"triangle_cRelu after: {torch.max(result)} ~ {torch.min(result)}")
-        # print('-----')
         return result
     
     def extra_repr(self) -> str:
