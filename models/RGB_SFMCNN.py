@@ -372,8 +372,10 @@ class RGB_Conv2d(nn.Module):
         windows = windows.reshape(*windows.shape[:-1], 3, math.prod(self.kernel_size))
         windows_RGBcolor = windows.mean(dim=-1).unsqueeze(-2)
 
-        result = self.batched_LAB_distance(windows_RGBcolor, weights)
-        result = result / 765
+        # result = self.batched_LAB_distance(windows_RGBcolor, weights)
+        # result = result / 765
+
+        result = (torch.pow((windows_RGBcolor - weights), 2).sum(dim=-1) + 1e-8).sqrt()
         result = result.permute(0,2,1).reshape(batch_num,self.out_channels,output_height,output_width)
         return result
     
@@ -452,6 +454,7 @@ class Gray_Conv2d(nn.Module):
         else:
             raise "RBF_Conv2d initial error"
 
+        self.weight = (self.weight - torch.min(self.weight)) / (torch.max(self.weight) - torch.min(self.weight))
 
         self.weight = nn.Parameter(self.weight)
     
@@ -460,6 +463,7 @@ class Gray_Conv2d(nn.Module):
         # print(f"RBF weights = {self.weight[0]}")
         output_width = math.floor((input.shape[-1] + self.padding * 2 - (self.kernel_size[0] - 1) - 1) / self.stride[0] + 1)
         output_height = math.floor((input.shape[-2] + self.padding * 2 - (self.kernel_size[1] - 1) - 1) / self.stride[1] + 1)
+        
         # Unfold output = (batch, output_width * output_height, C×∏(kernel_size))
         windows = F.unfold(input, kernel_size = self.kernel_size, stride = self.stride, padding = self.padding).permute(0, 2, 1)
 
@@ -480,6 +484,14 @@ class Gray_Conv2d(nn.Module):
             result = self.weight_cdist(windows=windows, weights=self.weight)
         else:
             result = torch.cdist(windows, self.weight).permute(0, 2, 1)
+
+
+        # union = windows.unsqueeze(2).repeat(1,1,self.weight.shape[0],1).add(self.weight)
+        # union = torch.sum((windows < 1e-6).float(), dim=-1)
+        # union.clamp_(1e-6)
+        # union = union.unsqueeze(1).repeat(1, self.weight.shape[0], 1)
+        # result = result.div(union)
+
         result = result.reshape(result.shape[0], result.shape[1], output_height, output_width)
         return result
     
