@@ -28,7 +28,7 @@ def plot_map(rm, grid_size=None, rowspan=None, colspan = None, path=None, **kwar
         colspan = int(e_w / min(e_h, e_w))
     if grid_size is None:
         grid_size = (rows*rowspan, cols*colspan)
-    fig = plt.figure(figsize=(grid_size[1], grid_size[0]), facecolor="green")
+    fig = plt.figure(figsize=(grid_size[1], grid_size[0]), facecolor="white")
     for row in range(rows):
         for col in range(cols):
             ax = plt.subplot2grid(grid_size, (row*rowspan, col*colspan), rowspan=rowspan, colspan=colspan)

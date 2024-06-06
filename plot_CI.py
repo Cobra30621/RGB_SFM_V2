@@ -26,7 +26,7 @@ print(images.shape, labels.shape)
 
 # Load Model
 models = {'SFMCNN': SFMCNN, 'RGB_SFMCNN':RGB_SFMCNN}
-checkpoint_filename = '0605_RGB_SFMCNN_best_plwg1y0a'
+checkpoint_filename = '0606_RGB_SFMCNN_best_qf7o9fby'
 checkpoint = torch.load(f'./pth/{config["dataset"]}_pth/{checkpoint_filename}.pth')
 model = models[arch['name']](**dict(config['model']['args']))
 model.load_state_dict(checkpoint['model_weights'])
@@ -148,7 +148,7 @@ else:
 	# CIs[1], CI_idx, CI_values = get_ci(images, layers[1], kernel_size=kernel_size, stride=stride, sfm_filter=torch.prod(torch.tensor(arch['args']['SFM_filters'][:1]), dim=0))
 	# CIs[2], CI_idx, CI_values = get_ci(images, layers[2], kernel_size=kernel_size, stride=stride, sfm_filter=torch.prod(torch.tensor(arch['args']['SFM_filters'][:2]), dim=0))
 
-	# 平行處理
+	平行處理
 	CIs["RGB_convs_0"], CI_idx, CI_values = get_ci(images, layers['RGB_convs_0'], kernel_size, stride = stride)
 	CIs['RGB_convs_0'] = CIs["RGB_convs_0"].permute(0,1,4,2,3).reshape(*CIs['RGB_convs_0'].shape[:2], arch['args']['in_channels'], -1).mean(dim=-1).unsqueeze(-2).unsqueeze(-2).repeat(1,1,*CIs['RGB_convs_0'].shape[2:4], 1)
 	CIs["RGB_convs_1"], CI_idx, CI_values = get_ci(images, layers["RGB_convs_1"], kernel_size=kernel_size, stride=stride, sfm_filter=torch.prod(torch.tensor(arch['args']['SFM_filters'][:1]), dim=0))
@@ -171,8 +171,8 @@ if arch['args']['in_channels'] == 1:
 	plot_map(FMs[2].reshape(int(FMs[2].shape[0]**0.5), int(FMs[2].shape[0]**0.5), *FMs[2].shape[1:]).detach().numpy(), path=FMs_save_path+'/FMs_2')
 	plot_map(FMs[3].reshape(int(FMs[3].shape[0]**0.5), int(FMs[3].shape[0]**0.5), *FMs[3].shape[1:]).detach().numpy(), path=FMs_save_path+'/FMs_3')
 else:
-	# plot_map(FMs['RGB_Conv2d'].permute(0,2,3,1).reshape(5, 15, *arch['args']['Conv2d_kernel'][0], arch['args']['in_channels']).detach().numpy(), path=FMs_save_path+'/FMs_RGB_Conv2d')
-	# plot_map(FMs['Gray_Conv2d'].permute(0,2,3,1).reshape(10, 15, *arch['args']['Conv2d_kernel'][0], 1).detach().numpy(), path=FMs_save_path+'/FMs_Gray_Conv2d')
+	# plot_map(FMs['RGB_Conv2d'].permute(0,2,3,1).reshape(2, 15, *arch['args']['Conv2d_kernel'][0], arch['args']['in_channels']).detach().numpy(), path=FMs_save_path+'/FMs_RGB_Conv2d')
+	# plot_map(FMs['Gray_Conv2d'].permute(0,2,3,1).reshape(7, 10, *arch['args']['Conv2d_kernel'][0], 1).detach().numpy(), path=FMs_save_path+'/FMs_Gray_Conv2d')
 	# plot_map(FMs[1].reshape(int(FMs[1].shape[0]**0.5), int(FMs[1].shape[0]**0.5), *FMs[1].shape[1:]).detach().numpy(), path=FMs_save_path+'/FMs_1')
 	# plot_map(FMs[2].reshape(int(FMs[2].shape[0]**0.5), int(FMs[2].shape[0]**0.5), *FMs[2].shape[1:]).detach().numpy(), path=FMs_save_path+'/FMs_2')
 
@@ -195,8 +195,8 @@ if arch['args']['in_channels'] == 1:
 	plot_map(CIs[2].reshape(int(CIs[2].shape[0]**0.5), int(CIs[2].shape[0]**0.5), *CIs[2].shape[2:]).detach().numpy(), vmax=1, vmin=0, path=CIs_save_path+'/CIs_2')
 	plot_map(CIs[3].reshape(int(CIs[3].shape[0]**0.5), int(CIs[3].shape[0]**0.5), *CIs[3].shape[2:]).detach().numpy(), vmax=1, vmin=0, path=CIs_save_path+'/CIs_3')
 else:
-	# plot_map(CIs['RGB_Conv2d'].reshape(5, 15, *CIs['RGB_Conv2d'].shape[2:]).detach().numpy(), path=CIs_save_path+'/CIs_RGB_Conv2d')
-	# plot_map(CIs['Gray_Conv2d'].reshape(10, 15, *CIs['Gray_Conv2d'].shape[2:]).detach().numpy(), path=CIs_save_path+'/CIs_Gray_Conv2d')
+	# plot_map(CIs['RGB_Conv2d'].reshape(2, 15, *CIs['RGB_Conv2d'].shape[2:]).detach().numpy(), path=CIs_save_path+'/CIs_RGB_Conv2d')
+	# plot_map(CIs['Gray_Conv2d'].reshape(7, 10, *CIs['Gray_Conv2d'].shape[2:]).detach().numpy(), path=CIs_save_path+'/CIs_Gray_Conv2d')
 	# plot_map(CIs[1].reshape(int(CIs[1].shape[0]**0.5), int(CIs[1].shape[0]**0.5), *CIs[1].shape[2:]).detach().numpy(), path=CIs_save_path+'/CIs_1')
 	# plot_map(CIs[2].reshape(int(CIs[2].shape[0]**0.5), int(CIs[2].shape[0]**0.5), *CIs[2].shape[2:]).detach().numpy(), path=CIs_save_path+'/CIs_2')
 
