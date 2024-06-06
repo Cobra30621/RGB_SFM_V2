@@ -5,23 +5,43 @@ from torch.nn.common_types import _size_2_t
 from torch.nn import init
 from torch import nn
 from torch import Tensor
-
+from torch.autograd import Variable
 
 import torchvision.transforms
 import torch.nn.functional as F
 import torch
 import math
+import matplotlib.pyplot as plt
+import numpy as np
 
 # 二值化
 class ThresholdTransform(object):
-        def __call__(self,x):
-            threshold = x.mean()
-            return (x>threshold).to(x.dtype)
+    def __call__(self,x):
+        threshold = x.mean()
+        result = (x>threshold).to(x.dtype)
+        return result
         
 class Renormalize(object):
-        def __call__(self,image):
-            _max, _min = torch.max(image), torch.min(image)
-            return (image - _min) / _max
+    def __call__(self,images):
+        batch, channel = images.shape[0], images.shape[1]
+        min_vals = images.view(batch, channel, -1).min(dim=-1, keepdim=True)[0].unsqueeze(-1)
+        max_vals = images.view(batch, channel, -1).max(dim=-1, keepdim=True)[0].unsqueeze(-1)
+        normalized_images = (images - min_vals) / (max_vals - min_vals)
+        result = torch.where(max_vals == min_vals, torch.zeros_like(images), normalized_images)
+        return result
+
+class Sobel_Conv2d(object):
+    def __call__(self,image):
+        Gx = torch.tensor([[2.0, 0.0, -2.0], [4.0, 0.0, -4.0], [2.0, 0.0, -2.0]])
+        Gy = torch.tensor([[2.0, 4.0, 2.0], [0.0, 0.0, 0.0], [-2.0, -4.0, -2.0]])
+        G = torch.cat([Gx.unsqueeze(0), Gy.unsqueeze(0)], 0)
+        G = G.unsqueeze(1).to(device = image.device)
+        edge_detect = F.conv2d(Variable(image), G, padding=2)
+        edge_detect = torch.mul(edge_detect, edge_detect)
+        edge_detect = torch.sum(edge_detect, dim=1, keepdim=True)
+        result = torch.sqrt(edge_detect)
+        return edge_detect
+
 
 class RGB_SFMCNN(nn.Module):
     def __init__(self, 
@@ -40,7 +60,8 @@ class RGB_SFMCNN(nn.Module):
 
         self.gray_transform = torchvision.transforms.Compose([
             torchvision.transforms.Grayscale(),
-            Renormalize()
+            Sobel_Conv2d(),
+            Renormalize(),
         ])
 
         is_weight_cdist = False
@@ -359,25 +380,7 @@ class RGB_Conv2d(nn.Module):
 
         # result = result.permute(0,2,1).reshape(batch_num,self.out_channels,output_height,output_width)
 
-        # # 2. 計算代表色距離
-        # output_width = math.floor((input.shape[-1] + self.padding * 2 - (self.kernel_size[0] - 1) - 1) / self.stride + 1)
-        # output_height = math.floor((input.shape[-2] + self.padding * 2 - (self.kernel_size[1] - 1) - 1) / self.stride + 1)
-        # batch_num = input.shape[0]
-
-        # # weights shape = (out_channels, 3)
-        # weights = torch.cat([self.weights, self.black_block, self.white_block], dim=0)
-
-        # # windows shape = (batch_num, output_width * output_height, 1, 3)
-        # windows = F.unfold(input, kernel_size = self.kernel_size, stride = self.stride, padding = self.padding).permute(0, 2, 1)
-        # windows = windows.reshape(*windows.shape[:-1], 3, math.prod(self.kernel_size))
-        # windows_RGBcolor = windows.mean(dim=-1).unsqueeze(-2)
-        # result = self.batched_LAB_distance(windows_RGBcolor, weights)
-        # result = result / 765
-
-        # # result = torch.cdist(windows_RGBcolor, weights)
-        # result = result.permute(0,2,1).reshape(batch_num,self.out_channels,output_height,output_width)
-        
-        # 3. 計算反映代表色
+        # 2. 計算代表色距離
         output_width = math.floor((input.shape[-1] + self.padding * 2 - (self.kernel_size[0] - 1) - 1) / self.stride + 1)
         output_height = math.floor((input.shape[-2] + self.padding * 2 - (self.kernel_size[1] - 1) - 1) / self.stride + 1)
         batch_num = input.shape[0]
@@ -385,17 +388,35 @@ class RGB_Conv2d(nn.Module):
         # weights shape = (out_channels, 3)
         weights = torch.cat([self.weights, self.black_block, self.white_block], dim=0)
 
-        # windows shape = (batch_num, output_width * output_height, 3, prod(self.kernel_size))
+        # windows shape = (batch_num, output_width * output_height, 1, 3)
         windows = F.unfold(input, kernel_size = self.kernel_size, stride = self.stride, padding = self.padding).permute(0, 2, 1)
-        windows = windows.reshape(*windows.shape[:-1], 3, math.prod(self.kernel_size)).permute(0,1,3,2)
+        windows = windows.reshape(*windows.shape[:-1], 3, math.prod(self.kernel_size))
+        windows_RGBcolor = windows.mean(dim=-1).unsqueeze(-2)
+        result = self.batched_LAB_distance(windows_RGBcolor, weights)
+        result = result / 765
 
-        result = torch.cdist(windows, weights).argmax(dim=-1)
-        count_tensor = torch.zeros(*result.shape[:-1], self.out_channels, device = result.device)
-        indices = result.to(torch.int64) 
-        updates = torch.ones_like(count_tensor, dtype=count_tensor.dtype)
-        count_tensor.scatter_add_(2, indices, updates)      
-        result = count_tensor / math.prod(self.kernel_size)
+        # result = torch.cdist(windows_RGBcolor, weights)
         result = result.permute(0,2,1).reshape(batch_num,self.out_channels,output_height,output_width)
+        
+        # 3. 計算反映代表色
+        # output_width = math.floor((input.shape[-1] + self.padding * 2 - (self.kernel_size[0] - 1) - 1) / self.stride + 1)
+        # output_height = math.floor((input.shape[-2] + self.padding * 2 - (self.kernel_size[1] - 1) - 1) / self.stride + 1)
+        # batch_num = input.shape[0]
+
+        # # weights shape = (out_channels, 3)
+        # weights = torch.cat([self.weights, self.black_block, self.white_block], dim=0)
+
+        # # windows shape = (batch_num, output_width * output_height, 3, prod(self.kernel_size))
+        # windows = F.unfold(input, kernel_size = self.kernel_size, stride = self.stride, padding = self.padding).permute(0, 2, 1)
+        # windows = windows.reshape(*windows.shape[:-1], 3, math.prod(self.kernel_size)).permute(0,1,3,2)
+
+        # result = torch.cdist(windows, weights).argmax(dim=-1)
+        # count_tensor = torch.zeros(*result.shape[:-1], self.out_channels, device = result.device)
+        # indices = result.to(torch.int64) 
+        # updates = torch.ones_like(count_tensor, dtype=count_tensor.dtype)
+        # count_tensor.scatter_add_(2, indices, updates)      
+        # result = count_tensor / math.prod(self.kernel_size)
+        # result = result.permute(0,2,1).reshape(batch_num,self.out_channels,output_height,output_width)
         
         return result
     
