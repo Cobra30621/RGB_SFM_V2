@@ -25,7 +25,7 @@ with torch.no_grad():
 
 	# Load Model
 	models = {'SFMCNN': SFMCNN, 'RGB_SFMCNN':RGB_SFMCNN}
-	checkpoint_filename = '0605_RGB_SFMCNN_best_plwg1y0a'
+	checkpoint_filename = '0606_RGB_SFMCNN_best_qf7o9fby'
 	checkpoint = torch.load(f'./pth/{config["dataset"]}_pth/{checkpoint_filename}.pth')
 	model = models[arch['name']](**dict(config['model']['args']))
 	model.load_state_dict(checkpoint['model_weights'])
@@ -184,6 +184,11 @@ for c in ['red', 'green', 'blue']:
         i+=1
 idx_to_label = {value: key for key, value in label_to_idx.items()}
 
+# labels = ['circle_red', 'circle_green', 'circle_blue', 
+#                     'rectangle_red', 'rectangle_green', 'rectangle_blue',
+#                     'triangle_red', 'triangle_green', 'triangle_blue']
+# idx_to_label = {i:k for i,k in enumerate(labels)}
+
 for test_id in range(images.shape[0]):
 	
 	test_img = images[test_id]
@@ -201,6 +206,7 @@ for test_id in range(images.shape[0]):
 	
 
 	save_path = f'./detect/{config["dataset"]}_{checkpoint_filename}/example/{idx_to_label[labels[test_id].argmax().item()]}/example_{test_id}/'
+	# save_path = f'./detect/{config["dataset"]}_{checkpoint_filename}/example/{labels[test_id]}/example_{test_id}/'
 	RM_save_path = f'{save_path}/RMs/'
 	RM_CI_save_path = f'{save_path}/RM_CIs/'
 	os.makedirs(RM_save_path, exist_ok=True)
@@ -265,7 +271,7 @@ for test_id in range(images.shape[0]):
 	else:
 		# # RGB_Conv2d
 		# layer_num = 'RGB_Conv2d'
-		# plot_shape = (15,5)
+		# plot_shape = (2,15)
 		# RM = layers[layer_num](test_img.unsqueeze(0))[0]
 		# print(f"{layer_num}_RM: {RM.shape}")
 		# RM_H, RM_W = RM.shape[1], RM.shape[2]
@@ -281,7 +287,7 @@ for test_id in range(images.shape[0]):
 
 		# # Gray_Conv2d
 		# layer_num = 'Gray_Conv2d'
-		# plot_shape = (10,15)
+		# plot_shape = (7,10)
 		# RM = layers[layer_num](model.gray_transform(test_img).unsqueeze(0))[0]
 		# print(f"{layer_num}_RM: {RM.shape}")
 		# RM_H, RM_W = RM.shape[1], RM.shape[2]
