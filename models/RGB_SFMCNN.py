@@ -36,7 +36,7 @@ class Sobel_Conv2d(object):
         Gy = torch.tensor([[2.0, 4.0, 2.0], [0.0, 0.0, 0.0], [-2.0, -4.0, -2.0]])
         G = torch.cat([Gx.unsqueeze(0), Gy.unsqueeze(0)], 0)
         G = G.unsqueeze(1).to(device = image.device)
-        edge_detect = F.conv2d(Variable(image), G, padding=2)
+        edge_detect = F.conv2d(Variable(image), G, padding=1)
         edge_detect = torch.mul(edge_detect, edge_detect)
         edge_detect = torch.sum(edge_detect, dim=1, keepdim=True)
         result = torch.sqrt(edge_detect)
@@ -495,7 +495,7 @@ class Gray_Conv2d(nn.Module):
         else:
             raise "RBF_Conv2d initial error"
 
-        self.weight = (self.weight - torch.min(self.weight)) / (torch.max(self.weight) - torch.min(self.weight))
+        # self.weight = (self.weight - torch.min(self.weight)) / (torch.max(self.weight) - torch.min(self.weight))
 
         self.weight = nn.Parameter(self.weight)
     
