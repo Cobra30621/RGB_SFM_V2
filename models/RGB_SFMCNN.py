@@ -167,7 +167,7 @@ class RGB_SFMCNN(nn.Module):
         elif rbf == 'guass and cReLU_percent':
             return nn.Sequential(
                 RGB_Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride = stride, padding = padding, device = device),
-                gauss(std=activate_param[0], device=device),
+                # gauss(std=activate_param[0], device=device),
                 cReLU_percent(percent=activate_param[1]),
             )
     
@@ -359,7 +359,25 @@ class RGB_Conv2d(nn.Module):
 
         # result = result.permute(0,2,1).reshape(batch_num,self.out_channels,output_height,output_width)
 
-        # 2. 計算代表色距離
+        # # 2. 計算代表色距離
+        # output_width = math.floor((input.shape[-1] + self.padding * 2 - (self.kernel_size[0] - 1) - 1) / self.stride + 1)
+        # output_height = math.floor((input.shape[-2] + self.padding * 2 - (self.kernel_size[1] - 1) - 1) / self.stride + 1)
+        # batch_num = input.shape[0]
+
+        # # weights shape = (out_channels, 3)
+        # weights = torch.cat([self.weights, self.black_block, self.white_block], dim=0)
+
+        # # windows shape = (batch_num, output_width * output_height, 1, 3)
+        # windows = F.unfold(input, kernel_size = self.kernel_size, stride = self.stride, padding = self.padding).permute(0, 2, 1)
+        # windows = windows.reshape(*windows.shape[:-1], 3, math.prod(self.kernel_size))
+        # windows_RGBcolor = windows.mean(dim=-1).unsqueeze(-2)
+        # result = self.batched_LAB_distance(windows_RGBcolor, weights)
+        # result = result / 765
+
+        # # result = torch.cdist(windows_RGBcolor, weights)
+        # result = result.permute(0,2,1).reshape(batch_num,self.out_channels,output_height,output_width)
+        
+        # 3. 計算反映代表色
         output_width = math.floor((input.shape[-1] + self.padding * 2 - (self.kernel_size[0] - 1) - 1) / self.stride + 1)
         output_height = math.floor((input.shape[-2] + self.padding * 2 - (self.kernel_size[1] - 1) - 1) / self.stride + 1)
         batch_num = input.shape[0]
@@ -367,16 +385,18 @@ class RGB_Conv2d(nn.Module):
         # weights shape = (out_channels, 3)
         weights = torch.cat([self.weights, self.black_block, self.white_block], dim=0)
 
-        # windows shape = (batch_num, output_width * output_height, 1, 3)
+        # windows shape = (batch_num, output_width * output_height, 3, prod(self.kernel_size))
         windows = F.unfold(input, kernel_size = self.kernel_size, stride = self.stride, padding = self.padding).permute(0, 2, 1)
-        windows = windows.reshape(*windows.shape[:-1], 3, math.prod(self.kernel_size))
-        windows_RGBcolor = windows.mean(dim=-1)
+        windows = windows.reshape(*windows.shape[:-1], 3, math.prod(self.kernel_size)).permute(0,1,3,2)
 
-        # result = self.batched_LAB_distance(windows_RGBcolor, weights)
-        # result = result / 765
-
-        result = torch.cdist(windows_RGBcolor, weights)
+        result = torch.cdist(windows, weights).argmax(dim=-1)
+        count_tensor = torch.zeros(*result.shape[:-1], self.out_channels, device = result.device)
+        indices = result.to(torch.int64) 
+        updates = torch.ones_like(count_tensor, dtype=count_tensor.dtype)
+        count_tensor.scatter_add_(2, indices, updates)      
+        result = count_tensor / math.prod(self.kernel_size)
         result = result.permute(0,2,1).reshape(batch_num,self.out_channels,output_height,output_width)
+        
         return result
     
     def extra_repr(self) -> str:
