@@ -171,7 +171,6 @@ print("Train: \n\tAccuracy: {}, Avg loss: {} \n".format(train_acc, train_loss))
 print("Valid: \n\tAccuracy: {}, Avg loss: {} \n".format(valid_acc, valid_loss))
 
 # Test model
-model = getattr(getattr(models, config['model']['name']), config['model']['name'])(**dict(config['model']['args']))
 model.load_state_dict(checkpoint['model_weights'])
 model.to(device)
 test_acc, test_loss, test_table = eval(test_dataloader, model, loss_fn, device = config['device'], need_table=False)
