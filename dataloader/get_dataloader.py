@@ -9,6 +9,7 @@ from .RGB_circle import RGBCircle
 from .MultiGrayShapes import MultiGrayShapesDataset
 from .MultiEdgeShapes import MultiEdgeShapesDataset
 from .Colored_MNIST import Colored_MNIST
+from .Colored_FashionMNIST import Colored_FashionMNIST
 from torchvision import transforms
 
 dataset_classes = {
@@ -20,6 +21,7 @@ dataset_classes = {
     'MultiGrayShapesDataset': MultiGrayShapesDataset,
     'MultiEdgeShapes': MultiEdgeShapesDataset,
     'Colored_MNIST':Colored_MNIST,
+    'Colored_FashionMNIST':Colored_FashionMNIST,
 }
 
 def get_dataloader(dataset, root: str = '.', batch_size=32, input_size: tuple = (28, 28)):
