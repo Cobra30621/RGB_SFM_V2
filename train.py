@@ -28,6 +28,7 @@ def train(train_dataloader: DataLoader, valid_dataloader: DataLoader, model: nn.
             losses = 0
             correct = 0
             size = 0
+            X, y = next(iter(train_dataloader))
             for batch, (X, y) in progress:
                 X = X.to(device); y= y.to(device)
                 pred = model(X)

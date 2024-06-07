@@ -149,8 +149,8 @@ class RGB_SFMCNN(nn.Module):
                 SFM(filter = SFM_filters[0], device = device),
                 *gray_basicBlocks,
                 self._make_ConvBlock(
-                    channels[1][1], 
-                    channels[1][2], 
+                    channels[1][-2], 
+                    channels[1][-1], 
                     Conv2d_kernel[-1], 
                     stride = strides[-1],
                     padding = paddings[-1], 
