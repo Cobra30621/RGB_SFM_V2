@@ -60,7 +60,7 @@ class RGB_SFMCNN(nn.Module):
 
         self.gray_transform = torchvision.transforms.Compose([
             torchvision.transforms.Grayscale(),
-            Sobel_Conv2d(),
+            # Sobel_Conv2d(),
             Renormalize(),
         ])
 
@@ -89,27 +89,33 @@ class RGB_SFMCNN(nn.Module):
             activate_param = activate_params[0][1]
         )
 
+        rgb_basicBlocks = []
+        for i in range(1, len(Conv2d_kernel)-1):
+            is_weight_cdist = False
+            if i == 1:
+                is_weight_cdist = False
+            basicBlock = self._make_BasicBlock(
+                channels[0][i-1], 
+                channels[0][i], 
+                Conv2d_kernel[i], 
+                stride = strides[i],
+                padding = paddings[i], 
+                filter = SFM_filters[i],
+                rbf = rbfs[i],  
+                initial="kaiming",
+                is_weight_cdist = is_weight_cdist,
+                device = device,
+                activate_param = activate_params[i])
+            rgb_basicBlocks.append(basicBlock)
 
 
         self.RGB_convs = nn.Sequential(
                 self.RGB_conv2d,
                 SFM(filter = SFM_filters[0], device = device),
-                self._make_BasicBlock(
-                    channels[0][0], 
-                    channels[0][1], 
-                    Conv2d_kernel[1], 
-                    stride = strides[1],
-                    padding = paddings[1], 
-                    filter = SFM_filters[1],
-                    rbf = rbfs[1],  
-                    initial="kaiming",
-                    is_weight_cdist = is_weight_cdist,
-                    device = device,
-                    activate_param = activate_params[1]
-                    ),
+                *rgb_basicBlocks,
                 self._make_ConvBlock(
-                    channels[0][1], 
-                    channels[0][2], 
+                    channels[0][-2], 
+                    channels[0][-1], 
                     Conv2d_kernel[-1], 
                     stride = strides[-1],
                     padding = paddings[-1], 
@@ -119,22 +125,29 @@ class RGB_SFMCNN(nn.Module):
                     )
             )
 
+        gray_basicBlocks = []
+        for i in range(1, len(Conv2d_kernel)-1):
+            is_weight_cdist = False
+            if i == 1:
+                is_weight_cdist = False
+            basicBlock = self._make_BasicBlock(
+                channels[1][i-1], 
+                channels[1][i], 
+                Conv2d_kernel[i], 
+                stride = strides[i],
+                padding = paddings[i], 
+                filter = SFM_filters[i],
+                rbf = rbfs[i],  
+                initial="kaiming",
+                is_weight_cdist = is_weight_cdist,
+                device = device,
+                activate_param = activate_params[i])
+            gray_basicBlocks.append(basicBlock)
+
         self.Gray_convs = nn.Sequential(
                 self.GRAY_conv2d,
                 SFM(filter = SFM_filters[0], device = device),
-                self._make_BasicBlock(
-                    channels[1][0], 
-                    channels[1][1], 
-                    Conv2d_kernel[1], 
-                    stride = strides[1],
-                    padding = paddings[1], 
-                    filter = SFM_filters[1],
-                    rbf = rbfs[1],  
-                    initial="kaiming",
-                    is_weight_cdist = is_weight_cdist,
-                    device = device,
-                    activate_param = activate_params[1]
-                    ),
+                *gray_basicBlocks,
                 self._make_ConvBlock(
                     channels[1][1], 
                     channels[1][2], 

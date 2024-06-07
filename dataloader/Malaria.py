@@ -14,7 +14,7 @@ class MalariaCellDataset(DatasetFolder):
         target_transform: Optional[Callable] = None,
     ) -> None:
         super().__init__(
-            root,
+            root + '/cell_images/',
             default_loader,
             IMG_EXTENSIONS,
             transform=transform,
@@ -24,6 +24,8 @@ class MalariaCellDataset(DatasetFolder):
         )
         self.imgs = self.samples
         train_imgs, train_labels, test_imgs, test_labels = self.split_data(self.imgs, self.targets)
+        print(train_imgs.shape, test_imgs.shape)
+        input()
         if train:
             self.imgs, self.targets = train_imgs, train_labels
         else:
