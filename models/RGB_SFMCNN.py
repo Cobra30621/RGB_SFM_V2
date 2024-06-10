@@ -468,8 +468,8 @@ class RGB_Conv2d(nn.Module):
         return torch.sqrt((2 + rmean/256) * (R**2) + 4*(G**2) + (2+(255-rmean)/256)*(B**2) + 1e-8)
     
     def weight_cdist(self, windows_RGBcolor, weights_RGBcolor):
-        R_1,G_1,B_1 = windows_RGBcolor[:, :, :, 0] * 255, windows_RGBcolor[:, :, :, 1] * 255, windows_RGBcolor[:, :, :, 2] * 255
-        R_2,G_2,B_2 = weights_RGBcolor[:, 0] * 255, weights_RGBcolor[:, 1] * 255, weights_RGBcolor[:, 2] * 255
+        R_1,G_1,B_1 = windows_RGBcolor[:, :, :, 0], windows_RGBcolor[:, :, :, 1], windows_RGBcolor[:, :, :, 2]
+        R_2,G_2,B_2 = weights_RGBcolor[:, 0], weights_RGBcolor[:, 1], weights_RGBcolor[:, 2]
         R = R_1 - R_2
         G = G_1 -G_2
         B = B_1 - B_2
