@@ -409,8 +409,10 @@ class RGB_Conv2d(nn.Module):
         # result = result / 765
 
         # result = torch.cdist(windows_RGBcolor, weights)
+        # result = result / math.sqrt(3)
         
         result = self.weight_cdist(windows_RGBcolor.unsqueeze(-2), weights)
+        result = result / 3
         result = result.permute(0,2,1).reshape(batch_num,self.out_channels,output_height,output_width)
         
         # 3. 計算反映代表色
