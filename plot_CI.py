@@ -26,7 +26,7 @@ print(images.shape, labels.shape)
 
 # Load Model
 models = {'SFMCNN': SFMCNN, 'RGB_SFMCNN':RGB_SFMCNN}
-checkpoint_filename = '0606_RGB_SFMCNN_best_qf7o9fby'
+checkpoint_filename = '0609_RGB_SFMCNN_best_d4wt5m4t'
 checkpoint = torch.load(f'./pth/{config["dataset"]}_pth/{checkpoint_filename}.pth')
 model = models[arch['name']](**dict(config['model']['args']))
 model.load_state_dict(checkpoint['model_weights'])
@@ -41,6 +41,7 @@ pred = model(images[:batch_num])
 y = labels[:batch_num]
 correct = (pred.argmax(1) == y.argmax(1)).type(torch.float).sum().item()
 print("Test Accuracy: " + str(correct/len(pred)))
+input()
 
 FMs = {}
 if arch['args']['in_channels'] == 1:
@@ -83,16 +84,14 @@ else:
 
 	FMs['RGB_convs_2'] = model.RGB_convs[3][0].weight.reshape(-1, int(model.RGB_convs[3][0].weight.shape[1] ** 0.5), int(model.RGB_convs[3][0].weight.shape[1] ** 0.5), 1)
 	print(f'FM[RGB_convs_2] shape: {FMs["RGB_convs_2"].shape}')
+	
 
 	FMs['Gray_convs_0'] = model.Gray_convs[0][0].weight.reshape(arch['args']['channels'][1][0],1,*kernel_size)
 	print(f'FM[Gray_convs_0] shape: {FMs["Gray_convs_0"].shape}')
-
 	FMs['Gray_convs_1'] = model.Gray_convs[2][0].weight.reshape(-1, 7, 10, 1)
 	print(f'FM[Gray_convs_1] shape: {FMs["Gray_convs_1"].shape}')
-
 	FMs['Gray_convs_2'] = model.Gray_convs[3][0].weight.reshape(-1, int(model.Gray_convs[3][0].weight.shape[1] ** 0.5), int(model.Gray_convs[3][0].weight.shape[1] ** 0.5), 1)
 	print(f'FM[Gray_convs_2] shape: {FMs["Gray_convs_2"].shape}')
-
 layers = {}
 if arch['args']['in_channels'] == 1:
 	layers[0] = nn.Sequential(model.convs[0][:2])
@@ -129,11 +128,12 @@ else:
 	layers['RGB_convs_0'] = model.RGB_convs[0]
 	layers['RGB_convs_1'] = nn.Sequential(*(list(model.RGB_convs[:2]) + list([model.RGB_convs[2][:2]])))
 	layers['RGB_convs_2'] = nn.Sequential(*(list(model.RGB_convs[:3]) + list([model.RGB_convs[3][:2]])))
+	
 
 	layers['Gray_convs_0'] = model.Gray_convs[0]
 	layers['Gray_convs_1'] = nn.Sequential(*(list(model.Gray_convs[:2]) + list([model.Gray_convs[2][:2]])))
 	layers['Gray_convs_2'] = nn.Sequential(*(list(model.Gray_convs[:3]) + list([model.Gray_convs[3][:2]])))
-
+	
 CIs = {}
 kernel_size=arch['args']['Conv2d_kernel'][0]
 stride = (arch['args']['strides'][0], arch['args']['strides'][0]) 
@@ -148,18 +148,14 @@ else:
 	# CIs[1], CI_idx, CI_values = get_ci(images, layers[1], kernel_size=kernel_size, stride=stride, sfm_filter=torch.prod(torch.tensor(arch['args']['SFM_filters'][:1]), dim=0))
 	# CIs[2], CI_idx, CI_values = get_ci(images, layers[2], kernel_size=kernel_size, stride=stride, sfm_filter=torch.prod(torch.tensor(arch['args']['SFM_filters'][:2]), dim=0))
 
-	平行處理
 	CIs["RGB_convs_0"], CI_idx, CI_values = get_ci(images, layers['RGB_convs_0'], kernel_size, stride = stride)
-	CIs['RGB_convs_0'] = CIs["RGB_convs_0"].permute(0,1,4,2,3).reshape(*CIs['RGB_convs_0'].shape[:2], arch['args']['in_channels'], -1).mean(dim=-1).unsqueeze(-2).unsqueeze(-2).repeat(1,1,*CIs['RGB_convs_0'].shape[2:4], 1)
 	CIs["RGB_convs_1"], CI_idx, CI_values = get_ci(images, layers["RGB_convs_1"], kernel_size=kernel_size, stride=stride, sfm_filter=torch.prod(torch.tensor(arch['args']['SFM_filters'][:1]), dim=0))
-	CIs['RGB_convs_1'] = CIs["RGB_convs_1"].permute(0,1,4,2,3).reshape(*CIs['RGB_convs_1'].shape[:2], arch['args']['in_channels'], -1).mean(dim=-1).unsqueeze(-2).unsqueeze(-2).repeat(1,1,*CIs['RGB_convs_1'].shape[2:4], 1)
 	CIs["RGB_convs_2"], CI_idx, CI_values = get_ci(images, layers["RGB_convs_2"], kernel_size=kernel_size, stride=stride, sfm_filter=torch.prod(torch.tensor(arch['args']['SFM_filters'][:2]), dim=0))
-	CIs['RGB_convs_2'] = CIs["RGB_convs_2"].permute(0,1,4,2,3).reshape(*CIs['RGB_convs_2'].shape[:2], arch['args']['in_channels'], -1).mean(dim=-1).unsqueeze(-2).unsqueeze(-2).repeat(1,1,*CIs['RGB_convs_2'].shape[2:4], 1)
-
+	
 	CIs["Gray_convs_0"], CI_idx, CI_values = get_ci(model.gray_transform(images), layers['Gray_convs_0'], kernel_size, stride = stride)
 	CIs["Gray_convs_1"], CI_idx, CI_values = get_ci(model.gray_transform(images), layers["Gray_convs_1"], kernel_size=kernel_size, stride=stride, sfm_filter=torch.prod(torch.tensor(arch['args']['SFM_filters'][:1]), dim=0))
 	CIs["Gray_convs_2"], CI_idx, CI_values = get_ci(model.gray_transform(images), layers["Gray_convs_2"], kernel_size=kernel_size, stride=stride, sfm_filter=torch.prod(torch.tensor(arch['args']['SFM_filters'][:2]), dim=0))
-
+	
 save_path = f'./detect/{config["dataset"]}_{checkpoint_filename}/'
 
 print('FM saving ...')
@@ -179,11 +175,11 @@ else:
 	plot_map(FMs['RGB_convs_0'].permute(0,2,3,1).reshape(2, 15, *arch['args']['Conv2d_kernel'][0], arch['args']['in_channels']).detach().numpy(), path=FMs_save_path+'/FMs_RGB_convs_0')
 	plot_map(FMs['RGB_convs_1'].reshape(int(FMs['RGB_convs_1'].shape[0]**0.5), int(FMs['RGB_convs_1'].shape[0]**0.5), *FMs['RGB_convs_1'].shape[1:]).detach().numpy(), path=FMs_save_path+'/FMs_RGB_convs_1')
 	plot_map(FMs['RGB_convs_2'].reshape(int(FMs['RGB_convs_2'].shape[0]**0.5), int(FMs['RGB_convs_2'].shape[0]**0.5), *FMs['RGB_convs_2'].shape[1:]).detach().numpy(), path=FMs_save_path+'/FMs_RGB_convs_2')
+	
 	plot_map(FMs['Gray_convs_0'].permute(0,2,3,1).reshape(7, 10, *arch['args']['Conv2d_kernel'][0], 1).detach().numpy(), path=FMs_save_path+'/FMs_Gray_convs_0')
 	plot_map(FMs['Gray_convs_1'].reshape(int(FMs['Gray_convs_1'].shape[0]**0.5), int(FMs['Gray_convs_1'].shape[0]**0.5), *FMs['Gray_convs_1'].shape[1:]).detach().numpy(), path=FMs_save_path+'/FMs_Gray_convs_1')
 	plot_map(FMs['Gray_convs_2'].reshape(int(FMs['Gray_convs_2'].shape[0]**0.5), int(FMs['Gray_convs_2'].shape[0]**0.5), *FMs['Gray_convs_2'].shape[1:]).detach().numpy(), path=FMs_save_path+'/FMs_Gray_convs_2')
-
-
+	
 print('FM saved')
 
 print('CI saving ...')
@@ -203,10 +199,11 @@ else:
 	plot_map(CIs['RGB_convs_0'].reshape(2, 15, *CIs['RGB_convs_0'].shape[2:]).detach().numpy(), path=CIs_save_path+'/CIs_RGB_convs_0')
 	plot_map(CIs['RGB_convs_1'].reshape(int(CIs['RGB_convs_1'].shape[0]**0.5), int(CIs['RGB_convs_1'].shape[0]**0.5), *CIs['RGB_convs_1'].shape[2:]).detach().numpy(), path=CIs_save_path+'/CIs_RGB_convs_1')
 	plot_map(CIs['RGB_convs_2'].reshape(int(CIs['RGB_convs_2'].shape[0]**0.5), int(CIs['RGB_convs_2'].shape[0]**0.5), *CIs['RGB_convs_2'].shape[2:]).detach().numpy(), path=CIs_save_path+'/CIs_RGB_convs_2')
-
-	plot_map(CIs['Gray_convs_0'].reshape(7, 10, *CIs['Gray_convs_0'].shape[2:]).detach().numpy(), path=CIs_save_path+'/CIs_Gray_convs_0')
-	plot_map(CIs['Gray_convs_1'].reshape(int(CIs['Gray_convs_1'].shape[0]**0.5), int(CIs['Gray_convs_1'].shape[0]**0.5), *CIs['Gray_convs_1'].shape[2:]).detach().numpy(), path=CIs_save_path+'/CIs_Gray_convs_1')
-	plot_map(CIs['Gray_convs_2'].reshape(int(CIs['Gray_convs_2'].shape[0]**0.5), int(CIs['Gray_convs_2'].shape[0]**0.5), *CIs['Gray_convs_2'].shape[2:]).detach().numpy(), path=CIs_save_path+'/CIs_Gray_convs_2')
+	
+	plot_map(CIs['Gray_convs_0'].reshape(7, 10, *CIs['Gray_convs_0'].shape[2:]).detach().numpy(), path=CIs_save_path+'/CIs_Gray_convs_0', cmap='gray')
+	plot_map(CIs['Gray_convs_1'].reshape(int(CIs['Gray_convs_1'].shape[0]**0.5), int(CIs['Gray_convs_1'].shape[0]**0.5), *CIs['Gray_convs_1'].shape[2:]).detach().numpy(), path=CIs_save_path+'/CIs_Gray_convs_1', cmap='gray')
+	plot_map(CIs['Gray_convs_2'].reshape(int(CIs['Gray_convs_2'].shape[0]**0.5), int(CIs['Gray_convs_2'].shape[0]**0.5), *CIs['Gray_convs_2'].shape[2:]).detach().numpy(), path=CIs_save_path+'/CIs_Gray_convs_2', cmap='gray')
+	
 print('CI saved')
 
 save_data = {'FMs': FMs, 'CIs': CIs}
