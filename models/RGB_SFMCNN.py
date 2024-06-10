@@ -408,7 +408,9 @@ class RGB_Conv2d(nn.Module):
         # result = self.batched_LAB_distance(windows_RGBcolor.unsqueeze(-2), weights)
         # result = result / 765
 
-        result = torch.cdist(windows_RGBcolor, weights)
+        # result = torch.cdist(windows_RGBcolor, weights)
+        
+        result = self.weight_cdist(windows_RGBcolor.unsqueeze(-2), weights)
         result = result.permute(0,2,1).reshape(batch_num,self.out_channels,output_height,output_width)
         
         # 3. 計算反映代表色
@@ -434,7 +436,7 @@ class RGB_Conv2d(nn.Module):
         return result
     
     def extra_repr(self) -> str:
-        return f"initial = {self.initial}, weight shape = {self.weights.shape}"
+        return f"initial = {self.initial}, weight shape = {self.weights.shape}, cal_dist = weight_cdist"
 
     def rgb_to_hsv(self, RGB):
         r, g, b = RGB
@@ -463,10 +465,16 @@ class RGB_Conv2d(nn.Module):
         R = R_1 - R_2
         G = G_1 -G_2
         B = B_1 - B_2
-        return torch.sqrt((2+rmean/256)*(R**2)+4*(G**2)+(2+(255-rmean)/256)*(B**2) + 1e-8)
+        return torch.sqrt((2 + rmean/256) * (R**2) + 4*(G**2) + (2+(255-rmean)/256)*(B**2) + 1e-8)
     
-    def rgb_to_lab(self, RGB):
-        pass
+    def weight_cdist(self, windows_RGBcolor, weights_RGBcolor):
+        R_1,G_1,B_1 = windows_RGBcolor[:, :, :, 0] * 255, windows_RGBcolor[:, :, :, 1] * 255, windows_RGBcolor[:, :, :, 2] * 255
+        R_2,G_2,B_2 = weights_RGBcolor[:, 0] * 255, weights_RGBcolor[:, 1] * 255, weights_RGBcolor[:, 2] * 255
+        R = R_1 - R_2
+        G = G_1 -G_2
+        B = B_1 - B_2
+        result = torch.sqrt(2 * (R**2) + 4 * (G**2) + 3 * (B**2) + 1e-8)
+        return result
 
 
 '''
