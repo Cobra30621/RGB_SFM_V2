@@ -83,10 +83,10 @@ class RGB_SFMCNN(nn.Module):
             Conv2d_kernel[0], 
             stride = strides[0],
             padding=paddings[0],
-            rbf =  rbfs[0][1],
+            rbf =  rbfs[1][0],
             initial='kaiming', 
             device=device,
-            activate_param = activate_params[0][1]
+            activate_param = activate_params[1][0]
         )
 
         rgb_basicBlocks = []
@@ -101,11 +101,11 @@ class RGB_SFMCNN(nn.Module):
                 stride = strides[i],
                 padding = paddings[i], 
                 filter = SFM_filters[i],
-                rbf = rbfs[i],  
+                rbf = rbfs[0][i],  
                 initial="kaiming",
                 is_weight_cdist = is_weight_cdist,
                 device = device,
-                activate_param = activate_params[i])
+                activate_param = activate_params[0][i])
             rgb_basicBlocks.append(basicBlock)
 
 
@@ -119,9 +119,9 @@ class RGB_SFMCNN(nn.Module):
                     Conv2d_kernel[-1], 
                     stride = strides[-1],
                     padding = paddings[-1], 
-                    rbf = rbfs[-1],
+                    rbf = rbfs[0][-1],
                     device = device,
-                    activate_param = activate_params[-1]
+                    activate_param = activate_params[0][-1]
                     )
             )
 
@@ -137,11 +137,11 @@ class RGB_SFMCNN(nn.Module):
                 stride = strides[i],
                 padding = paddings[i], 
                 filter = SFM_filters[i],
-                rbf = rbfs[i],  
+                rbf = rbfs[1][i],  
                 initial="kaiming",
                 is_weight_cdist = is_weight_cdist,
                 device = device,
-                activate_param = activate_params[i])
+                activate_param = activate_params[1][i])
             gray_basicBlocks.append(basicBlock)
 
         self.Gray_convs = nn.Sequential(
@@ -154,9 +154,9 @@ class RGB_SFMCNN(nn.Module):
                     Conv2d_kernel[-1], 
                     stride = strides[-1],
                     padding = paddings[-1], 
-                    rbf = rbfs[-1],
+                    rbf = rbfs[1][-1],
                     device = device,
-                    activate_param = activate_params[-1]
+                    activate_param = activate_params[1][-1]
                     )
             )
         
@@ -184,7 +184,8 @@ class RGB_SFMCNN(nn.Module):
         if rbf == "triangle":
             return nn.Sequential(
                 RGB_Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride = stride, padding = padding, initial = initial,device = device),
-                triangle_cReLU(w=activate_param[0], percent=activate_param[1], requires_grad = True, device=device),
+                triangle(w=activate_param[0], requires_grad=True, device=device),
+                cReLU_percent(percent=activate_param[1]),
             )
         elif rbf == "gauss":
             return nn.Sequential(
@@ -405,14 +406,16 @@ class RGB_Conv2d(nn.Module):
         windows = F.unfold(input, kernel_size = self.kernel_size, stride = self.stride, padding = self.padding).permute(0, 2, 1)
         windows = windows.reshape(*windows.shape[:-1], 3, math.prod(self.kernel_size))
         windows_RGBcolor = windows.mean(dim=-1)
-        # result = self.batched_LAB_distance(windows_RGBcolor.unsqueeze(-2), weights)
-        # result = result / 765
+
+        result = self.batched_LAB_distance(windows_RGBcolor.unsqueeze(-2), weights)
+        result = result / 765
 
         # result = torch.cdist(windows_RGBcolor, weights)
         # result = result / math.sqrt(3)
         
-        result = self.weight_cdist(windows_RGBcolor.unsqueeze(-2), weights)
-        result = result / 3
+        # result = self.weight_cdist(windows_RGBcolor.unsqueeze(-2), weights)
+        # result = result / 3
+
         result = result.permute(0,2,1).reshape(batch_num,self.out_channels,output_height,output_width)
         
         # 3. 計算反映代表色
@@ -438,7 +441,7 @@ class RGB_Conv2d(nn.Module):
         return result
     
     def extra_repr(self) -> str:
-        return f"initial = {self.initial}, weight shape = {self.weights.shape}, cal_dist = weight_cdist"
+        return f"initial = {self.initial}, weight shape = {self.weights.shape}, cal_dist = LAB"
 
     def rgb_to_hsv(self, RGB):
         r, g, b = RGB
