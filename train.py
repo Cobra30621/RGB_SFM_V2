@@ -37,12 +37,6 @@ def train(train_dataloader: DataLoader, valid_dataloader: DataLoader, model: nn.
                 loss.backward()
                 # 更新模型参数
                 optimizer.step()
-
-                if X.shape[1] != 1:
-                    with torch.no_grad():
-                        weights = model.RGB_conv2d[0].weights
-                        normalize_weights = (weights - torch.min(weights)) / (torch.max(weights) - torch.min(weights))
-                        model.RGB_conv2d[0].weights = nn.Parameter(normalize_weights)
                     
                 # 清零梯度
                 optimizer.zero_grad()

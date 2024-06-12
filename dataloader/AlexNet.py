@@ -1,11 +1,12 @@
+import torch
 import torch.nn as nn
-import torchvision.models as models
 
-class AlexNet(nn.Module):   
-    def __init__(self, in_channels=3, num=10,**kwargs):
-        super(AlexNet, self).__init__()
+# 定義自訂的 AlexNet 模型，針對 28x28 灰階圖像
+class ModifiedAlexNet(nn.Module):   
+    def __init__(self, num=10):
+        super(ModifiedAlexNet, self).__init__()
         self.feature = nn.Sequential(
-            nn.Conv2d(in_channels, 32, kernel_size=5, stride=2, padding=1),
+            nn.Conv2d(1, 32, kernel_size=5, stride=2, padding=1),
             nn.ReLU(inplace=True), 
             nn.Conv2d(32, 64, kernel_size=3, padding=1),
             nn.ReLU(inplace=True),   
