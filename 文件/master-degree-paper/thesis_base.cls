@@ -14,6 +14,7 @@
     \ClassError{TW_Thesis_Template}{XeTeX is required.}{Please use XeLaTeX to compile this document.}
 \fi
 
+\RequirePackage{amsmath}
 \RequirePackage{ifthen}
 \RequirePackage{etoolbox}
 \RequirePackage{ifplatform}  % only for auto select CJK font.

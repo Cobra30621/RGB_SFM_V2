@@ -1,26 +1,324 @@
-\documentclass[class=NCU_thesis, crop=false]{standalone}
+\documentclass[class=NCU\_thesis, crop=false]{standalone}
 \usepackage{makecell}
 \usepackage{diagbox}
 \begin{document}
 
 \chapter{實驗設計與結果}
-\section{灰階優化模型與以卷積神經網路為基礎的具可解釋性的深度學習模型之比較}
-\subsection{資料集介紹}
-\subsection{實驗設計}
-\subsection{實驗結果}
-\section{模型保留空間位置特徵之臉部驗證實驗}
-\subsection{實驗背景與目的}
-\subsection{資料集介紹}
-\subsection{模型架構與參數}
-\subsection{實驗結果}
-\pagebreak
-\section{以卷積神經網路為基礎的RGB三通道可解釋性模型之效果驗證}
-\subsection{資料集介紹}
-\subsection{實驗設計}
-\subsection{實驗結果}
-\section{實際用於現實瘧疾影像上的效果}
-\subsection{資料集介紹}
-\subsection{模型架構與參數}
-\subsection{實驗結果}
+\section{資料集介紹}
+本研究主要使用三種資料集，MNIST、Colored MNIST、Colored Fashion MNIST。
+MNIST和Fashion MNIST都是現在被廣泛運用在機器學習領域的資料集，
+MNIST是手寫數字影像資料集、Fashion MNIST服飾影像資料集。 
+Colored MNIST和Colored Fashion MNIST則是將MNIST和Fashion MNIST塗上紅、藍、綠三種不同的顏色組成。
+MNIST 在本研究中用於驗證特徵傳遞模組的優化效果，
+Colored MNIST和Colored Fashion主要用於驗證模型在彩色影像的分類效果。
+
+    \subsection{MNIST 資料集}
+    MNIST資料集由0到9的手寫數字影像資料集組成，
+    其分類具有0到9十種分類，
+    影像大小為28*28並且每個影像均為灰階影像。
+    該資料集共有60000筆訓練資料，10000筆測試資料
+
+    \colorbox {yellow}{MNISTexample}
+
+    \subsection{Colored MNIST 資料集}
+    在MNIST的資料集上，塗上紅、藍、綠三種顏色，
+    形成紅、藍、綠三色的0到9的彩色手寫資料集，
+    其分類具有由紅藍綠和0到9排列組合成的30個分類，像是red\_9、blue\_6等等。
+    該資料集共有60000筆訓練資料，10000筆測試資料。
+
+    著色的方法如下：
+    為每個灰階影像都設定一個[1,9]之間的隨機整數，
+    如果隨機數小於等於3，
+    則將影像的灰階值複製到彩色影像的綠色channels中並且將紅藍兩個channel設為0，
+    標籤為green加上灰階影像的數字；
+    如果隨機數介於4到6之間(包含6)，
+    則將影像的灰階值複製到彩色影像的藍色channels中並且將紅綠兩個channel設為0，
+    標籤為blue加上灰階影像的數字；
+    如果隨機數大於6，
+    則將影像的灰階值複製到彩色影像的紅色channels中並且將藍綠兩個channel設為0，
+    標籤為red加上灰階影像的數字。
+
+    \colorbox {yellow}{Colored MNIST example}
+
+    \subsection{Colored Fashion MNIST 資料集}
+    Fashion MNIST的資料集是由10種不同的鞋類和服裝組成的灰階影像資料集，
+    其分類包含有T-Shirt/Top、Trouser、Pullover、Dress、Coat、Sandals、Shirt、Sneaker、Bag、Ankle boot等10類。
+
+    Colored Fashion MNIST便是將Fashion MNIST資料集中的灰階影像塗上紅、藍、綠三種顏色，
+    形成紅、藍、綠三色的10類服飾的彩色服飾資料集，
+    具有由紅藍綠和0到9排列組合成的30個分類，像是red\_T-Shirt、blue\_Dress等等。
+    該資料集共有60000筆訓練資料，10000筆測試資料。
+
+    著色的方法如下：
+    為每個灰階影像都設定一個[1,9]之間的隨機整數，
+    如果隨機數小於等於3，
+    則將影像的灰階值複製到彩色影像的綠色channels中並且將紅藍兩個channel設為0，
+    標籤為green加上灰階影像的服飾類別；
+    如果隨機數介於4到6之間(包含6)，
+    則將影像的灰階值複製到彩色影像的藍色channels中並且將紅綠兩個channel設為0，
+    標籤為blue加上灰階影像的服飾類別；
+    如果隨機數大於6，
+    則將影像的灰階值複製到彩色影像的紅色channels中並且將藍綠兩個channel設為0，
+    標籤為red加上灰階影像的服飾類別。
+
+    \colorbox {yellow}{Colored Fashion example}
+
+\section{實驗設計}
+    \subsection{MNIST 實驗設計}
+    首先在MNIST資料集的部分，
+    由於MNIST資料集本身便是灰階影像，
+    因此我們只採用了模型中的輪廓感知區塊與輪廓特徵傳遞區塊，
+    並且去除前處理的灰階化和正規化去做訓練，
+    輪廓感知區域固定為1層，
+    輪廓特徵區塊我們設定為3層，
+    因此此模型總共為四層架構。
+    輪廓感知區塊的C$_{gray}$設定為100，
+    輪廓特徵傳遞區塊的C$^{gray}_{1}$、C$^{gray}_{2}$、C$^{gray}_{3}$分別設定為225、625、1225。
+    其餘相關參數的設定如\cref{tab:GrayModelparameters}，其中L代表著模型的總層數，
+    也就是輪廓感知區塊的層數加上輪廓特徵傳遞區塊的層數，
+    以第0層代表輪廓感知區塊、第1~$\sim$ L-1層則屬於輪廓特徵傳遞區塊；
+    $kernel_{i}$代表第0~$\sim$ L-1層中高斯卷積模組中的濾波器大小；
+    $stride_{i}$代表第0~$\sim$ L-1層中高斯卷積模組中的步長；
+    $p_{i}$代表第0~$\sim$ L-1層中特徵增強模組中希望保留的$RM$元素的百分比參數 $p\%$；
+    $SFM_{i}$代表第0~$\sim$ L-2層中空間濾波器的大小並且在(L-1)層不進行空間合併。
+
+    \begin{table}[H]
+        \centering
+        \caption{實驗參數設定}
+        \label{tab:GrayModelparameters}
+        \begin{tabular}{| c | c |}
+            \hline
+            參數 & 設定值 \\
+            \hline
+            \hline
+            影像大小 & $28\times28$ \\
+            \hline
+            影像類別數量 & 10 \\
+            \hline
+            訓練批次大小 & 256 \\
+            \hline
+            訓練迭代次數 & 200 \\
+            \hline
+            優化器 & Adam \\
+            \hline
+            學習率 & 0.001 \\
+            \hline
+            損失函數 & Cross Entropy \\
+            \hline
+            L(層數) & 4 \\
+            \hline
+            i & 1 to L \\
+            \hline
+            $kernel\_{i}$ & $\left\{(5, 5), (1, 1), (1, 1), (1, 1)\right\}$ \\
+            \hline 
+            $stride\_{i}$ &$\left\{(4, 4), (1, 1), (1, 1), (1, 1)\right\}$ \\
+            \hline
+            $p\_{i}$ & $\left\{0.2, 0.3, 0.4, 0.5\right\}$ \\
+            \hline
+            $SFM\_{i}$ &  \makecell{$\left\{(2, 2), (1, 3), (3, 1)\right\}$ }  \\
+            \hline 
+        \end{tabular}
+    \end{table}
+
+
+    \subsection{Colored MNIST 和 Colored Fashion 實驗設計}
+    在彩色資料集實驗中，
+    我們設定色彩特徵傳遞區塊為兩層，
+    其濾波器數目由前到後將C$^{color}_{1}$、C$^{color}_{2}$分別設定為225、625；
+    輪廓感知區塊固定一層，其濾波器數目C$_{gray}$設定為70；
+    輪廓特徵傳遞區塊設定為兩層，
+    其濾波器數目由前到後將C$^{gray}_{1}$、C$^{gray}_{2}$分別設定為625、1225；
+
+    為了方便人們對於模型去進行理解和色彩與輪廓解釋性圖片的對應，
+    在色彩感知區塊和輪廓感知區塊我們會使用相同濾波器大小、相同步長，
+    在色彩特徵傳遞區塊和輪廓特徵傳遞區塊我們會維持相同的層數、相同的空間濾波器的大小，
+    來讓色彩特徵傳遞區塊和輪廓特徵傳遞區塊的CI維持相同的大小。
+    其餘相關參數設定如\cref{tab:ColoredModelparameters}，
+    其中的L代表著色彩和輪廓的層數，
+    色彩的第0層代表著色彩感知區塊，第1~$\sim$L-1層屬於色彩特徵傳遞區塊；
+    輪廓的第0層代表著輪廓感知區塊，第1~$\sim$L-1層屬於輪廓特徵傳遞區塊；
+    $kernel_{i}$代表第0~$\sim$ L-1層中高斯卷積模組中的濾波器大小；
+    $stride_{i}$代表第0~$\sim$ L-1層中高斯卷積模組中的步長；
+    $p_{i}$代表輪廓與色彩第0~$\sim$ L-1層中特徵增強模組中希望保留的$RM$元素的百分比參數 $p\%$；
+    $SFM_{i}$代表第0~$\sim$ L-2層中空間濾波器的大小並且在(L-1)層不進行空間合併。
+
+    \begin{table}[H]
+        \centering
+        \caption{實驗參數設定}
+        \label{tab:ColoredModelparameters}
+        \begin{tabular}{| c | c |}
+            \hline
+            參數 & 設定值 \\
+            \hline
+            \hline
+            影像大小 & $28\times28$ \\
+            \hline
+            影像類別數量 & 30 \\
+            \hline
+            訓練批次大小 & 256 \\
+            \hline
+            訓練迭代次數 & 200 \\
+            \hline
+            優化器 & Adam \\
+            \hline
+            學習率 & 0.001 \\
+            \hline
+            損失函數 & Cross Entropy \\
+            \hline
+            L(層數) & 3 \\
+            \hline
+            i & 1 to L \\
+            \hline
+            $kernel\_{i}$ & $\left\{(5, 5), (1, 1), (1, 1), (1, 1)\right\}$ \\
+            \hline 
+            $stride\_{i}$ &$\left\{(4, 4), (1, 1), (1, 1), (1, 1)\right\}$ \\
+            \hline
+            $p\_{i}$ &\makecell{輪廓 $\left\{0.3, 0.4, 0.5\right\}$  \\ 色彩 $\left\{0.3, 0.4, 0.5\right\}$ } \\
+            \hline
+            $SFM\_{i}$ &  \makecell{$\left\{(2, 2), (1, 3), (3, 1)\right\}$ }  \\
+            \hline 
+        \end{tabular}
+    \end{table}
+
+\section{實驗結果}
+    \subsection{實驗結果資料}
+    本實驗的模型將與CIM、AlexNet\cite{NIPS2012_c399862d}、ResNet-18\cite{He_2016_CVPR}、GoogLeNet\cite{Szegedy_2015_CVPR}、Inception V3\cite{Szegedy_2016_CVPR}在 MNIST 資料集上進行比較。
+
+    為了後面比較CIM和本模型的訓練時間與效果，
+    我們將CIM和我們的模型設定的盡可能相近，
+    濾波器數目$C^{1}_{out}$、$C^{2}_{out}$、$C^{3}_{out}$、$C^{4}_{out}$ 設定為$100$、$225$、$625$和$1225$，
+    c(特徵增強的閥值)設定為 ${0.4, 0.1, 0.1, 0.1}$,
+    kerenl大小設定為${(5,5), (10,10), (15,15), (25,25)}$，
+    stirde設定為${(4,4), (1,1), (1,1), (1,1)}$，
+    合併SF設定為為${(2,2), (1,3), (3,1)}$
+
+    但由於CIM無法處理彩色影像，因此我們在Colored MNIST與Colored Fashion MNIST 資料集上，
+    將比較本模型、AlexNet、ResNet\-18、GoogLeNet、Inception V3等四種模型效果。
+
+    \begin{table}[H]
+        \centering
+        \caption{實驗結果}
+        \label{tab:results}
+        \begin{tabular}{| c | c | c | c |}
+            \hline
+            Dataset & Model  & \makecell{訓練準確率 \\ （60000張）} & \makecell{測試準確率 \\ （10000張）}  \\
+            \hline
+            \multirow{6}*{\makecell{MNIST \\ （28x28）}} 
+              & Ours & 0.9621 & 0.9566 \\
+            ~ & CIM~\cite{YangCNNInterpretable} & 0.9453 & 0.9368 \\
+            ~ & AlexNet~\cite{NIPS2012_c399862d}  &  &  \\
+            ~ & ResNet18~\cite{He_2016_CVPR}  &  &  \\
+            ~ & GoogLeNet~\cite{Szegedy_2015_CVPR}  &  &  \\
+            ~ & Inception V3~\cite{Szegedy_2016_CVPR}  &  &  \\
+            \hline
+            \multirow{5}*{\makecell{Colored MNIST \\ （28x28）}} 
+            & Ours & 0.9795 & 0.954 \\
+            ~ & AlexNet~\cite{NIPS2012_c399862d} 1.0 & 0.991 &  \\
+            ~ & ResNet18~\cite{He_2016_CVPR}  &  &  \\
+            ~ & GoogLeNet~\cite{Szegedy_2015_CVPR}  &  &  \\
+            ~ & Inception V3~\cite{Szegedy_2016_CVPR}  &  &  \\
+            \hline
+            \multirow{5}*{\makecell{Colored Fashion MNIST \\ （28x28）}} 
+            & Ours & 0.8847 & 0.8223 \\
+            ~ & AlexNet~\cite{NIPS2012_c399862d} 0.9992 & 0.8973 &  \\
+            ~ & ResNet18~\cite{He_2016_CVPR}  &  &  \\
+            ~ & GoogLeNet~\cite{Szegedy_2015_CVPR}  &  &  \\
+            ~ & Inception V3~\cite{Szegedy_2016_CVPR}  &  &  \\
+            \hline
+        \end{tabular}   
+    \end{table}
+
+    \subsection{可解釋性圖片}
+
+\section{實驗分析}
+    \subsection{特徵傳遞區塊之優化效果}
+    本節我們將比較本研究之模型與CIM的效能之比較。
+    在\cref{chapter:chapter3.4}中我們詳細說明了本論文模型在特徵傳遞區塊是
+    以CIM為基礎進行了對高斯卷積模組、特徵強化模組、空間位置保留機制改進而成。
+    因此在MNIST資料集的實驗中，
+    我們盡可能保持輪廓感知區塊與輪廓特徵傳遞層的各項參數與CIM的一致，
+    以驗證這些優化對效能與準確率的提升效果。
+    根據MNIST的實驗結果(\cref{tab:update-experiment})我們發現，
+    我們在\cref{chapter:chapter3.4}進行的優化可以有效的提升測試準確度並所短訓練時間。
+    具體而言，優化後的模型
+    使測試準確率提升0.2\%，
+    訓練時間可以縮短30\%，
+    平均迭代的時間可以縮短43\%，
+    以上結果表明，
+    本研究的優化設計在準確率和訓練時間上都取得了顯著的進步，
+    並且這些改進能夠進一步提升CIM的表現。
+
+    \begin{table}[h]
+        \centering
+        \caption{特徵傳遞區塊之優化實驗結果}
+        \label{tab:update-experiment}
+        \begin{tabular}{| c | c | c | c | c |}
+            \hline
+            Dataset & Model & 訓練準確度 & 測試準確度 & 訓練時間 \\
+            \hline
+            \hline
+            \multirow{2}*{\makecell{MNIST \\ （28x28）}}
+            & Ours & 0.9621 & 0.9566 & 1hr 53m 59s \\
+            ~ & CIM & 0.9453 & 0.937 & 2hr 29m 59s \\
+            \hline
+        \end{tabular}
+    \end{table}
+
+    \section{不同色差計算方式之比較}
+    本論文在顏色感知區塊計算顏色色差時，
+    實驗了三種不同的色彩計算方法分別是：
+    \begin{itemize}
+	  \item [1)] 
+	  	計算RGB色彩空間的歐基里德距離來代表顏色之間的差距，
+	  	其公式如\cref{eq:eq-RGBcdist}，
+	  	$\Delta$C代表兩個顏色的色差，
+	  	$\Delta$R為兩個顏色R值的絕對值差距，
+	  	$\Delta$G為兩個顏色G值的絕對值差距，
+	  	$\Delta$B為兩個顏色B值的絕對值差距。
+	  	\begin{equation}
+	    \label{eq:eq-RGBcdist}
+	    	\Delta C = \sqrt{(\Delta R)^2 + (\Delta G)^2 + (\Delta B)^2}
+		\end{equation}
+	  \item [2)]
+	  	由CompuPhase公司提出的一種低成本的加權歐基里德距離公式\cite{LABformula}，
+	  	它的權重由RGB中的紅色在色彩中的分量多少而決定。
+	  	這種色差計算方法的好處是利用這個公式便可以用兩個顏色的RGB值計算出接近CIE L*u*v(CIEL*a*b)空間中的距離，
+	  	同時這套公式也被使用在CompuPhase自己的產品中。
+	  	CIELAB是由國際照明委員會提出的色彩空間，
+	  	是目前描述人眼可見所有顏色最完整的色彩空間，
+	  	因此在CIELAB的距離也會較RGB空間之距離更接近人眼所視。
+	  	其公式如\cref{eq:eq-LAB}，
+	  	其中C$_{1}$代表第一個顏色，
+	  	C$_{2}$代表第二個顏色。
+	  	\begin{equation}
+	  	\begin{aligned}
+	    \label{eq:eq-LAB}
+	    \begin{split}
+	    	\overline{r} = \frac{C_{1,R} + C_{2,R}}{2} \\
+	    	\Delta R = C_{1,R} - C_{2,R} \\
+	    	\Delta G = C_{1,G} - C_{2,G} \\
+	    	\Delta B = C_{1,B} - C_{2,B} \\
+	    	\Delta C = \sqrt{(2 + \frac{\overline{r}}{256}) * (\Delta R)^2 + 4 * (\Delta G)^2 + (2 + \frac{255 - \overline{r}}{256}) * (\Delta B)^2}
+	    \end{split}
+	    \end{aligned}
+		\end{equation}
+
+	  \item [3)]
+	  	根據伽馬校正的理論，人們對於每個顏色的亮度感知呈現不同的非線性曲線，因此對於不同的色彩的權重應該要是不同的，因此我們參考了一種常見計算色差的加權歐式距離的公式，公式如\cref{eq:eq-weightcdist}。
+	  	\begin{equation}
+	    \label{eq:eq-weightcdist}
+	    	\Delta C = \sqrt{2 * (\Delta R)^2 + 4 * (\Delta G)^2 + 3 * (\Delta B)^2}
+		\end{equation}
+		然而，在\cite{LABformula}中也有提到，根據伽馬校正的理論，或許我們應該對不同的顏色分布的影像設定不同的加權值才會比較符合人眼的視覺對顏色亮度的感知。
+	\end{itemize}
+
+    \section{不同合併方式之比較}
+    {(6, 1), (1, 3)}
+
+
+    \section{不同濾波器數目之比較}
+    
+
+    \section{不同卷積函數之比較}
 
 \end{document}
