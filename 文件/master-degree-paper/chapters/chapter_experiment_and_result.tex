@@ -1,6 +1,7 @@
 \documentclass[class=NCU\_thesis, crop=false]{standalone}
 \usepackage{makecell}
 \usepackage{diagbox}
+\usepackage{longtable}
 \begin{document}
 
 \chapter{實驗設計與結果}
@@ -30,7 +31,7 @@ Colored MNIST和Colored Fashion主要用於驗證模型在彩色影像的分類�
     為每個灰階影像都設定一個[1,9]之間的隨機整數，
     如果隨機數小於等於3，
     則將影像的灰階值複製到彩色影像的綠色channels中並且將紅藍兩個channel設為0，
-    標籤為green加上灰階影像的數字；
+    標籤為blue加上灰階影像的數字；
     如果隨機數介於4到6之間(包含6)，
     則將影像的灰階值複製到彩色影像的藍色channels中並且將紅綠兩個channel設為0，
     標籤為blue加上灰階影像的數字；
@@ -53,7 +54,7 @@ Colored MNIST和Colored Fashion主要用於驗證模型在彩色影像的分類�
     為每個灰階影像都設定一個[1,9]之間的隨機整數，
     如果隨機數小於等於3，
     則將影像的灰階值複製到彩色影像的綠色channels中並且將紅藍兩個channel設為0，
-    標籤為green加上灰階影像的服飾類別；
+    標籤為blue加上灰階影像的服飾類別；
     如果隨機數介於4到6之間(包含6)，
     則將影像的灰階值複製到彩色影像的藍色channels中並且將紅綠兩個channel設為0，
     標籤為blue加上灰階影像的服飾類別；
@@ -206,29 +207,404 @@ Colored MNIST和Colored Fashion主要用於驗證模型在彩色影像的分類�
             \multirow{6}*{\makecell{MNIST \\ （28x28）}} 
               & Ours & 0.9621 & 0.9566 \\
             ~ & CIM~\cite{YangCNNInterpretable} & 0.9453 & 0.9368 \\
-            ~ & AlexNet~\cite{NIPS2012_c399862d}  &  &  \\
-            ~ & ResNet18~\cite{He_2016_CVPR}  &  &  \\
-            ~ & GoogLeNet~\cite{Szegedy_2015_CVPR}  &  &  \\
-            ~ & Inception V3~\cite{Szegedy_2016_CVPR}  &  &  \\
+            ~ & AlexNet~\cite{NIPS2012_c399862d} & 1.0 & 0.9942   \\            
+            ~ & ResNet18~\cite{He_2016_CVPR} & 1.0 & 0.9895   \\
+            ~ & GoogLeNet~\cite{Szegedy_2015_CVPR} & 1.0 & 0.9943   \\
+            ~ & DenseNet~\cite{Szegedy_2016_CVPR} & 1.0 & 0.9944   \\
             \hline
             \multirow{5}*{\makecell{Colored MNIST \\ （28x28）}} 
             & Ours & 0.9795 & 0.954 \\
-            ~ & AlexNet~\cite{NIPS2012_c399862d} 1.0 & 0.991 &  \\
-            ~ & ResNet18~\cite{He_2016_CVPR}  &  &  \\
-            ~ & GoogLeNet~\cite{Szegedy_2015_CVPR}  &  &  \\
-            ~ & Inception V3~\cite{Szegedy_2016_CVPR}  &  &  \\
+            ~ & AlexNet~\cite{NIPS2012_c399862d} & 1.0 & 0.991   \\
+            ~ & ResNet18~\cite{He_2016_CVPR} & 1.0  & 0.9822   \\
+            ~ & GoogLeNet~\cite{Szegedy_2015_CVPR} & 1.0 & 0.9927   \\
+            ~ & DenseNet~\cite{Szegedy_2016_CVPR} & 1.0 & 0.993   \\
             \hline
             \multirow{5}*{\makecell{Colored Fashion MNIST \\ （28x28）}} 
             & Ours & 0.8847 & 0.8223 \\
-            ~ & AlexNet~\cite{NIPS2012_c399862d} 0.9992 & 0.8973 &  \\
-            ~ & ResNet18~\cite{He_2016_CVPR}  &  &  \\
-            ~ & GoogLeNet~\cite{Szegedy_2015_CVPR}  &  &  \\
-            ~ & Inception V3~\cite{Szegedy_2016_CVPR}  &  &  \\
+            ~ & AlexNet~\cite{NIPS2012_c399862d} & 0.9992 & 0.8973   \\
+            ~ & ResNet18~\cite{He_2016_CVPR} & 1.0 & 0.8792   \\
+            ~ & GoogLeNet~\cite{Szegedy_2015_CVPR} & 1.0 & 0.898   \\
+            ~ & DenseNet~\cite{Szegedy_2016_CVPR} & 1.0 &  0.9012 \\
             \hline
         \end{tabular}   
     \end{table}
 
+    \pagebreak
     \subsection{可解釋性圖片}
+    \small
+    \begin{longtable}{|c|c|c|c|c|}
+        \endfoot
+        \caption{Colored MNIST 可解釋性圖片}
+        \label{tab:coloredMNIST-pictures}\\
+            \hline
+            \multirow{2}*{Label} & \multirow{2}*{Input} & RM-CI-Color-0 & RM-CI-Color-1 & RM-CI-Color-2 \\
+            \cline{3-5}
+            & & RM-CI-Gray-0 & RM-CI-Gray-1 & RM-CI-Gray-2\\
+            \hline
+            \multirow{2}*{red\_0} & 
+            \multirow{2}*{\begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/red_0/origin.png}\end{minipage}} & 
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/red_0/RGB_convs_0_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/red_0/RGB_convs_1_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/red_0/RGB_convs_2_RM_CI.png}\end{minipage} \\
+            \cline{3-5}
+            & & 
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/red_0/Gray_convs_0_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/red_0/Gray_convs_1_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/red_0/Gray_convs_2_RM_CI.png}\end{minipage} \\
+            \hline
+
+            \multirow{2}*{red\_1} & 
+            \multirow{2}*{\begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/red_1/origin.png}\end{minipage}} & 
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/red_1/RGB_convs_0_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/red_1/RGB_convs_1_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/red_1/RGB_convs_2_RM_CI.png}\end{minipage} \\
+            \cline{3-5}
+            & & 
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/red_1/Gray_convs_0_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/red_1/Gray_convs_1_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/red_1/Gray_convs_2_RM_CI.png}\end{minipage} \\
+            \hline
+
+            \multirow{2}*{red\_2} & 
+            \multirow{2}*{\begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/red_2/origin.png}\end{minipage}} & 
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/red_2/RGB_convs_0_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/red_2/RGB_convs_1_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/red_2/RGB_convs_2_RM_CI.png}\end{minipage} \\
+            \cline{3-5}
+            & & 
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/red_2/Gray_convs_0_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/red_2/Gray_convs_1_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/red_2/Gray_convs_2_RM_CI.png}\end{minipage} \\
+            \hline
+
+            \multirow{2}*{red\_3} & 
+            \multirow{2}*{\begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/red_3/origin.png}\end{minipage}} & 
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/red_3/RGB_convs_0_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/red_3/RGB_convs_1_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/red_3/RGB_convs_2_RM_CI.png}\end{minipage} \\
+            \cline{3-5}
+            & & 
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/red_3/Gray_convs_0_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/red_3/Gray_convs_1_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/red_3/Gray_convs_2_RM_CI.png}\end{minipage} \\
+            \hline
+
+            \multirow{2}*{red\_4} & 
+            \multirow{2}*{\begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/red_4/origin.png}\end{minipage}} & 
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/red_4/RGB_convs_0_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/red_4/RGB_convs_1_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/red_4/RGB_convs_2_RM_CI.png}\end{minipage} \\
+            \cline{3-5}
+            & & 
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/red_4/Gray_convs_0_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/red_4/Gray_convs_1_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/red_4/Gray_convs_2_RM_CI.png}\end{minipage} \\
+            \hline
+
+            \multirow{2}*{red\_5} & 
+            \multirow{2}*{\begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/red_5/origin.png}\end{minipage}} & 
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/red_5/RGB_convs_0_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/red_5/RGB_convs_1_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/red_5/RGB_convs_2_RM_CI.png}\end{minipage} \\
+            \cline{3-5}
+            & & 
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/red_5/Gray_convs_0_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/red_5/Gray_convs_1_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/red_5/Gray_convs_2_RM_CI.png}\end{minipage} \\
+            \hline
+
+            \multirow{2}*{red\_6} & 
+            \multirow{2}*{\begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/red_6/origin.png}\end{minipage}} & 
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/red_6/RGB_convs_0_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/red_6/RGB_convs_1_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/red_6/RGB_convs_2_RM_CI.png}\end{minipage} \\
+            \cline{3-5}
+            & & 
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/red_6/Gray_convs_0_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/red_6/Gray_convs_1_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/red_6/Gray_convs_2_RM_CI.png}\end{minipage} \\
+            \hline
+
+            \multirow{2}*{red\_7} & 
+            \multirow{2}*{\begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/red_7/origin.png}\end{minipage}} & 
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/red_7/RGB_convs_0_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/red_7/RGB_convs_1_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/red_7/RGB_convs_2_RM_CI.png}\end{minipage} \\
+            \cline{3-5}
+            & & 
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/red_7/Gray_convs_0_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/red_7/Gray_convs_1_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/red_7/Gray_convs_2_RM_CI.png}\end{minipage} \\
+            \hline
+
+            \multirow{2}*{red\_8} & 
+            \multirow{2}*{\begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/red_8/origin.png}\end{minipage}} & 
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/red_8/RGB_convs_0_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/red_8/RGB_convs_1_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/red_8/RGB_convs_2_RM_CI.png}\end{minipage} \\
+            \cline{3-5}
+            & & 
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/red_8/Gray_convs_0_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/red_8/Gray_convs_1_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/red_8/Gray_convs_2_RM_CI.png}\end{minipage} \\
+            \hline
+
+            \multirow{2}*{red\_9} & 
+            \multirow{2}*{\begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/red_9/origin.png}\end{minipage}} & 
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/red_9/RGB_convs_0_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/red_9/RGB_convs_1_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/red_9/RGB_convs_2_RM_CI.png}\end{minipage} \\
+            \cline{3-5}
+            & & 
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/red_9/Gray_convs_0_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/red_9/Gray_convs_1_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/red_9/Gray_convs_2_RM_CI.png}\end{minipage} \\
+            \hline
+
+
+            \multirow{2}*{green\_0} & 
+            \multirow{2}*{\begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/green_0/origin.png}\end{minipage}} & 
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/green_0/RGB_convs_0_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/green_0/RGB_convs_1_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/green_0/RGB_convs_2_RM_CI.png}\end{minipage} \\
+            \cline{3-5}
+            & & 
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/green_0/Gray_convs_0_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/green_0/Gray_convs_1_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/green_0/Gray_convs_2_RM_CI.png}\end{minipage} \\
+            \hline
+
+            \multirow{2}*{green\_1} & 
+            \multirow{2}*{\begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/green_1/origin.png}\end{minipage}} & 
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/green_1/RGB_convs_0_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/green_1/RGB_convs_1_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/green_1/RGB_convs_2_RM_CI.png}\end{minipage} \\
+            \cline{3-5}
+            & & 
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/green_1/Gray_convs_0_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/green_1/Gray_convs_1_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/green_1/Gray_convs_2_RM_CI.png}\end{minipage} \\
+            \hline
+
+            \multirow{2}*{green\_2} & 
+            \multirow{2}*{\begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/green_2/origin.png}\end{minipage}} & 
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/green_2/RGB_convs_0_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/green_2/RGB_convs_1_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/green_2/RGB_convs_2_RM_CI.png}\end{minipage} \\
+            \cline{3-5}
+            & & 
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/green_2/Gray_convs_0_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/green_2/Gray_convs_1_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/green_2/Gray_convs_2_RM_CI.png}\end{minipage} \\
+            \hline
+
+            \multirow{2}*{green\_3} & 
+            \multirow{2}*{\begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/green_3/origin.png}\end{minipage}} & 
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/green_3/RGB_convs_0_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/green_3/RGB_convs_1_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/green_3/RGB_convs_2_RM_CI.png}\end{minipage} \\
+            \cline{3-5}
+            & & 
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/green_3/Gray_convs_0_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/green_3/Gray_convs_1_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/green_3/Gray_convs_2_RM_CI.png}\end{minipage} \\
+            \hline
+
+            \multirow{2}*{green\_4} & 
+            \multirow{2}*{\begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/green_4/origin.png}\end{minipage}} & 
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/green_4/RGB_convs_0_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/green_4/RGB_convs_1_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/green_4/RGB_convs_2_RM_CI.png}\end{minipage} \\
+            \cline{3-5}
+            & & 
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/green_4/Gray_convs_0_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/green_4/Gray_convs_1_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/green_4/Gray_convs_2_RM_CI.png}\end{minipage} \\
+            \hline
+
+            \multirow{2}*{green\_5} & 
+            \multirow{2}*{\begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/green_5/origin.png}\end{minipage}} & 
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/green_5/RGB_convs_0_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/green_5/RGB_convs_1_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/green_5/RGB_convs_2_RM_CI.png}\end{minipage} \\
+            \cline{3-5}
+            & & 
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/green_5/Gray_convs_0_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/green_5/Gray_convs_1_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/green_5/Gray_convs_2_RM_CI.png}\end{minipage} \\
+            \hline
+
+            \multirow{2}*{green\_6} & 
+            \multirow{2}*{\begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/green_6/origin.png}\end{minipage}} & 
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/green_6/RGB_convs_0_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/green_6/RGB_convs_1_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/green_6/RGB_convs_2_RM_CI.png}\end{minipage} \\
+            \cline{3-5}
+            & & 
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/green_6/Gray_convs_0_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/green_6/Gray_convs_1_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/green_6/Gray_convs_2_RM_CI.png}\end{minipage} \\
+            \hline
+
+            \multirow{2}*{green\_7} & 
+            \multirow{2}*{\begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/green_7/origin.png}\end{minipage}} & 
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/green_7/RGB_convs_0_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/green_7/RGB_convs_1_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/green_7/RGB_convs_2_RM_CI.png}\end{minipage} \\
+            \cline{3-5}
+            & & 
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/green_7/Gray_convs_0_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/green_7/Gray_convs_1_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/green_7/Gray_convs_2_RM_CI.png}\end{minipage} \\
+            \hline
+
+            \multirow{2}*{green\_8} & 
+            \multirow{2}*{\begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/green_8/origin.png}\end{minipage}} & 
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/green_8/RGB_convs_0_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/green_8/RGB_convs_1_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/green_8/RGB_convs_2_RM_CI.png}\end{minipage} \\
+            \cline{3-5}
+            & & 
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/green_8/Gray_convs_0_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/green_8/Gray_convs_1_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/green_8/Gray_convs_2_RM_CI.png}\end{minipage} \\
+            \hline
+
+            \multirow{2}*{green\_9} & 
+            \multirow{2}*{\begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/green_9/origin.png}\end{minipage}} & 
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/green_9/RGB_convs_0_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/green_9/RGB_convs_1_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/green_9/RGB_convs_2_RM_CI.png}\end{minipage} \\
+            \cline{3-5}
+            & & 
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/green_9/Gray_convs_0_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/green_9/Gray_convs_1_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/green_9/Gray_convs_2_RM_CI.png}\end{minipage} \\
+            \hline
+
+
+
+            \multirow{2}*{blue\_0} & 
+            \multirow{2}*{\begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/blue_0/origin.png}\end{minipage}} & 
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/blue_0/RGB_convs_0_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/blue_0/RGB_convs_1_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/blue_0/RGB_convs_2_RM_CI.png}\end{minipage} \\
+            \cline{3-5}
+            & & 
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/blue_0/Gray_convs_0_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/blue_0/Gray_convs_1_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/blue_0/Gray_convs_2_RM_CI.png}\end{minipage} \\
+            \hline
+
+            \multirow{2}*{blue\_1} & 
+            \multirow{2}*{\begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/blue_1/origin.png}\end{minipage}} & 
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/blue_1/RGB_convs_0_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/blue_1/RGB_convs_1_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/blue_1/RGB_convs_2_RM_CI.png}\end{minipage} \\
+            \cline{3-5}
+            & & 
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/blue_1/Gray_convs_0_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/blue_1/Gray_convs_1_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/blue_1/Gray_convs_2_RM_CI.png}\end{minipage} \\
+            \hline
+
+            \multirow{2}*{blue\_2} & 
+            \multirow{2}*{\begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/blue_2/origin.png}\end{minipage}} & 
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/blue_2/RGB_convs_0_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/blue_2/RGB_convs_1_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/blue_2/RGB_convs_2_RM_CI.png}\end{minipage} \\
+            \cline{3-5}
+            & & 
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/blue_2/Gray_convs_0_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/blue_2/Gray_convs_1_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/blue_2/Gray_convs_2_RM_CI.png}\end{minipage} \\
+            \hline
+
+            \multirow{2}*{blue\_3} & 
+            \multirow{2}*{\begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/blue_3/origin.png}\end{minipage}} & 
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/blue_3/RGB_convs_0_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/blue_3/RGB_convs_1_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/blue_3/RGB_convs_2_RM_CI.png}\end{minipage} \\
+            \cline{3-5}
+            & & 
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/blue_3/Gray_convs_0_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/blue_3/Gray_convs_1_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/blue_3/Gray_convs_2_RM_CI.png}\end{minipage} \\
+            \hline
+
+            \multirow{2}*{blue\_4} & 
+            \multirow{2}*{\begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/blue_4/origin.png}\end{minipage}} & 
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/blue_4/RGB_convs_0_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/blue_4/RGB_convs_1_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/blue_4/RGB_convs_2_RM_CI.png}\end{minipage} \\
+            \cline{3-5}
+            & & 
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/blue_4/Gray_convs_0_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/blue_4/Gray_convs_1_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/blue_4/Gray_convs_2_RM_CI.png}\end{minipage} \\
+            \hline
+
+            \multirow{2}*{blue\_5} & 
+            \multirow{2}*{\begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/blue_5/origin.png}\end{minipage}} & 
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/blue_5/RGB_convs_0_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/blue_5/RGB_convs_1_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/blue_5/RGB_convs_2_RM_CI.png}\end{minipage} \\
+            \cline{3-5}
+            & & 
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/blue_5/Gray_convs_0_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/blue_5/Gray_convs_1_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/blue_5/Gray_convs_2_RM_CI.png}\end{minipage} \\
+            \hline
+
+            \multirow{2}*{blue\_6} & 
+            \multirow{2}*{\begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/blue_6/origin.png}\end{minipage}} & 
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/blue_6/RGB_convs_0_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/blue_6/RGB_convs_1_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/blue_6/RGB_convs_2_RM_CI.png}\end{minipage} \\
+            \cline{3-5}
+            & & 
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/blue_6/Gray_convs_0_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/blue_6/Gray_convs_1_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/blue_6/Gray_convs_2_RM_CI.png}\end{minipage} \\
+            \hline
+
+            \multirow{2}*{blue\_7} & 
+            \multirow{2}*{\begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/blue_7/origin.png}\end{minipage}} & 
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/blue_7/RGB_convs_0_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/blue_7/RGB_convs_1_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/blue_7/RGB_convs_2_RM_CI.png}\end{minipage} \\
+            \cline{3-5}
+            & & 
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/blue_7/Gray_convs_0_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/blue_7/Gray_convs_1_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/blue_7/Gray_convs_2_RM_CI.png}\end{minipage} \\
+            \hline
+
+            \multirow{2}*{blue\_8} & 
+            \multirow{2}*{\begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/blue_8/origin.png}\end{minipage}} & 
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/blue_8/RGB_convs_0_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/blue_8/RGB_convs_1_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/blue_8/RGB_convs_2_RM_CI.png}\end{minipage} \\
+            \cline{3-5}
+            & & 
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/blue_8/Gray_convs_0_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/blue_8/Gray_convs_1_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/blue_8/Gray_convs_2_RM_CI.png}\end{minipage} \\
+            \hline
+
+            \multirow{2}*{blue\_9} & 
+            \multirow{2}*{\begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/blue_9/origin.png}\end{minipage}} & 
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/blue_9/RGB_convs_0_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/blue_9/RGB_convs_1_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/blue_9/RGB_convs_2_RM_CI.png}\end{minipage} \\
+            \cline{3-5}
+            & & 
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/blue_9/Gray_convs_0_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/blue_9/Gray_convs_1_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/blue_9/Gray_convs_2_RM_CI.png}\end{minipage} \\
+            \hline
+
+    \end{longtable}
 
 \section{實驗分析}
     \subsection{特徵傳遞區塊之優化效果}
@@ -248,7 +624,7 @@ Colored MNIST和Colored Fashion主要用於驗證模型在彩色影像的分類�
     本研究的優化設計在準確率和訓練時間上都取得了顯著的進步，
     並且這些改進能夠進一步提升CIM的表現。
 
-    \begin{table}[h]
+    \begin{table}[H]
         \centering
         \caption{特徵傳遞區塊之優化實驗結果}
         \label{tab:update-experiment}
@@ -265,60 +641,79 @@ Colored MNIST和Colored Fashion主要用於驗證模型在彩色影像的分類�
     \end{table}
 
     \section{不同色差計算方式之比較}
-    本論文在顏色感知區塊計算顏色色差時，
-    實驗了三種不同的色彩計算方法分別是：
-    \begin{itemize}
-	  \item [1)] 
-	  	計算RGB色彩空間的歐基里德距離來代表顏色之間的差距，
-	  	其公式如\cref{eq:eq-RGBcdist}，
-	  	$\Delta$C代表兩個顏色的色差，
-	  	$\Delta$R為兩個顏色R值的絕對值差距，
-	  	$\Delta$G為兩個顏色G值的絕對值差距，
-	  	$\Delta$B為兩個顏色B值的絕對值差距。
-	  	\begin{equation}
-	    \label{eq:eq-RGBcdist}
-	    	\Delta C = \sqrt{(\Delta R)^2 + (\Delta G)^2 + (\Delta B)^2}
-		\end{equation}
-	  \item [2)]
-	  	由CompuPhase公司提出的一種低成本的加權歐基里德距離公式\cite{LABformula}，
-	  	它的權重由RGB中的紅色在色彩中的分量多少而決定。
-	  	這種色差計算方法的好處是利用這個公式便可以用兩個顏色的RGB值計算出接近CIE L*u*v(CIEL*a*b)空間中的距離，
-	  	同時這套公式也被使用在CompuPhase自己的產品中。
-	  	CIELAB是由國際照明委員會提出的色彩空間，
-	  	是目前描述人眼可見所有顏色最完整的色彩空間，
-	  	因此在CIELAB的距離也會較RGB空間之距離更接近人眼所視。
-	  	其公式如\cref{eq:eq-LAB}，
-	  	其中C$_{1}$代表第一個顏色，
-	  	C$_{2}$代表第二個顏色。
-	  	\begin{equation}
-	  	\begin{aligned}
-	    \label{eq:eq-LAB}
-	    \begin{split}
-	    	\overline{r} = \frac{C_{1,R} + C_{2,R}}{2} \\
-	    	\Delta R = C_{1,R} - C_{2,R} \\
-	    	\Delta G = C_{1,G} - C_{2,G} \\
-	    	\Delta B = C_{1,B} - C_{2,B} \\
-	    	\Delta C = \sqrt{(2 + \frac{\overline{r}}{256}) * (\Delta R)^2 + 4 * (\Delta G)^2 + (2 + \frac{255 - \overline{r}}{256}) * (\Delta B)^2}
-	    \end{split}
-	    \end{aligned}
-		\end{equation}
+    本論文在設計顏色感知區塊計算顏色色差的流程時，
+    使用Colored MNIST、Colored Fashion的資料集比較Euclidean、LAB Euclidean、Weighted Euclidean三種不同的色彩差距計算方法，
+    而其餘參數均保持上述的色彩實驗參數不變。
 
-	  \item [3)]
-	  	根據伽馬校正的理論，人們對於每個顏色的亮度感知呈現不同的非線性曲線，因此對於不同的色彩的權重應該要是不同的，因此我們參考了一種常見計算色差的加權歐式距離的公式，公式如\cref{eq:eq-weightcdist}。
-	  	\begin{equation}
-	    \label{eq:eq-weightcdist}
-	    	\Delta C = \sqrt{2 * (\Delta R)^2 + 4 * (\Delta G)^2 + 3 * (\Delta B)^2}
-		\end{equation}
-		然而，在\cite{LABformula}中也有提到，根據伽馬校正的理論，或許我們應該對不同的顏色分布的影像設定不同的加權值才會比較符合人眼的視覺對顏色亮度的感知。
-	\end{itemize}
+	實驗結果如\cref{tab:colordist-experiment}，
+	我們可以看出這三種色差計算方法在準確度、可解釋性圖片中並沒有特別顯著的差異，
+	雖然我們最終選擇了LAB Euclidean作為主要的色差計算方法，
+    但也可以依據不同資料集的色彩分布來去選擇不同的方法。
+
+	\begin{table}[H]
+        \centering
+        \caption{不同色差計算方法實驗結果}
+        \label{tab:colordist-experiment}
+        \begin{tabular}{| c | c | c | c |}
+            \hline
+            Dataset & 色差計算方式 & 訓練準確度 & 測試準確度  \\
+            \hline
+            \hline
+            \multirow{3}*{\makecell{Colored MNIST \\ （28x28）}}
+            & Euclidean & 0.9794 & 0.954 \\
+            ~ & LAB Euclidean & 0.9795 & 0.954  \\
+            ~ & Weighted Euclidean & 0.9799 & 0.9586 \\
+            \hline
+            \multirow{3}*{\makecell{Colored FashionMNIST \\ （28x28）}}
+            & Euclidean & 0.8847 & 0.8223  \\
+            ~ & LAB Euclidean & 0.8727 & 0.8285 \\
+            ~ & Weighted Euclidean & 0.8913 & 0.8294 \\
+            \hline
+        \end{tabular}
+    \end{table}
+
+    \colorbox {yellow}{不同色差方法對同一張影像的特徵圖片}
 
     \section{不同合併方式之比較}
-    {(6, 1), (1, 3)}
+    本節將會呈現不同的合併方式對模型的影響，
+    使用Colored MNIST的資料集比較兩種不同的合併方式
+    除了合併參數SFM外均使用相同的參數設定。
+    一種是按照前面的實驗設計，將 SFM 設定為 {(2,2), (1,3)}(我們簡稱SFM-22, 示意圖如)，在概念上等同於先將一個方格內的特徵圖進行合併再進行橫向合併。
+    另一種為 SFM 設定為 {(6,1), (1,2)}(我們簡稱SFM-61, 示意圖如)
+    在概念上等同於先將縱向的特徵圖進行合併後再將橫向的特徵圖進行合併。
+    使用不同的合併方法是在模擬人眼眼球跳動時不同的肉眼軌跡，
+    也可以驗證不同的合併方式對於模型的影像。
 
+	分別為使用SFM-22和SFM-61的CI$^{color}_{1}$和CI$^{gray}_{1}$，
+	由於使用了不同的合併方式，
+	因此回推出來的CI$^{color}_{1}$和CI$^{gray}_{1}$的影像大小也有所不同。
+	SFM-22的$^{color}_{1}$和CI$^{gray}_{1}$大小為（5 x 5）‧（2 x 2）＝（10 x 10），而
+    SFM-61則是（5 x 5）‧（6 x 1）＝（30 x 5），
+    我們藉由CI$^{color}_{1}$和CI$^{gray}_{1}$即可觀察到合併方式對於影像特徵擷取的影響。
+
+    \colorbox {yellow}{SFM-22和SFM-16之CI2}
+
+    \colorbox {yellow}{SFM-22和SFM-16之可解釋性圖片}
 
     \section{不同濾波器數目之比較}
-    
+    本節將會呈現不同濾波器數目對模型的影響，
+    使用Colored MNIST的資料集比較兩種不同的濾波器數目，
+    除了濾波器數目參數 C 外均使用相同的參數設定。
+    由於色彩感知區塊的濾波器固定為30種基礎色彩，
+    因此我們能變更濾波器數目的區塊只有色彩特徵傳遞區塊、輪廓感知區塊、輪廓特徵傳遞區塊。
+    第一種濾波器數目是按照前面的實驗設計，將C$^{color}_{1}$、C$^{color}_{2}$、C$_{gray}$、C$^{gray}_{1}$、C$^{gray}_{2}$分別設定為 225、625, 70, 625, 1225。
+    第二種濾波器數目則是將濾波器數目大幅縮小，將C$^{color}_{1}$、C$^{color}_{2}$、C$_{gray}$、C$^{gray}_{1}$、C$^{gray}_{2}$分別設定為 100、225、30、100、225。
+
+    \colorbox{yellow}{濾波器數目的實驗結果}
 
     \section{不同卷積函數之比較}
+    本節將會呈現不同激活函數對模型的影響，
+    使用Colored MNIST的資料集比較兩種不同的卷積函數，
+    分別是高斯函數和Triangle函數，
+    除了卷積函數均使用相同的參數設定。
+
+
+    \colorbox{yellow}{不同卷積函數的實驗結果}
+
 
 \end{document}

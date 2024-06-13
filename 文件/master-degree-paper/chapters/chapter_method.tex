@@ -1,4 +1,5 @@
 \documentclass[class=NCU_thesis, crop=false]{standalone}
+
 \begin{document}
 
 \chapter{研究方法}
@@ -106,7 +107,58 @@ Step 8：計算 loss value 並進行反向傳播
 	並且利用高斯函數取代內積運算將色差轉換為相似度，
 	以相似度作為反應強度進行輸出。
 
-	\colorbox{yellow}{說明色差公式}
+	在色差的計算上，我們曾經考慮過下面三種不同的色差計算方法，分別如下：
+	\begin{itemize}
+	  \item [1)] 
+	  	計算RGB色彩空間的歐幾里得距離(簡稱Euclidean)來代表顏色之間的差距，
+	  	其公式如\cref{eq:eq-RGBcdist}。
+	  	他是三種方法之中最為快速
+	  	$\Delta$C代表兩個顏色的色差，
+	  	$\Delta$R為兩個顏色R值的差距，
+	  	$\Delta$G為兩個顏色G值的差距，
+	  	$\Delta$B為兩個顏色B值的差距。
+	  	\begin{equation}
+	    \label{eq:eq-RGBcdist}
+	    	\Delta C = \sqrt{(\Delta R)^2 + (\Delta G)^2 + (\Delta B)^2}
+		\end{equation}
+
+	  \item [2)]
+	  	由CompuPhase公司提出的一種低成本的加權歐幾里得距離公式\cite{LABformula}(簡稱LAB Euclidean)，
+	  	它的權重由RGB中的紅色在色彩中的分量多少而決定。
+	  	這種色差計算方法的好處是利用這個公式便可以用兩個顏色的RGB值計算出接近CIE L*u*v(CIEL*a*b)空間中的距離，
+	  	同時這套公式也被使用在CompuPhase自己的產品中。
+	  	CIELAB是由國際照明委員會提出的色彩空間，
+	  	是目前描述人眼可見所有顏色最完整的色彩空間，
+	  	因此在CIELAB的距離也會較RGB空間之距離更接近人眼所視。
+	  	其公式如\cref{eq:eq-LAB}，
+	  	其中C$_{1}$代表第一個顏色，
+	  	C$_{2}$代表第二個顏色。
+	  	\begin{equation}
+	    \label{eq:eq-LAB}
+	    \begin{split}
+	    	\overline{r} & = \frac{C_{1,R} + C_{2,R}}{2} \\
+	    	\Delta R & = C_{1,R} - C_{2,R} \\
+	    	\Delta G & = C_{1,G} - C_{2,G} \\
+	    	\Delta B & = C_{1,B} - C_{2,B} \\
+	    	\Delta C & = \sqrt{(2 + \frac{\overline{r}}{256}) * (\Delta R)^2 + 4 * (\Delta G)^2 + (2 + \frac{255 - \overline{r}}{256}) * (\Delta B)^2}
+	    \end{split}
+		\end{equation}
+
+	  \item [3)]
+	  	根據伽馬校正理論，人們對於每個顏色的亮度感知呈現不同的非線性曲線，因此對於不同的色彩的權重應該要是不同的，因此我們參考了一種常見計算色差的加權歐幾里得距離的公式(簡稱Weighted Euclidean)，公式如\cref{eq:eq-weightcdist}。
+	  	\begin{equation}
+	    \label{eq:eq-weightcdist}
+	    	\Delta C = \sqrt{2 * (\Delta R)^2 + 4 * (\Delta G)^2 + 3 * (\Delta B)^2}
+		\end{equation}
+		然而，在\cite{LABformula}中也有提到，根據伽馬校正的理論，或許我們應該對不同的顏色分布的影像設定不同的加權值才會比較符合人眼的視覺對顏色亮度的感知。
+	\end{itemize}
+	這三個色差的計算方法各有其優缺點，
+	並且經過我們的實驗後發現三者在準確度和可解釋圖片的產生上十分相似，
+	但考量到Euclidean方法會容易受到RGB值的細微不同而產生變化。
+	而根據上面提到\cite{LABformula}中的說法，
+	如果使用Weight Euclidean方法會需要因應不同的資料集去調整加權數值，會增加問題的複雜度。
+	因此我們最終選擇了穩定性較高的LAB Euclidean方法來計算色彩感知區塊中輸入影像和30類基礎顏色的色差值，
+	做為評估相似度的依據。
 
 	我們在此利用高斯函數取代內積的原因在於高斯函數是以距離為基礎的函數，
 	其計算結果能夠反映出距離的意義並且表達向量間的相似度，
