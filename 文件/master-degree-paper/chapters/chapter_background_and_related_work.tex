@@ -301,7 +301,7 @@ Hatwell, J., Gaber等人於2020年提出CHIRPS演算法\cite{hatwell2020chirps}�
 
 \subsection{對於 Post-hoc explainable之研究}
 Post-hoc explainable method 與 Ante-hoc explainable model最大的差異是，
-此種研究所做的並不是開發與"black-box"模型相對具可解釋性的"white-box"模型，
+此種研究所做的並不是開發與"black-box"模型(黑盒模型)相對具可解釋性的"white-box"模型，
 而是著重於在模型完成預測之後，對其結果進行解釋。
 
 而\cite{Nielsen_2022}又告訴我們在Post-hoc explainable之下我們可以分成兩類，Local 和 Global，
@@ -315,12 +315,20 @@ Ribeiro, Marco Tulio 等人於2016年提出了LIME演算法\cite{10.1145/2939672
 
 Global則是針對模型整體去進行解釋，總結出主要的特徵和判斷條件，呈現模型的判斷邏輯，其中最著名的代表則是SHapley Additive exPlanations(SHAP)\cite{NIPS2017_8a20a862}。
 
-Scott M. Lundberg 與 Su-In LeeSHAP在2017年提出了SHAP這個演算法\cite{NIPS2017_8a20a862}，
+Scott M. Lundberg 與 Su-In LeeSHAP在2017年提出了SHAP這個演算法\cite{NIPS2017_8a20a862}。 SHAP運用了博弈論中Shapley Value的概念，SHAP會為
+每個特徵計算其在不同特徵組合的平均貢獻來決定一個Shapley Value來表示特徵的重要性。此外，從研究中也表明每個類別只會有一組唯一的Shapley Value組合。這套方法的優點在於其可以同時提供全域和局部特徵的重要性並且其背後有堅實的博弈論的理論支撐。但其缺點在於實現和計算複雜度較高並且對於不了解博奕論的使用者會難以理解模型呈現出來的Shapley Value。
 
-
-
+以上這些方法都是在"black-box"模型預測完後再對其進行解析，
+然而這種方法也是存在一些缺點的，他們大多只是表示特定特徵的對於類別的重要性，
+但是仍需要人類來解釋其背後所代表的意義，並且也無法解釋特徵是如何影響到類別。
 
 \subsection{近年可解釋性模型趨勢之研究}
+\cite{LONGO2024102301}中有寫到近年來也有一些論文展現出解決上面兩種方法缺點的潛力，
+其中一種是將注意力的解釋整合到神經網路中，來提高表格類資料的可解釋性的論文\cite{Arik_Pfister_2021}，另一種是使用計算論證(Computational Arugmentation)的方式\cite{ijcai2021p600}，透過模擬人類推論的過程，
+讓模型針對決策過程的每一步提出不同的規則相互論證，
+由此來得到決策的每一步過程的正確規則。特別的是這類模型屬於非單調推理(Non-monotonic reasoning)，代表其允許有新證據時推翻自己的結論，這樣的方法較為符合人類的常見推理方式。
+
+
 \subsubsection{Tabnet: Attentive interpretable tabular learning}
 \subsubsection{Building more explainable artificial intelligence with argumentation}
 XAI的新趨勢使用論證的方式來解釋，特別是計算論證有助於理解理性決策的所有步驟以及在不確定性下進行推理。 \cite{LONGO2024102301}
