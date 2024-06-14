@@ -188,10 +188,10 @@ Colored MNIST和Colored Fashion主要用於驗證模型在彩色影像的分類�
     為了後面比較CIM和本模型的訓練時間與效果，
     我們將CIM和我們的模型設定的盡可能相近，
     濾波器數目$C^{1}_{out}$、$C^{2}_{out}$、$C^{3}_{out}$、$C^{4}_{out}$ 設定為$100$、$225$、$625$和$1225$，
-    c(特徵增強的閥值)設定為 ${0.4, 0.1, 0.1, 0.1}$,
-    kerenl大小設定為${(5,5), (10,10), (15,15), (25,25)}$，
-    stirde設定為${(4,4), (1,1), (1,1), (1,1)}$，
-    合併SF設定為為${(2,2), (1,3), (3,1)}$
+    c(特徵增強的閥值)設定為 0.4, 0.1, 0.1, 0.1,
+    kerenl大小設定為(5,5), (10,10), (15,15), (25,25), 
+    stirde設定為(4,4), (1,1), (1,1), (1,1)，
+    合併SF設定為為(2,2), (1,3), (3,1)
 
     但由於CIM無法處理彩色影像，因此我們在Colored MNIST與Colored Fashion MNIST 資料集上，
     將比較本模型、AlexNet、ResNet\-18、GoogLeNet、Inception V3等四種模型效果。
@@ -231,7 +231,7 @@ Colored MNIST和Colored Fashion主要用於驗證模型在彩色影像的分類�
 
     \pagebreak
     \subsection{可解釋性圖片}
-    \small
+    {\small
     \begin{longtable}{|c|c|c|c|c|}
         \endfoot
         \caption{Colored MNIST 可解釋性圖片}
@@ -604,6 +604,7 @@ Colored MNIST和Colored Fashion主要用於驗證模型在彩色影像的分類�
             \begin{minipage}[t]{0.05\columnwidth}\centering\includegraphics[width=1\textwidth]{Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/blue_9/Gray_convs_2_RM_CI.png}\end{minipage} \\
             \hline
     \end{longtable}
+    }
 
 \section{實驗分析}
     \subsection{特徵傳遞區塊之優化效果}
@@ -639,7 +640,7 @@ Colored MNIST和Colored Fashion主要用於驗證模型在彩色影像的分類�
         \end{tabular}
     \end{table}
 
-    \section{不同色差計算方式之比較}
+    \subsection{不同色差計算方式之比較}
     本論文在設計顏色感知區塊計算顏色色差的流程時，
     使用Colored MNIST、Colored Fashion的資料集比較Euclidean、LAB Euclidean、Weighted Euclidean三種不同的色彩差距計算方法，
     而其餘參數均保持上述的色彩實驗參數不變。
@@ -673,7 +674,7 @@ Colored MNIST和Colored Fashion主要用於驗證模型在彩色影像的分類�
 
     \colorbox {yellow}{不同色差方法對同一張影像的特徵圖片}
 
-    \section{不同合併方式之比較}
+    \subsection{不同合併方式之比較}
     本節將會呈現不同的合併方式對模型的影響，
     使用Colored MNIST的資料集比較兩種不同的合併方式
     除了合併參數SFM外均使用相同的參數設定。
@@ -694,7 +695,7 @@ Colored MNIST和Colored Fashion主要用於驗證模型在彩色影像的分類�
 
     \colorbox {yellow}{SFM-16之可解釋性圖片}
 
-    \section{不同濾波器數目之比較}
+    \subsection{不同濾波器數目之比較}
     本節將會呈現不同濾波器數目對模型的影響，
     使用Colored MNIST的資料集比較兩種不同的濾波器數目，
     除了濾波器數目參數 C 外均使用相同的參數設定。
@@ -705,7 +706,7 @@ Colored MNIST和Colored Fashion主要用於驗證模型在彩色影像的分類�
 
     \colorbox{yellow}{濾波器數目的實驗結果}
 
-    \section{不同卷積函數之比較}
+    \subsection{不同卷積函數之比較}
     本節將會呈現不同激活函數對模型的影響，
     使用Colored MNIST的資料集比較兩種不同的卷積函數，
     分別是高斯函數和Triangle函數，

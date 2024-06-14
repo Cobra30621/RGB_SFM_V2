@@ -282,17 +282,17 @@ Ante-hoc explainable 模型(\cite{Nielsen_2022}稱為 Interently Interpretable M
 DT透過一系列的規則去不斷進行抉擇並且可以很容易地被可視化，
 使得人們可以容易理解DT的決策邏輯，
 並且也經常被用在金融等常運用表格去表示資料的領域\cite{grinsztajn2022tree}。
-除此之外也有，例如NGE\cite{salzberg1991nearest}、ANFIS\cite{256541}、 CHIRPS\cite{hatwell2020chirps}等等模型;
+除此之外也有，例如Nest Generalized Exemplar(NGE)\cite{salzberg1991nearest}、Adaptive-Network-Based Fuzzy Inference System(ANFIS)\cite{256541}、 Collection of High Importance Random Path Snippets(CHIRPS)\cite{hatwell2020chirps}等等模型;
 
-Steven Salzberg 等人於 1991 提出一個Nest Generalized Exemplar\cite{salzberg1991nearest}的理論，
+Steven Salzberg 等人於 1991 提出了NGE\cite{salzberg1991nearest}的理論，
 該理論將學習到的特徵映射到歐氏距離n維空間(簡稱為En)形成超矩形。
 所謂的超矩形是一種幾何學的名詞，可以被視為是在n維空間中的長方體。
 NGE便是利用超矩形由於是在n維空間，
 因此可以互相與其他的超矩形進行疊加來形成任意深度的和超矩形每個軸可以是任意範圍的兩種特性，透過計算不同的輸入所形成的超矩形之間的距離，來得到高準確度，同時也可以透過幾何解釋模型作出決策的原因。然而這個方法在處理高維資料時面臨複雜性大幅提高的問題，這便是此模型侷限性。
 
-J.-S.R. Jang 等人於1993提出Adaptive-Network-Based Fuzzy Inference System(ANFIS)\cite{256541}，其將模糊系統與神經網路進行結合，由神經網路學習模糊規則並藉由模糊引擎來對輸入資料進行判斷。這個模型的本質上維持著模糊系統的架構，因此我們藉由導出模糊規則檢視模型的判斷條件來解釋模型作出的決策。
+J.-S.R. Jang 等人於1993提出ANFIS模型\cite{256541}，其將模糊系統與神經網路進行結合，由神經網路學習模糊規則並藉由模糊引擎來對輸入資料進行判斷。這個模型的本質上維持著模糊系統的架構，因此我們藉由導出模糊規則檢視模型的判斷條件來解釋模型作出的決策。
 
-Hatwell, J., Gaber等人於2020年提出Collection of High Importance Random Path Snippets(CHIRPS)演算法\cite{hatwell2020chirps}，該演算法是以Random Forest為基礎，從每棵樹中多數分類的決策路徑並從中找到最常出現的條件，
+Hatwell, J., Gaber等人於2020年提出CHIRPS演算法\cite{hatwell2020chirps}，該演算法是以Random Forest為基礎，從每棵樹中多數分類的決策路徑並從中找到最常出現的條件，
 以這些條件建構出一條條if-then規則，並且分析每個規則的準確度和覆蓋率，提供如果缺少了該規則所造成的影響。該演算法提供之規則在當時與SOTA相同但其覆蓋率更大，並且演算法提供的是人類可以分析理解的規則而不是單純的結果。
 
 以上的研究均在模型本身便具備可解釋性，然而這類模型存在一個問題便是必須再訓練模型前找出有效的特徵提取方法，
@@ -306,14 +306,19 @@ Post-hoc explainable method 與 Ante-hoc explainable model最大的差異是，
 
 而\cite{Nielsen_2022}又告訴我們在Post-hoc explainable之下我們可以分成兩類，Local 和 Global，
 這兩類的差別在於Local的特點是針對單一筆預測進行解釋，通常採用的辦法是找出關鍵特徵並且解釋該特徵是如何影響到預測，Local之下針對方法又可以分成，以梯度為基礎的方法(Gradient-based)和以局部干擾為基礎的方法(Perturbation-based)，
-Gradient-based最具代表性的便是Layer-wise Relevance Propagation(LRP)\，
-而Perturbation-based最具代表性則是Local Interpretable Model-agnostic Explanations(LIME)。
+Gradient-based最具代表性的便是Layer-wise Relevance Propagation(LRP)\cite{10.1007/978-3-319-44781-0_8}，
+而Perturbation-based最具代表性則是Local Interpretable Model-agnostic Explanations(LIME)\cite{10.1145/2939672.2939778}。
 
-Global則是針對模型整體去進行解釋，總結出主要的特徵和判斷條件，呈現模型的判斷邏輯，其中最著名的代表則是SHapley Additive exPlanations(SHAP)。
+Alexander Binder 等人於2016年提出了LRP演算法\cite{10.1007/978-3-319-44781-0_8}，該演算法是透過使用模型的倒傳遞演算法，將特定預測類別的分數逐層從輸出逐層傳遞，計算每層的相關性分數，最終回到輸入從而找出關鍵的輸入特徵。此種方法主要的優點便是除了神經網路外，它的原理可以被運用到不同的模型結構之中，但需要選擇合適的分數規則。而LRP的缺點缺點在於由於需要逐層計算每層的相關性分數所以複雜度較高。此外，由於其解釋性是依賴相關性分數的分配與計算，因此選擇合適的分數規則尤為重要。
+
+Ribeiro, Marco Tulio 等人於2016年提出了LIME演算法\cite{10.1145/2939672.2939778}，該演算法的核心便是透過為想要解釋預測的輸入影像產生一組干擾樣本，這些干擾將會附加在原始輸入的局部部分形成干擾影像，之後將干擾影像輸入進黑盒模型中進行預測，在著訓練簡單模型(例如:DT、Linear Regression等)使這個簡單的模型能夠接近黑盒模型預測干擾影像的結果，最終透過解釋簡單模型來解釋原始輸入影像。這個演算法的優點在於可以靈活的使用在不同的資料類型和模型架構，然而其缺點在於無法提供模型整體的解釋並且可解釋性依賴於產生的干擾樣本的品質。
+
+Global則是針對模型整體去進行解釋，總結出主要的特徵和判斷條件，呈現模型的判斷邏輯，其中最著名的代表則是SHapley Additive exPlanations(SHAP)\cite{NIPS2017_8a20a862}。
+
+Scott M. Lundberg 與 Su-In LeeSHAP在2017年提出了SHAP這個演算法\cite{NIPS2017_8a20a862}，
 
 
-\subsubsection{Local Interpretable Model-agnostic Explanations(LIME)} 
-\subsubsection{Shapley Additive Explanations(SHAP)}
+
 
 \subsection{近年可解釋性模型趨勢之研究}
 \subsubsection{Tabnet: Attentive interpretable tabular learning}
