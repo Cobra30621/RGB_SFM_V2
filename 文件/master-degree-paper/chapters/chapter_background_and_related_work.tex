@@ -282,7 +282,7 @@ Ante-hoc explainable 模型(\cite{Nielsen_2022}稱為 Interently Interpretable M
 DT透過一系列的規則去不斷進行抉擇並且可以很容易地被可視化，
 使得人們可以容易理解DT的決策邏輯，
 並且也經常被用在金融等常運用表格去表示資料的領域\cite{grinsztajn2022tree}。
-除此之外也有，例如Nest Generalized Exemplar(NGE)\cite{salzberg1991nearest}、Adaptive-Network-Based Fuzzy Inference System(ANFIS)\cite{256541}、 Collection of High Importance Random Path Snippets(CHIRPS)\cite{hatwell2020chirps}等等模型;
+除了DT外也存在不同類型的模型，例如Nest Generalized Exemplar(NGE)\cite{salzberg1991nearest}、Adaptive-Network-Based Fuzzy Inference System(ANFIS)\cite{256541}、Collection of High Importance Random Path Snippets\\(CHIRPS)\cite{hatwell2020chirps}等等模型;
 
 Steven Salzberg 等人於 1991 提出了NGE\cite{salzberg1991nearest}的理論，
 該理論將學習到的特徵映射到歐氏距離n維空間(簡稱為En)形成超矩形。
@@ -327,10 +327,6 @@ Scott M. Lundberg 與 Su-In LeeSHAP在2017年提出了SHAP這個演算法\cite{N
 其中一種是將注意力的解釋整合到神經網路中，來提高表格類資料的可解釋性的論文\cite{Arik_Pfister_2021}，另一種是使用計算論證(Computational Arugmentation)的方式\cite{ijcai2021p600}，透過模擬人類推論的過程，
 讓模型針對決策過程的每一步提出不同的規則相互論證，
 由此來得到決策的每一步過程的正確規則。特別的是這類模型屬於非單調推理(Non-monotonic reasoning)，代表其允許有新證據時推翻自己的結論，這樣的方法較為符合人類的常見推理方式。
-
-
-\subsubsection{Tabnet: Attentive interpretable tabular learning}
-\subsubsection{Building more explainable artificial intelligence with argumentation}
-XAI的新趨勢使用論證的方式來解釋，特別是計算論證有助於理解理性決策的所有步驟以及在不確定性下進行推理。 \cite{LONGO2024102301}
+以上的方法雖然有望解決 Ante-Poc 和 Post-hoc explainable model的問題，但仍需更多的研究來驗證這一點。
 
 \end{document}
