@@ -156,16 +156,6 @@ CNN-based Interpretable Model(CIM)\cite{YangCNNInterpretable}為 Yang 等人於2
 高斯卷積模組使用高斯函數(公式如\cref{eqn:rbf-gaussian-function})取代原始卷積操作中的內積操作來對輸入進行特徵提取，
 使得該模組計算的結果具有相似度的意義並且此特性也被運用在後續的可解釋性中。\\
 特徵增強模組使用該論文中新提出變形的ReLU函數稱為changed ReLU(簡稱為cReLU)來過濾不重要的特徵使得後續的解釋性可以有更好的發揮。\\
-change ReLU的公式如\cref{eq:eq-crelu}，$c$為人工取的一個閥值
-\begin{equation}
-    \label{eq:eq-crelu}
-    % f(x) = \max(c, x)
-    f(x)= 
-    \begin{cases}
-        0 & \text{if  $x < c$ }\\
-        x & \text{if  $x \geq c$}
-    \end{cases}
-\end{equation}
 
 空間位置保留合併模組為該論文所提出來的全新機制，
 文中他們將一組輸入在經過高斯卷積和特徵增強後產生的輸出稱為$RM$,
@@ -173,13 +163,6 @@ change ReLU的公式如\cref{eq:eq-crelu}，$c$為人工取的一個閥值
 使用合併公式\cref{eq:eq-sf}並加入時間遺忘函數(forgetting factor)$\alpha$，來進行合併來模擬特徵資訊在皮層中的時序性特徵資訊與皮層的逐層合併的現象，
 從而達到在合併的過程中保留特徵之間的時序關係,
 也可讓越後面的層數學習到更完整的特徵資訊。\\
-合併公式:\\
-$RM_{c}$為合併後的RM，$RM_{k}$為第k張RM，$n$為輸入資訊的數量，$\alpha$為一個可訓練的參
-\begin{equation}
-    \label{eq:eq-sf}
-    RM_{c}=\frac{1}{n} \sum_{k = 0}^{n-1} \alpha^{k} \times RM_{k}  \qquad ,\ where\ n = \textit{H}^{i}_{SF} \times \textit{W}^{i}_{SF}
-\end{equation}
-
 \begin{figure}[H]
   \centering
   \includegraphics[width=0.7\textwidth]{CIM/CIM_SFM.png}
