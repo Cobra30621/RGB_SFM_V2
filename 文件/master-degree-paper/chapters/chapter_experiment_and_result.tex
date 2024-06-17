@@ -1481,7 +1481,7 @@ Colored MNIST和Colored Fashion主要用於驗證模型在彩色影像的分類�
     \begin{longtable}{|c|c|c|c|c|}
         \endfoot
         \caption{不同合併方式Colored Fashion MNIST資料集上的可解釋性圖片}
-        \label{tab:diff-combine-coloredMNIST-pictures}\\
+        \label{tab:diff-combine-coloredFashionMNIST-pictures}\\
             \hline
             \multirow{2}*{合併方式} & \multirow{2}*{Input} & RM-CI-Color-0 & RM-CI-Color-1 & RM-CI-Color-2 \\
             \cline{3-5}
@@ -1585,7 +1585,7 @@ Colored MNIST和Colored Fashion主要用於驗證模型在彩色影像的分類�
 
     實驗結果如\cref{tab:diff-channels-experiment}，
     從實驗結果可以看出將濾波器的數目降低可以大幅降低訓練所需的時間，
-    但是考量到特徵傳遞區塊我們使用的是以歐基里德距離作為相似度基礎的高斯卷積模組，
+    但是考量到特徵傳遞區塊我們使用的是以歐氏距離作為相似度基礎的高斯卷積模組，
     一旦資料集中的影像變得更複雜或是存在許多位移、旋轉、縮放的特徵，
     模型便需要更多的濾波器去學習這些特徵。
     實驗結果也佐證了上面的觀點，Colored Fashion MNIST 存在著深淺形狀不同的各式服飾，
