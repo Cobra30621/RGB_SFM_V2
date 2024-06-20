@@ -24,7 +24,8 @@ Colored MNIST和Colored Fashion主要用於驗證模型在彩色影像的分類�
     \subsection{Colored MNIST 資料集}
     在MNIST的資料集上，塗上紅、藍、綠三種顏色，
     形成紅、藍、綠三色的0到9的彩色手寫資料集，
-    其分類具有由紅藍綠和0到9排列組合成的30個分類，像是red\_9、blue\_6等等。
+    其分類具有由紅藍綠和0到9排列組合成的30個分類，像是red 9、blue 6等等。
+    如\cref{fig:Colored-MNIST-Dataset-picture}所示，
     該資料集共有60000筆訓練資料，10000筆測試資料。
 
     著色的方法如下：
@@ -39,14 +40,13 @@ Colored MNIST和Colored Fashion主要用於驗證模型在彩色影像的分類�
     則將影像的灰階值複製到彩色影像的紅色channels中並且將藍綠兩個channel設為0，
     標籤為red加上灰階影像的數字。
 
-    \fig[0.5][fig:Colored-MNIST-Dataset-picture][H]{chapter4/Colored_MNIST.png}[Colored MNIST資料集][Colored MNIST資料集]
+    \fig[1][fig:Colored-MNIST-Dataset-picture][H]{chapter4/Colored_MNIST.png}[Colored MNIST資料集][Colored MNIST資料集]
     \pagebreak
     \subsection{Colored Fashion MNIST 資料集}
     Fashion MNIST的資料集是由10種不同的鞋類和服裝組成的灰階影像資料集，
     其分類包含有T-Shirt/Top、Trouser、Pullover、Dress、Coat、Sandals、Shirt、Sneaker、Bag、Ankle boot等10類。
     Colored Fashion MNIST便是將Fashion MNIST資料集中的灰階影像塗上紅、藍、綠三種顏色，
-    形成紅、藍、綠三色的10類服飾的彩色服飾資料集，
-    具有由紅藍綠和0到9排列組合成的30個分類，像是red\_T-Shirt、blue\_Dress等等。
+    形成紅、藍、綠三色的10類服飾的彩色服飾資料集，如\cref{fig:Colored-Fashion-MNIST-Dataset-picture}。
     該資料集共有60000筆訓練資料，10000筆測試資料。
 
     著色的方法如下：
@@ -234,11 +234,11 @@ Colored MNIST和Colored Fashion主要用於驗證模型在彩色影像的分類�
     \begin{description}
         \item[RM-CI-Color-0] 為色彩感知區塊根據RM$^{color}_{0}$每一張RM選擇最大的反應並在CI$^{color}_{0}$的對應位置中找到的CI影像；
         \item[RM-CI-Color-1] 為色彩特徵傳遞區塊的第一層根據RM$^{color}_{1}$每一張RM選擇最大的反應並在CI$^{color}_{1}$的對應位置中找到的CI影像；
-        \item[RM-CI-Color-2] 為色彩特徵傳遞區塊的第一層根據RM$^{color}_{2}$每一張RM選擇最大的反應並在CI$^{color}_{2}$的對應位置中找到的CI影像；
+        \item[RM-CI-Color-2] 為色彩特徵傳遞區塊的第二層根據RM$^{color}_{2}$每一張RM選擇最大的反應並在CI$^{color}_{2}$的對應位置中找到的CI影像；
 
-        \item[RM-CI-Gray-0] 為輪廓感知區塊根據RM$^{color}_{0}$每一張RM選擇最大的反應並在CI$^{color}_{0}$的對應位置中找到的CI影像；
-        \item[RM-CI-Gray-1] 為輪廓特徵傳遞區塊的第一層根據RM$^{color}_{1}$每一張RM選擇最大的反應並在CI$^{color}_{1}$的對應位置中找到的CI影像；
-        \item[RM-CI-Gray-2] 為輪廓特徵傳遞區塊的第一層根據RM$^{color}_{2}$每一張RM選擇最大的反應並在CI$^{color}_{2}$的對應位置中找到的CI影像；
+        \item[RM-CI-Gray-0] 為輪廓感知區塊根據RM$^{gray}_{0}$每一張RM選擇最大的反應並在CI$^{gray}_{0}$的對應位置中找到的CI影像；
+        \item[RM-CI-Gray-1] 為輪廓特徵傳遞區塊的第一層根據RM$^{gray}_{1}$每一張RM選擇最大的反應並在CI$^{gray}_{1}$的對應位置中找到的CI影像；
+        \item[RM-CI-Gray-2] 為輪廓特徵傳遞區塊的第二層根據RM$^{gray}_{2}$每一張RM選擇最大的反應並在CI$^{gray}_{2}$的對應位置中找到的CI影像；
     \end{description}
     以下的\cref{tab:MNIST-pictures}、\cref{tab:coloredMNIST-pictures}、\cref{tab:coloredFashionMNIST-pictures}為模型在三種資料集的30類中各類別所獲得的可解釋性圖形。
     我們從以下的結果可以觀察出，當我們獲得某一層的RM時，我們確實可以從RM對應到FM，再找到對應的CI來幫助我們理解FM所學習到的特徵，由此觀察到模型在輸入影像中特定部分學習到的特徵，解析模型的決策。
@@ -1622,7 +1622,7 @@ Colored MNIST和Colored Fashion主要用於驗證模型在彩色影像的分類�
     在Triangle cReLU函數部分，色彩色彩的w從感知層到傳遞層分別設定為(1, 4.7, 4.31)，而輪廓部分的w從感知層到傳遞層分別設定為(4.6, 3.2, 4.17)
     其餘參數均使用與\cref{tab:ColoredModelparameters}相同的設定。
 
-    實驗結果如{tab:diff-function-experiment}所示，
+    實驗結果如\cref{tab:diff-function-experiment}所示，
     Triangle cReLU 函數與高斯函數在準確度上相差無幾，
     然而在實驗的過程中我們也發現，
     Triangle cReLU函數相對於高斯函數更看中w的設定，
@@ -1652,7 +1652,71 @@ Colored MNIST和Colored Fashion主要用於驗證模型在彩色影像的分類�
         \end{tabular}
     \end{table}
 
+    \subsection{可解釋性圖片失敗案例分析}
+    本節將呈現在實驗中的部分可解釋性圖片無法解釋決策依據的失敗案例，
+    而失敗的案例可以分成色彩判斷錯誤和輪廓誤判錯誤兩種。
 
+    首先是顏色誤判的部分，
+    以\cref{tab:false-color-example}為例，
+    我們將輸入影像分別切成與各層的RM\-CI\-Color相同的大小來進行觀察，
+    我們可以發現在顏色所佔的區域越小的區域，
+    模型所產生的RM\-CI\-Color越容易產生誤判。
+    我們認為，
+    這可能是因為在色彩感知區塊中，
+    計算輸入影像的卷積Windows代表色時，我們採用的是Windows內的平均色彩。
+    因此，當Windows內的目標顏色佔比很小，平均色會更接近背景色（通常是黑色）。
+    結果，模型計算出的顏色與黑色的相似度較高。
+    這會導致在進行空間合併時，
+    如果模型認為區域內的顏色佔比不夠大，
+    就會誤認為該區域是黑色或接近黑色的值。
+    因此，對應回CI時，就容易錯誤地選擇到其他顏色的CI。
 
+    \begin{table}[H]
+        \centering
+        \caption{色彩判斷錯誤案例}
+        \label{tab:false-color-example}
+        \begin{tabular}{| c | c | c | c | c |}
+            \hline
+            \makecell*[c]{輸入影像分割} & 
+            \multirow{2}*{\begin{minipage}[t]{0.1\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/False_example/Color_False/origin.png}\end{minipage}} & 
+            \begin{minipage}[t]{0.1\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/False_example/Color_False/origin_split_0.png}\end{minipage} & 
+            \begin{minipage}[t]{0.1\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/False_example/Color_False/origin_split_1.png}\end{minipage} &
+            \begin{minipage}[t]{0.1\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/False_example/Color_False/origin_split_2.png}\end{minipage} \\
+            \cline{1-1}
+            \cline{3-5}
+            RM\-CI\-Color & & \begin{minipage}[t]{0.1\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/False_example/Color_False/RGB_convs_0_RM_CI.png}\end{minipage} & 
+            \begin{minipage}[t]{0.1\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/False_example/Color_False/RGB_convs_1_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.1\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/False_example/Color_False/RGB_convs_2_RM_CI.png}\end{minipage} \\
+            \hline
+        \end{tabular}
+    \end{table}
+    
+    \pagebreak
+
+    接著為輪廓誤判的部分，
+    輪廓誤判多發生在形狀相近的數字（如3、8、和 5、3）上，
+    當我們將輸入影像切成與各層的RM\-CI\-Gray相同大小的部分來觀察時發現
+    僅看這些部分輪廓時，它們有時會非常相似，
+    模型因此難以判斷這些部分輪廓屬於哪個數字，導致了輪廓誤判。。
+
+    \begin{table}[H]
+        \centering
+        \caption{輪廓判斷錯誤案例}
+        \label{tab:false-gray-example}
+        \begin{tabular}{| c | c | c | c | c |}
+            \hline
+            \makecell*[c]{輸入影像分割} & 
+            \multirow{2}*{\begin{minipage}[t]{0.1\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/False_example/Gray_False/origin.png}\end{minipage}} & 
+            \begin{minipage}[t]{0.1\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/False_example/Gray_False/origin_split_0.png}\end{minipage} & 
+            \begin{minipage}[t]{0.1\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/False_example/Gray_False/origin_split_1.png}\end{minipage} &
+            \begin{minipage}[t]{0.1\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/False_example/Gray_False/origin_split_2.png}\end{minipage} \\
+            \cline{1-1}
+            \cline{3-5}
+            RM\-CI\-Gray & & \begin{minipage}[t]{0.1\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/False_example/Gray_False/Gray_convs_0_RM_CI.png}\end{minipage} & 
+            \begin{minipage}[t]{0.1\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/False_example/Gray_False/Gray_convs_1_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.1\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/False_example/Gray_False/Gray_convs_2_RM_CI.png}\end{minipage} \\
+            \hline
+        \end{tabular}
+    \end{table}
 
 \end{document}

@@ -388,8 +388,8 @@ Step 6：計算 loss value 並進行反向傳播
 	為Yang在CIM論文中提出的名詞，
 	也是特徵映射法的核心三要素。
 
-	特徵映射響應圖(RM)為當輸入進入高斯卷積模組後所得到的輸出，
-	其代表的是輸入對於該高斯卷積模組的濾波器的相似度，
+	特徵映射響應圖(RM)為當輸入進入高斯卷積模組後所得到的輸出進行維度轉換後的結果，
+	其代表的是輸入區域對於該高斯卷積模組的濾波器的相似度，
 	也被視為輸入對該高斯卷機模組所有的濾波器的反應強度。
 	同一層、不同位置的RM數值為輸入影像的不同位置對於某個濾波器的反應，
 	不同層、同一位置的RM數值為輸入影像的同一位置對於不同濾波器的反應。
@@ -486,5 +486,93 @@ Step 6：計算 loss value 並進行反向傳播
 		\item [4]
 		利用色塊組出輸入影像在該層的代表影像
 	\end{itemize}
+
+\subsection{全連接層的可解釋性}
+本模型全連接層如\cref{fig:Linear}所示，
+全連接層的輸入由色彩特徵傳遞區塊的輸出$Ouput^{color}$
+和輪廓特徵傳遞區塊的輸出$Ouput^{gray}$所組成，
+其全連接層的權重計算公式為\cref{eq:eq-linear}，
+其中$w_{ji}$為第j個神經元與第i個神經元的權重，
+$w_{j0}$為第j個神經元的偏移量，
+$K$ 為$Ouput^{color}$經過Flatten後的長度，
+$L$ 為$Ouput^{color}$經過Flatten後的長度加上$Ouput^{gray}$經過Flatten後的長度，
+$x_{i}$為第i個神經元的輸入，
+$y_{j}(x)$為第j個神經元的輸出，
+$j$的數量為類別的數量。
+\begin{equation}
+    \label{eq:eq-linear}
+    y_{j}(x) = \sum_{i=1}^{K}w_{ji} * x_{i} + \sum_{i=K+1}^{L}w_{ji} * x_{i} + w_{j0}
+\end{equation}
+
+根據上面的公式我們可以發現，
+如果某個第j個類別機率越大，則代表$\sum{i=1}^{L+K}w_{ji} * x_{i}$越大。
+利用此特性結合上面所說的$x_{i}$由$Ouput^{color}$和$Ouput^{gray}$組成，
+我們在回推時，
+便可以將$w_{ji} * x{i}$根據$x$的來源分為兩類。
+
+一類為$x_{i}$屬於$Ouput^{color}$與其對應的$w_{ji}$相乘的$w_{ji} * x{i}$，
+其$i$的範圍為1到K之間，
+我們將其視為色彩特徵傳遞區塊的RM，
+其對應的FM為色彩特徵傳遞區塊最後一層高斯卷積模組的FM，
+透過此FM找到對應的CI，由此可視化出色彩上全連接層的權重。
+另一類為$x_{i}$屬於$Ouput^{gray}$與其對應的$w_{ji}$相乘的$w_{ji} * x{i}$，
+其$i$的範圍為K+1到L之間，
+我們將其視為輪廓特徵傳遞區塊的RM，
+其對應的FM為輪廓徵傳遞區塊最後一層高斯卷積模組FM，
+透過此FM找到對應的CI，由此可視化出輪廓上全連接層的權重。
+如此，我們便把全連接層權重轉換成人類可以理解的形式，
+賦予全連接層權重解釋性上的意義。
+
+\fig[1][fig:Linear][H]{chapter3/Linear.png}[本模型全連接層之示意圖][本模型全連接層之示意圖]
+
+下面以\cref{fig:linear-RM-Input}的影像為範例，
+RM-CI-Color-2為色彩特徵傳遞區塊的第二層根據RM$^{color}_{2}$每一張RM選擇最大的反應並在CI$^{color}_{2}$的對應位置中找到的CI影像，
+RM-CI-Gray-2為輪廓特徵傳遞區塊的第二層根據RM$^{gray}_{2}$每一張RM選擇最大的反應並在CI$^{gray}_{2}$的對應位置中找到的CI影像，
+從\cref{fig:linear-RM-CI-color-2}和\cref{fig:linear-RM-CI-gray-2}可以看出我們在色彩和特徵傳遞區塊的最後一層的RM-CI為綠色和0的影像，
+根據上面全連接層可解釋性的原理，
+期望輸出為10(green 0 的label idx 為10)時，
+第10個神經元應該較其他神經元反應高，
+因此我們找出第10個神經元的權重，
+將權重分為色彩和輪廓兩類，
+分別與Flatten後的$Ouput^{color}$和Flatten後的$Ouput^{gray}$相乘，
+之後對應到色彩和輪廓特徵傳遞區塊最後一層高斯卷積模組的CI，
+結果可以看出確實可以找到綠色和0的對應影像，
+也可以看出模型在0的部分較為注重0的下緣部分影像。
+我們可以透過這個方式來解釋全連接層的運作。
+
+\begin{figure}[H]
+    \centering
+    \subcaptionbox
+        {輸入影像
+        \label{fig:linear-RM-Input}}
+        {\includegraphics[width=0.3\linewidth]{chapter3/Linear/origin.png}}
+    ~
+    \subcaptionbox
+        {RM-CI-Color-2
+        \label{fig:linear-RM-CI-color-2}}
+        {\includegraphics[width=0.3\linewidth]{chapter3/Linear/RGB_convs_2_RM_CI.png}}
+    ~
+    \subcaptionbox
+        {RM-CI-Gray-2
+        \label{fig:linear-RM-CI-gray-2}}
+        {\includegraphics[width=0.3\linewidth]{chapter3/Linear/Gray_convs_2_RM_CI.png}}
+    \caption{輸入影像與色彩特徵傳遞區塊和輪廓特徵傳遞區塊最後一層的RM-CI\cite{YangCNNInterpretable}}
+    \label{fig:RM-CI}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \subcaptionbox
+        {x * w 最大位置色彩CI
+        \label{fig:linear-rgb}}
+        {\includegraphics[width=0.33\linewidth]{chapter3/Linear/RGB_convs_2_RM_CI.png}}
+    ~
+    \subcaptionbox
+        {x * w 最大位置輪廓CI
+        \label{fig:linear-gray}}
+        {\includegraphics[width=0.33\linewidth]{chapter3/Linear/Gray_convs_2_RM_CI.png}}
+    \caption{輸入影像與色彩特徵傳遞區塊和輪廓特徵傳遞區塊最後一層的RM-CI\cite{YangCNNInterpretable}}
+    \label{fig:Linear-w-x}
+\end{figure}
 
 \end{document}
