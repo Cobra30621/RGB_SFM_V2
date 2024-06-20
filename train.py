@@ -151,7 +151,7 @@ train_dataloader, test_dataloader = get_dataloader(dataset=config['dataset'], ro
 model = getattr(getattr(models, config['model']['name']), config['model']['name'])(**dict(config['model']['args']))
 model = model.to(config['device'])
 print(model)
-summary(model, input_size = (config['model']['args']['in_channels'], *config['input_shape']))
+# summary(model, input_size = (config['model']['args']['in_channels'], *config['input_shape']))
 
 loss_fn = getattr(nn, config['loss_fn'])()
 optimizer = getattr(optim, config['optimizer']['name'])(model.parameters(), lr=config['lr'], **dict(config['optimizer']['args']))

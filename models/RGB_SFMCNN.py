@@ -167,8 +167,10 @@ class RGB_SFMCNN(nn.Module):
     def forward(self, x):
         rgb_output = self.RGB_convs(x)
         gray_output = self.Gray_convs(self.gray_transform(x))
-        output = torch.concat(([rgb_output, gray_output]), dim=1)
-        output = self.fc1(output.reshape(x.shape[0], -1))
+        rgb_output = rgb_output.reshape(x.shape[0], -1)
+        gray_output = gray_output.reshape(x.shape[0], -1)
+        output = torch.concat(([rgb_output, gray_output]), dim=-1)
+        output = self.fc1(output)
         return output
 
     def _make_RGBBlock(self,
