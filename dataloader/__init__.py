@@ -6,4 +6,4 @@ from .Malaria import MalariaCellDataset
 
 __all__ = ['get_dataloader', 
            'MNISTDataset', 'MultiColorShapesDataset', "FaceDataset",
-           "MalariaCellDataset"]
+           "MalariaCellDataset", "AnotherColored_MNIST"]
