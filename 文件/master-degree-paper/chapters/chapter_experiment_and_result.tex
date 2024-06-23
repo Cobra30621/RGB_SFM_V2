@@ -80,7 +80,7 @@ Colored MNIST和Colored Fashion主要用於驗證模型在彩色影像的分類�
     $kernel_{i}$代表第0~$\sim$ L-1層中高斯卷積模組中的濾波器大小；
     $stride_{i}$代表第0~$\sim$ L-1層中高斯卷積模組中的步長；
     $p_{i}$代表第0~$\sim$ L-1層中特徵增強模組中希望保留的$RM$元素的百分比參數 $p\%$；
-    $SFM_{i}$代表第0~$\sim$ L-2層中空間濾波器的大小並且在(L-1)層不進行空間合併。
+    $SF_{i}$代表第0~$\sim$ L-2層中空間濾波器的大小並且在(L-1)層不進行空間合併。
 
     \begin{table}[H]
         \centering
@@ -140,7 +140,7 @@ Colored MNIST和Colored Fashion主要用於驗證模型在彩色影像的分類�
     $kernel_{i}$代表第0~$\sim$ L-1層中高斯卷積模組中的濾波器大小；
     $stride_{i}$代表第0~$\sim$ L-1層中高斯卷積模組中的步長；
     $p_{i}$代表輪廓與色彩第0~$\sim$ L-1層中特徵增強模組中希望保留的$RM$元素的百分比參數 $p\%$；
-    $SFM_{i}$代表第0~$\sim$ L-2層中空間濾波器的大小並且在(L-1)層不進行空間合併。
+    $SF_{i}$代表第0~$\sim$ L-2層中空間濾波器的大小並且在(L-1)層不進行空間合併。
 
     \begin{table}[H]
         \centering
@@ -169,13 +169,13 @@ Colored MNIST和Colored Fashion主要用於驗證模型在彩色影像的分類�
             \hline
             i & 1 to L \\
             \hline
-            $kernel\_{i}$ & $\left\{(5, 5), (1, 1), (1, 1), (1, 1)\right\}$ \\
+            $kernel\_{i}$ & $\left\{(5, 5), (1, 1), (1, 1)\right\}$ \\
             \hline 
-            $stride\_{i}$ &$\left\{(4, 4), (1, 1), (1, 1), (1, 1)\right\}$ \\
+            $stride\_{i}$ &$\left\{(4, 4), (1, 1), (1, 1)\right\}$ \\
             \hline
             $p\_{i}$ &\makecell{輪廓 $\left\{0.3, 0.4, 0.5\right\}$  \\ 色彩 $\left\{0.3, 0.4, 0.5\right\}$ } \\
             \hline
-            $SF\_{i}$ &  \makecell{$\left\{(2, 2), (1, 3), (3, 1)\right\}$ }  \\
+            $SF\_{i}$ &  \makecell{$\left\{(2, 2), (1, 3)\right\}$ }  \\
             \hline 
         \end{tabular}
     \end{table}
@@ -1303,10 +1303,10 @@ Colored MNIST和Colored Fashion主要用於驗證模型在彩色影像的分類�
     \subsection{不同合併方式之比較}
     本節將會呈現不同的合併方式對模型的影響，
     使用Colored MNIST的資料集比較兩種不同的合併方式
-    除了合併參數SFM外均使用相同的參數設定。
+    除了合併參數SF外均使用相同的參數設定。
     一種是按照前面的實驗設計，將 SF 設定為 {(2,2), (1,3)}
-    (我們簡稱SFM-22, 示意圖如\cref{fig:SF-22})，在概念上等同於先將一個方格內的特徵圖進行合併再進行橫向合併。
-    另一種為 SF 設定為 {(6,1), (1,2)}(我們簡稱SFM-61, 示意圖如\cref{fig:SF-61})
+    (我們簡稱SF-22, 示意圖如\cref{fig:SF-22})，在概念上等同於先將一個方格內的特徵圖進行合併再進行橫向合併。
+    另一種為 SF 設定為 {(6,1), (1,2)}(我們簡稱SF-61, 示意圖如\cref{fig:SF-61})
     在概念上等同於先將縱向的特徵圖進行合併後再將橫向的特徵圖進行合併。
     使用不同的合併方法是在模擬人眼眼球跳動時不同的肉眼軌跡，
     也可以驗證不同的合併方式對於模型的影響。
@@ -1326,7 +1326,7 @@ Colored MNIST和Colored Fashion主要用於驗證模型在彩色影像的分類�
         \label{fig:SF}
     \end{figure}
 
-	\cref{fig:ColoredMNIST-SF22-Color-CI2}、\cref{fig:ColoredMNIST-SF61-Color-CI2}分別為使用SFM-22和SFM-61的CI$^{color}_{1}$和CI$^{gray}_{1}$，
+	\cref{fig:ColoredMNIST-SF22-Color-CI2}、\cref{fig:ColoredMNIST-SF61-Color-CI2}分別為使用SF-22和SF-61的CI$^{color}_{1}$和CI$^{gray}_{1}$，
 	由於使用了不同的合併方式，
 	因此回推出來的CI$^{color}_{1}$和CI$^{gray}_{1}$的影像大小也有所不同。
 	SF-22的$^{color}_{1}$和CI$^{gray}_{1}$大小為（5 x 5）‧（2 x 2）＝（10 x 10），而
@@ -1658,9 +1658,9 @@ Colored MNIST和Colored Fashion主要用於驗證模型在彩色影像的分類�
 
     首先是顏色誤判的部分，
     以\cref{tab:false-color-example}為例，
-    我們將輸入影像分別切成與各層的RM\-CI\-Color相同的大小來進行觀察，
+    我們將輸入影像分別切成與各層的RM-CI-Color相同的大小來進行觀察，
     我們可以發現在顏色所佔的區域越小的區域，
-    模型所產生的RM\-CI\-Color越容易產生誤判。
+    模型所產生的RM-CI-Color越容易產生誤判。
     我們認為，
     這可能是因為在色彩感知區塊中，
     計算輸入影像的卷積Windows代表色時，我們採用的是Windows內的平均色彩。
@@ -1684,7 +1684,7 @@ Colored MNIST和Colored Fashion主要用於驗證模型在彩色影像的分類�
             \begin{minipage}[t]{0.1\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/False_example/Color_False/origin_split_2.png}\end{minipage} \\
             \cline{1-1}
             \cline{3-5}
-            RM\-CI\-Color & & \begin{minipage}[t]{0.1\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/False_example/Color_False/RGB_convs_0_RM_CI.png}\end{minipage} & 
+            RM-CI-Color & & \begin{minipage}[t]{0.1\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/False_example/Color_False/RGB_convs_0_RM_CI.png}\end{minipage} & 
             \begin{minipage}[t]{0.1\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/False_example/Color_False/RGB_convs_1_RM_CI.png}\end{minipage} &
             \begin{minipage}[t]{0.1\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/False_example/Color_False/RGB_convs_2_RM_CI.png}\end{minipage} \\
             \hline
@@ -1695,7 +1695,7 @@ Colored MNIST和Colored Fashion主要用於驗證模型在彩色影像的分類�
 
     接著為輪廓誤判的部分，
     輪廓誤判多發生在形狀相近的數字（如3、8、和 5、3）上，
-    當我們將輸入影像切成與各層的RM\-CI\-Gray相同大小的部分來觀察時發現
+    當我們將輸入影像切成與各層的RM-CI-Gray相同大小的部分來觀察時發現
     僅看這些部分輪廓時，它們有時會非常相似，
     模型因此難以判斷這些部分輪廓屬於哪個數字，導致了輪廓誤判。。
 
@@ -1712,7 +1712,7 @@ Colored MNIST和Colored Fashion主要用於驗證模型在彩色影像的分類�
             \begin{minipage}[t]{0.1\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/False_example/Gray_False/origin_split_2.png}\end{minipage} \\
             \cline{1-1}
             \cline{3-5}
-            RM\-CI\-Gray & & \begin{minipage}[t]{0.1\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/False_example/Gray_False/Gray_convs_0_RM_CI.png}\end{minipage} & 
+            RM-CI-Gray & & \begin{minipage}[t]{0.1\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/False_example/Gray_False/Gray_convs_0_RM_CI.png}\end{minipage} & 
             \begin{minipage}[t]{0.1\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/False_example/Gray_False/Gray_convs_1_RM_CI.png}\end{minipage} &
             \begin{minipage}[t]{0.1\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/False_example/Gray_False/Gray_convs_2_RM_CI.png}\end{minipage} \\
             \hline
