@@ -186,8 +186,9 @@ class RGB_SFMCNN(nn.Module):
         if rbf == "triangle":
             return nn.Sequential(
                 RGB_Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride = stride, padding = padding, initial = initial,device = device),
-                triangle(w=activate_param[0], requires_grad=True, device=device),
-                cReLU_percent(percent=activate_param[1]),
+                # triangle(w=activate_param[0], requires_grad=True, device=device),
+                # cReLU_percent(percent=activate_param[1]),
+                triangle_cReLU(w=activate_param[0], percent=activate_param[1], requires_grad = True, device=device),
             )
         elif rbf == "gauss":
             return nn.Sequential(
