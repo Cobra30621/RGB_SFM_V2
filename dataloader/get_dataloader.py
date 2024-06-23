@@ -11,6 +11,7 @@ from .MultiEdgeShapes import MultiEdgeShapesDataset
 from .Colored_MNIST import Colored_MNIST
 from .Colored_FashionMNIST import Colored_FashionMNIST
 from .AnotherColored_MNIST import AnotherColored_MNIST
+from .AnotherColored_FashionMNIST import AnotherColored_FashionMNIST
 from torchvision import transforms
 
 dataset_classes = {
@@ -24,6 +25,7 @@ dataset_classes = {
     'Colored_MNIST':Colored_MNIST,
     'Colored_FashionMNIST':Colored_FashionMNIST,
     'AnotherColored_MNIST':AnotherColored_MNIST,
+    'AnotherColored_FashionMNIST':AnotherColored_FashionMNIST,
 }
 
 def get_dataloader(dataset, root: str = '.', batch_size=32, input_size: tuple = (28, 28)):
