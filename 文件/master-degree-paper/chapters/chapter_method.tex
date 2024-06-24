@@ -107,6 +107,7 @@ Step 6：計算 loss value 並進行反向傳播
 		從而重現人眼獲得色彩特徵的效果。
 		以下將針對濾波器之設計、彩色卷積模組，兩個部分進行詳細說明。
 		\pagebreak
+		
 
 		\subsubsection{濾波器之設計}
 			由於色彩提取區塊的輸入為彩色影像其輸入通道分別為紅、綠、 藍三色的通道，
@@ -125,7 +126,7 @@ Step 6：計算 loss value 並進行反向傳播
 
 		\subsubsection{彩色卷積模組}
 			在傳統的卷積操作中，
-			我們會在輸入影像上使用一個稱為Windows的滑動方塊，
+			我們會在輸入影像上使用一個稱為Slide Windows的滑動窗口，
 			並且與不同的濾波器進行內積運算來計算輸出，
 			這樣的輸出結果只能代表Windows與不同濾波器在平面上的投影而並沒有相似度的意義。
 			然而我們在彩色感知區塊的濾波器視為不同的色彩，
@@ -151,7 +152,7 @@ Step 6：計算 loss value 並進行反向傳播
 				\end{equation}
 
 			  \item [2)]
-			  	由CompuPhase公司提出的一種低成本的加權歐幾里得距離公式\cite{LABformula}(簡稱LAB Euclidean)，
+			  	由CompuPhase公司提出的一種低成本的加權歐氏距離公式\cite{LABformula}(簡稱LAB Euclidean)，
 			  	它的權重由RGB中的紅色在色彩中的分量多少而決定。
 			  	這種色差計算方法的好處是利用這個公式便可以用兩個顏色的RGB值計算出接近CIE L*u*v(CIEL*a*b)空間中的距離，
 			  	同時這套公式也被使用在CompuPhase自己的產品中。
@@ -181,7 +182,7 @@ Step 6：計算 loss value 並進行反向傳播
 				然而，在\cite{LABformula}中也有提到，根據伽馬校正的理論，或許我們應該對不同的顏色分布的影像設定不同的加權值才會比較符合人眼的視覺對顏色亮度的感知。
 			\end{itemize}
 			這三個色差的計算方法各有其優缺點，
-			並且經過我們的實驗後發現三者在準確度和可解釋圖片的產生上十分相似，
+			並且經過我們的實驗(實驗詳細於\cref{chapter:diff-colordist-compare})後發現三者在準確度和可解釋圖片的產生上十分相似，
 			但考量到Euclidean方法會容易受到RGB值的細微不同而產生變化。
 			而根據上面提到\cite{LABformula}中的說法，
 			如果使用Weight Euclidean方法會需要因應不同的資料集去調整加權數值，會增加問題的複雜度。
@@ -203,7 +204,7 @@ Step 6：計算 loss value 並進行反向傳播
 		從而能夠較為完整保留彩色圖像中的細節，
 		接著為了消除不同色彩導致的灰度值差異，
 		使該區塊能夠專注於輪廓資訊而不考慮色彩資訊，
-		我們接者進行了max-min正規化，
+		我們接者進行了Min-max正規化，
 		使每張影像的灰階值統一道$0\sim1$之間。
 		透過上面步驟的前處理，
 		我們從而可以確保輪廓感知區塊能夠專注於提取輪廓的特徵。
@@ -217,7 +218,7 @@ Step 6：計算 loss value 並進行反向傳播
 			根據 kaiming 論文\cite{DBLP:journals/corr/HeZR015}中的方式將每個值初始化範圍為$[-\sqrt{\frac{6}{\text{fan\_in}}}, \sqrt{\frac{6}{\text{fan\_in}}}]$,
 			$\text{fan\_in}$ 為輸入通道數。
 
-			我們在實作中選擇使用 Kaiming Uniform 的原因是因為 Kaiming Uniformm 相較於常用的 Uniform 初始化和 Xavier Uniform\cite{pmlr-v9-glorot10a} 初始化多考慮了整流線性單位函數(ReLU)的存在，
+			我們在實作中選擇使用 Kaiming Uniform 的原因是因為 Kaiming Uniform 相較於常用的 Uniform 初始化和 Xavier Uniform\cite{pmlr-v9-glorot10a} 初始化多考慮了整流線性單位函數(ReLU)的存在，
 			Uniform 初始化的方式無法解決隨著神經網路的增加而導致梯度消失的問題，
 			Xavier Uniform 為了解決梯度消失問題加入了 rescale 函數 $\frac{1}{\sqrt{\text{n}}}$但卻只適用於激活函數為線性函數的情況下，
 			而 Kaiming Uniform 在解決梯度消失的問題時同時考慮了激活函數為非線性函數的情況並在\cite{DBLP:journals/corr/HeZR015}透過實驗證明了kaiming uniform 在神經網路在不影響準確度的同時更快收斂。
@@ -239,7 +240,7 @@ Step 6：計算 loss value 並進行反向傳播
 
 			\begin{equation}
 			    \label{eq:eq-EulideanDist}
-			    dist = \sqrt{\sum_{i = 1}^{K} (Windows_{i} - Filter_{i})},\qquad where K = Filter_{H} * Filter_{W} * C_{in}
+			    dist = \sqrt{\sum_{i = 1}^{K} (Windows_{i} - Filter_{i})} \quad where \; K = Filter_{H} * Filter_{W} * C_{in}
 			\end{equation}
 
 				我們在此利用高斯函數取代內積的原因在於高斯函數是以距離為基礎的函數，
@@ -278,7 +279,7 @@ Step 6：計算 loss value 並進行反向傳播
 \section{特徵增強模組之優化設計}
 	在特徵增強模組中，
 	CIM 使用了自行設計的增強特徵的整流線性單位函數(changed ReLU, 簡稱cReLU)，
-	希望透過閥值過濾不重要的特徵，其公式如\cref{eq:eq-crelu}所示，\\
+	希望透過閥值過濾不重要的特徵，其公式如\cref{eq:eq-crelu}所示，
 	
 	作為閥值的 $c$ 值需要透過觀察資料集在高斯卷積模組的輸出來設定具體不同的$c$的數值來適應不同的資料集。
 	然而一旦閥值設定過小則會削弱特徵增強的效果，
@@ -287,11 +288,13 @@ Step 6：計算 loss value 並進行反向傳播
 
 	為了解決閥值設定的問題，
 	我們對cReLU的公式進行改善，
-	首先設定一個希望保留的$RM$元素的百分比參數 $p\%$，RM的數目稱之為$C_{RM}$
-	接著從同一影像在該層的所有 $RM$ 中取出第 $p\% * C_{RM}$  個最大的元素稱之為$P_{RM}$，
-	並且將所有小於$P_{RM}$的數值歸零。
+	我們將特徵增強模組的輸入稱之為Input，輸入的channel數稱為$C_{in}$，
+	並設定一個希望保留的Input的百分比參數 $p\%$，
+	這代表我們希望保留Input中特徵值最大的前$p\%$的元素。
+	接著從Input中取出第 $p\% * C_{in}$  個最大的元素稱之為$P_{in}$，
+	並且將所有小於$P_{in}$的數值歸零。
 	如此一來，使用者只需要決定希望可以保留 $p\%$ 的數值，
-	無須糾結於設定閥值$c$具體數值。
+	無須糾結於設定閥值$c$的具體數值。
 	這種方法簡化了參數設定過程，
 	同時也確保了特徵增強的有效性。
 	改善後的cReLU的公式為\\
@@ -299,9 +302,9 @@ Step 6：計算 loss value 並進行反向傳播
 	    \label{eq:eq-cReLUPercent}
 	    f(x)= 
 	    \begin{cases}
-	        0 & \text{if  $x < P_{RM}$ }\\
-	        x & \text{if  $x \geq P_{RM}$}
-	    \end{cases}, \qquad where \; P_{RM} = RM_{i}\left[ p\% * C_{RM} \right]
+	        0 & \text{if  $x < P_{in}$ }\\
+	        x & \text{if  $x \geq P_{in}$}
+	    \end{cases} \quad where \; P_{in} = Input\left[ p\% * C_{in} \right]
 	\end{equation}
 
 	 \pagebreak
@@ -313,11 +316,11 @@ Step 6：計算 loss value 並進行反向傳播
       \begin{cases}
 	        0 & \text{if  $x < P_{RM}$ }\\
 	        1 - \frac{ \max \left( \| x-m \|, w \right)}{w} & \text{if  $x \geq P_{RM}$}
-	   \end{cases}, \qquad where \; P_{RM} = RM_{i}\left[ p\% * C_{RM} \right]
+	   \end{cases} \quad where \; P_{RM} = RM_{i}\left[ p\% * C_{RM} \right]
   	\end{equation}
 
-\section{空間位置保留機制之優化設計}
-	在空間保留機制模組上，
+\section{空間合併模組之優化設計}
+	在空間合併模組上，
 	CIM為了保留 $RM$ 之間的空間位置關係簡化了眼球跳動的方式，
 	加入了一個可訓練的時間遺忘函數 $\alpha$ 進入合併公式\cref{eq:eq-sf}，其公式如\cref{eq:eq-sf}。
 		
@@ -340,290 +343,10 @@ Step 6：計算 loss value 並進行反向傳播
 	改善後的合併公式如\cref{eq:eq-sf-update}，$\beta_{k}$從[$0.9 \sim 0.99$]之間取出的第$k$個值:\\
 		\begin{equation}
 		    \label{eq:eq-sf-update}
-		    RM_{c}=\frac{1}{n} \sum_{k = 0}^{n-1} \beta_{k} \times RM_{k}  \qquad ,\ where\ n = \textit{H}^{i}_{SF} \times \textit{W}^{i}_{SF}
+		    RM_{c}=\frac{1}{n} \sum_{k = 0}^{n-1} \beta_{k} \times RM_{k}  \quad where \; n = \textit{H}^{i}_{SF} \times \textit{W}^{i}_{SF}
 		\end{equation}
 	RM的優化後的時序性合併如\cref{fig:SFN_update}。
 	\fig[1][fig:SFN_update][H]{chapter3/SFM_update.png}[優化後空間位置保留機制示意圖][優化後空間位置保留機制]
-
-% \section{色彩提取區塊設計與實現}
-
-% 此章節將說明本論文所提出的色彩提取區塊設計與實現，
-% 該區塊主要是透過將濾波器(Filter)設定30個調色基礎顏色來作為該區塊的權重，
-% 並使用高斯卷積模組計算出影像中不同區塊之色彩與filter的相似度，
-% 後將結果送入特徵增強模組，最終形成影像的色彩特徵。
-% 這樣的方法目的在於分析輸入影像的色彩在基礎顏色中的成分後，
-% 透過卷積操作來去模擬人眼的眼球跳動，
-% 從而重現人眼獲得色彩特徵的效果。
-% 以下將針對濾波器之設計、彩色卷積模組，兩個部分進行詳細說明。
-
-% 	\subsection{濾波器之設計}
-% 	由於色彩提取區塊的輸入為彩色影像其輸入通道分別為紅、綠、 藍三色的通道，
-% 	我們設定輸出的通道數為固定為30，
-% 	並且將濾波器的形狀設為 $\left(30 , 3\right)$，以表示為30種不同RGB色彩。
-
-% 	在30種不同色彩的選擇上，
-% 	我們利用日本色彩研究所於1965年提出的PCCS(Pratical Color Co-ordinate System)中的24色相環中(如\cref{fig:PCCS}所示)的顏色，
-% 	再加上紅、綠、藍、黑、白、灰六個基礎色組成。
-% 	由於以上的30色均為基礎顏色(如\cref{fig:30Base})，
-% 	因此我們希望透過計算不同區塊的色彩與這些基礎顏色的相似度來獲得區塊的色彩成分。
-
-% 	\fig[0.5][fig:PCCS][H]{chapter3/PCCS.jpg}[PCCS體系的24色色相環\cite{PCCScite}][PCCS體系的24色色相環]
-
-% 	\fig[1][fig:30Base][H]{chapter3/30BaseColor.png}[濾波器設定的基礎30色][濾波器設定的基礎30色]
-
-% 	\subsection{彩色卷積模組}
-% 	在傳統的卷積操作中，
-% 	我們會在輸入影像上使用一個稱為Windows的滑動方塊，
-% 	並且與不同的濾波器進行內積運算來計算輸出，
-% 	這樣的輸出結果只能代表Windows與不同濾波器在平面上的投影而並沒有相似度的意義。
-% 	然而我們在彩色感知區塊的濾波器視為不同的色彩，
-% 	因此我們在計算Windows時會將透過將Windows內的所有像素的RGB值進行加總與平均，
-% 	計算出該Windows的平均RGB值作為該Windows的代表色。
-% 	之後我們計算Windows的代表色與濾波器中不同的顏色的色差，
-% 	並且利用高斯函數取代內積運算將色差轉換為相似度，
-% 	以相似度作為反應強度進行輸出。
-
-% 	在色差的計算上，我們曾經考慮過下面三種不同的色差計算方法，分別如下：
-% 	\begin{itemize}
-% 	  \item [1)] 
-% 	  	計算RGB色彩空間的歐氏距離(Euclidean Distance)來代表顏色之間的差距，
-% 	  	其公式如\cref{eq:eq-RGBcdist}。
-% 	  	他是三種方法之中最為快速
-% 	  	$\Delta$C代表兩個顏色的色差，
-% 	  	$\Delta$R為兩個顏色R值的差距，
-% 	  	$\Delta$G為兩個顏色G值的差距，
-% 	  	$\Delta$B為兩個顏色B值的差距。
-% 	  	\begin{equation}
-% 	    \label{eq:eq-RGBcdist}
-% 	    	\Delta C = \sqrt{(\Delta R)^2 + (\Delta G)^2 + (\Delta B)^2}
-% 		\end{equation}
-
-% 	  \item [2)]
-% 	  	由CompuPhase公司提出的一種低成本的加權歐幾里得距離公式\cite{LABformula}(簡稱LAB Euclidean)，
-% 	  	它的權重由RGB中的紅色在色彩中的分量多少而決定。
-% 	  	這種色差計算方法的好處是利用這個公式便可以用兩個顏色的RGB值計算出接近CIE L*u*v(CIEL*a*b)空間中的距離，
-% 	  	同時這套公式也被使用在CompuPhase自己的產品中。
-% 	  	CIELAB是由國際照明委員會提出的色彩空間，
-% 	  	是目前描述人眼可見所有顏色最完整的色彩空間，
-% 	  	因此在CIELAB的距離也會較RGB空間之距離更接近人眼所視。
-% 	  	其公式如\cref{eq:eq-LAB}，
-% 	  	其中C$_{1}$代表第一個顏色，
-% 	  	C$_{2}$代表第二個顏色。
-% 	  	\begin{equation}
-% 	    \label{eq:eq-LAB}
-% 	    \begin{split}
-% 	    	\overline{r} & = \frac{C_{1,R} + C_{2,R}}{2} \\
-% 	    	\Delta R & = C_{1,R} - C_{2,R} \\
-% 	    	\Delta G & = C_{1,G} - C_{2,G} \\
-% 	    	\Delta B & = C_{1,B} - C_{2,B} \\
-% 	    	\Delta C & = \sqrt{(2 + \frac{\overline{r}}{256}) * (\Delta R)^2 + 4 * (\Delta G)^2 + (2 + \frac{255 - \overline{r}}{256}) * (\Delta B)^2}
-% 	    \end{split}
-% 		\end{equation}
-
-% 	  \item [3)]
-% 	  	根據伽馬校正理論，人們對於每個顏色的亮度感知呈現不同的非線性曲線，因此對於不同的色彩的權重應該要是不同的，因此我們參考了一種常見計算色差的加權歐氏距離的公式(之後簡稱Weighted Euclidean)，公式如\cref{eq:eq-weightcdist}。
-% 	  	\begin{equation}
-% 	    \label{eq:eq-weightcdist}
-% 	    	\Delta C = \sqrt{2 * (\Delta R)^2 + 4 * (\Delta G)^2 + 3 * (\Delta B)^2}
-% 		\end{equation}
-% 		然而，在\cite{LABformula}中也有提到，根據伽馬校正的理論，或許我們應該對不同的顏色分布的影像設定不同的加權值才會比較符合人眼的視覺對顏色亮度的感知。
-% 	\end{itemize}
-% 	這三個色差的計算方法各有其優缺點，
-% 	並且經過我們的實驗後發現三者在準確度和可解釋圖片的產生上十分相似，
-% 	但考量到Euclidean方法會容易受到RGB值的細微不同而產生變化。
-% 	而根據上面提到\cite{LABformula}中的說法，
-% 	如果使用Weight Euclidean方法會需要因應不同的資料集去調整加權數值，會增加問題的複雜度。
-% 	因此我們最終選擇了穩定性較高的LAB Euclidean方法來計算色彩感知區塊中輸入影像和30類基礎顏色的色差值，
-% 	之後將色差值輸入高斯函數中做為評估相似度的依據。
-
-
-
-% \pagebreak
-% \section{輪廓感知區塊設計與實現}
-% 	\subsection{前處理設計}
-% 	在輪廓感知區塊中，
-% 	為了使該區塊能夠專注於提取輪廓特徵而不需考慮色彩因素，
-% 	我們會對輸入影像進行前處理。
-% 	首先，我們會將彩色影像轉換為灰階影像，
-% 	轉換公式如\cref{eq:eq-grayscale}，
-% 	Gray代表灰階值，R、G、B各代表紅、綠、藍三色通道的值。
-% 	\begin{equation}
-% 	    \label{eq:eq-grayscale}
-% 	    Gray = 0.299 * R + 0.587 * G + 0.114 * B
-% 	\end{equation}
-% 	這種加權方法主要考慮了人眼對於不同色彩的敏感度，
-% 	從而能夠較為完整保留彩色圖像中的細節，
-% 	接著為了消除不同色彩導致的灰度值差異，
-% 	使該區塊能夠專注於輪廓資訊而不考慮色彩資訊，
-% 	我們接者進行了max-min正規化，
-% 	使每張影像的灰階值統一道$0\sim1$之間。
-% 	透過上面步驟的前處理，
-% 	我們從而可以確保輪廓感知區塊能夠專注於提取輪廓的特徵。
-
-% 	\fig[0.7][fig:SFN_update][H]{chapter3/grayscale.png}[灰階前處理示意圖][灰階前處理示意圖]
-
-% 	\subsection{濾波器初始化}
-% 	在這個模型之中，除了色彩感知區塊外，
-% 	其餘區塊的高斯卷積模組的濾波器我們均是使用 Kaiming Uniform 的方式，
-% 	根據 kaiming 論文\cite{DBLP:journals/corr/HeZR015}中的方式將每個值初始化範圍為$[-\sqrt{\frac{6}{\text{fan\_in}}}, \sqrt{\frac{6}{\text{fan\_in}}}]$,
-% 	$\text{fan\_in}$ 為輸入通道數。
-
-% 	我們在實作中選擇使用 Kaiming Uniform 的原因是因為 Kaiming Uniformm 相較於常用的 Uniform 初始化和 Xavier Uniform\cite{pmlr-v9-glorot10a} 初始化多考慮了整流線性單位函數(ReLU)的存在，
-% 	Uniform 初始化的方式無法解決隨著神經網路的增加而導致梯度消失的問題，
-% 	Xavier Uniform 為了解決梯度消失問題加入了 rescale 函數 $\frac{1}{\sqrt{\text{n}}}$但卻只適用於激活函數為線性函數的情況下，
-% 	而 Kaiming Uniform 在解決梯度消失的問題時同時考慮了激活函數為非線性函數的情況並在\cite{DBLP:journals/corr/HeZR015}透過實驗證明了kaiming uniform 在神經網路在不影響準確度的同時更快收斂。
-% 	由於我們的模型中在特徵增強模組中使用的非線性函數ReLU的變形去進行特徵增強，因此選擇了 Kaiming Uniform 來去進行後面的實驗。
-
-% 	\pagebreak
-
-% 	\subsection{高斯卷積模組}
-% 	在高斯卷積模組中，
-% 	我們以CIM的高斯卷積模組為基礎
-% 	流程如下，
-% 	首先分別計算每個濾波器與卷積中的每個Slide Windows的歐氏距離
-% 	其公式如\cref{eq:eq-EulideanDist}，
-% 	Windows$_{i}$ 為 Window 中第i個pixel值, 
-% 	Filter$_{i}$為濾波器中第i個pixel值，
-% 	C$_{in}$為輸入的channel數，
-% 	Filter$_{H}$, Filter$_{W}$ 為卷積的濾波器大小，
-% 	dist為該濾波器與Window的歐氏距離。
-% 	在得到每個濾波器與每個Windows之間的歐氏距離後，
-% 	再將其輸入高斯函數計算出每個濾波器每個Windows之間的相似度。
-
-% 	\begin{equation}
-% 	    \label{eq:eq-EulideanDist}
-% 	    dist = \sqrt{\sum_{i = 1}^{K} (Windows_{i} - Filter_{i})},\qquad where K = Filter_{H} * Filter_{W} * C_{in}
-% 	\end{equation}
-
-% 		我們在此利用高斯函數取代內積的原因在於高斯函數是以距離為基礎的函數，
-% 	其計算結果能夠反映出距離的意義並且表達向量間的相似度，
-% 	而相似度在後續的解釋性表現中幫助我們更好的理解模型的可解釋性圖片產生之原因。\\
-% 	高斯函數(Gaussian function)：\\
-% 	  $x$ 為輸入值、$m$ 為中心點、$\sigma$ 為寬度參數
-% 	  \begin{equation}
-% 	      \label{eqn:rbf-gaussian-function}
-% 	      \phi (x) = \exp \left( -\frac{\| x-m \|^2}{2\sigma ^2} \right) 
-% 	  \end{equation}
-
-%   	此外，我們在選擇如何將距離轉換成相似度的函數時，
-%   	也嘗試了\cite{YangCNNInterpretable}中提到了一個三角形的放射狀基底函數(以下簡稱Triangle函數)
-%   	其公式如\cref{eqn:rbf-triangle-function}，x為輸入值，m為中心點，w為寬度參數。
-%   	\begin{equation}
-%       \label{eqn:rbf-triangle-function}
-%       \phi (x) = 1 - \frac{ \max \left( \| x-m \|, w \right)}{w}
-%   	\end{equation}
-
-%   	\begin{figure}[H]
-%     \centering
-%     \subcaptionbox
-%         {高斯函數
-%         \label{fig:gaussian}}
-%         {\includegraphics[width=0.33\linewidth]{chapter3/gaussian.png}}
-%     ~
-%     \subcaptionbox
-%         {Triangle函數
-%         \label{fig:triangle}}
-%         {\includegraphics[width=0.33\linewidth]{chapter3/triangle.png}}
-%     \caption{高斯函數與Triangle函數\cite{YangCNNInterpretable}}
-%     \label{fig:rbf}
-% 	\end{figure}
-
-
-% \pagebreak
-% \section{特徵傳遞區塊之優化設計}
-% \label{chapter:chapter3.4}
-% 特徵傳遞區塊以 CIM 為基礎，對 CIM 的原始區塊進行深入分析和改進並對其進行優化，
-% 我們希望可以這些優化措施可以在可解釋性不變的同時，又可以對模型的效能和準確度進行提升，
-% 此外我們還希望這些優化措施可以將一些原本人工去分析資料集後指定的參數變成可訓練參數，
-% 進一步提高模型的自動化與適應能力。
-
-% 	\subsection{高斯卷積模組優化設計}
-% 	在高斯卷積模組中，
-% 	CIM的原始實作方法修改了傳統CNN\cite{726791}中的卷積操作，
-% 	將CNN卷積操作的內積轉換為高斯函數，
-% 	目的是希望以距離為基礎的高斯函數可以表達輸入與Filter之間的距離關係並將之視為相似度。
-
-% 	在實作上CIM採用了逐個計算每個 Windows 和濾波器之間的歐氏距離並將結果輸入進高斯函數得出相似度。
-% 	我們改進了這個實作過程，利用了 GPU 的多核優勢，
-% 	將每次卷積的所有位置的 Windows 取出來後平行放入 GPU 的多個核心，
-% 	同時計算這些 Windows 與濾波器的歐氏距離再輸入高斯函數中得出相似度，
-% 	這樣的實作方式使得整體模型的訓練速度可以大幅提高，
-% 	也完整利用GPU的效能，提升了模型效率。
-
-% 	\pagebreak
-
-% 	\subsection{特徵增強模組之優化設計}
-% 	在特徵增強模組中，
-% 	CIM 使用了自行設計的增強特徵的整流線性單位函數(changed ReLU, 簡稱cReLU)，
-% 	希望透過閥值過濾不重要的特徵，其公式如\cref{eq:eq-crelu}所示，\\
-	
-% 	作為閥值的 $c$ 值需要透過觀察資料集在高斯卷積模組的輸出來設定具體不同的$c$的數值來適應不同的資料集。
-% 	然而一旦閥值設定過小則會削弱特徵增強的效果，
-% 	閥值設定過大則會將大部分的特徵都歸零導致無法學習出有效特徵，
-% 	因此如何設定 $c$ 則成為一個非常困難的問題，並且每次更換資料集都必須面對這個問題。
-
-% 	為了解決閥值設定的問題，
-% 	我們對cReLU的公式進行改善，
-% 	首先設定一個希望保留的$RM$元素的百分比參數 $p\%$，RM的數目稱之為$C_{RM}$
-% 	接著從同一影像在該層的所有 $RM$ 中取出第 $p\% * C_{RM}$  個最大的元素稱之為$P_{RM}$，
-% 	並且將所有小於$P_{RM}$的數值歸零。
-% 	如此一來，使用者只需要決定希望可以保留 $p\%$ 的數值，
-% 	無須糾結於設定閥值$c$具體數值。
-% 	這種方法簡化了參數設定過程，
-% 	同時也確保了特徵增強的有效性。
-% 	改善後的cReLU的公式為\\
-% 	\begin{equation}
-% 	    \label{eq:eq-cReLUPercent}
-% 	    f(x)= 
-% 	    \begin{cases}
-% 	        0 & \text{if  $x < P_{RM}$ }\\
-% 	        x & \text{if  $x \geq P_{RM}$}
-% 	    \end{cases}, \qquad where \; P_{RM} = RM_{i}\left[ p\% * C_{RM} \right]
-% 	\end{equation}
-
-% 	 \pagebreak
-% 	此外，我們也曾做過實驗將Triangle函數與新的cReLU函數合併成一個新函數稱之為Triangle cReLU函數，其公式如\cref{eqn:rbf-triangle-cReLU-function}。
-% 	Triangle cReLU函數與高斯函數 + cReLU的實驗數據，將會在\cref{chapter:diff-rbf-compare}中說明。
-% 	\begin{equation}
-%       \label{eqn:rbf-triangle-cReLU-function}
-%       f(x)= 
-%       \begin{cases}
-% 	        0 & \text{if  $x < P_{RM}$ }\\
-% 	        1 - \frac{ \max \left( \| x-m \|, w \right)}{w} & \text{if  $x \geq P_{RM}$}
-% 	   \end{cases}, \qquad where \; P_{RM} = RM_{i}\left[ p\% * C_{RM} \right]
-%   	\end{equation}
-	
-
-% 	\pagebreak
-
-% 	\subsection{空間位置保留機制之優化設計}
-% 	在空間保留機制模組上，
-% 	CIM為了保留 $RM$ 之間的空間位置關係簡化了眼球跳動的方式，
-% 	加入了一個可訓練的時間遺忘函數 $\alpha$ 進入合併公式\cref{eq:eq-sf}，其公式如\cref{eq:eq-sf}。
-		
-% 	這樣會導致越早被看到(時間越早)的數值需要乘上的 $\alpha^{k}$ 的 $k$ 值越大，
-% 	在合併時的加權也就越小。
-% 	儘管這種做法確實可以使$RM$呈現出空間上的關係，
-% 	然而當我們需要合併的$RM_{k}$越多時，
-% 	隨著$k$ 值越來越大，$\alpha^{k}$會快速變小。
-% 	這樣便造成當我們將$RM_{k}$ 乘上過小的的$\alpha^{k}$後，
-% 	便會變得這個數值便會在$RM_{c}$中變得無足輕重。
-
-% 	對於大小較大的影像而言這種方法是有問題的，
-% 	這會使得影像逐漸喪失一部分$ RM_{k} $ 所擷取的特徵。
-% 	因此我們提出了將 $\alpha$ 的方法從$\alpha^{k}$，
-% 	改成從[ $0.9 \sim 0.99$ ]之間進行等距採樣，
-% 	得到 $k$ 個值代替 $\alpha^{k}$ 按照時序順序去乘以 $RM_{k}$ ，
-% 	我們將第 $k$ 個RM所對應的 $\alpha$ 稱為 $\beta_{k}$，
-% 	如此便可以改善當需要合併的 $RM$ 數量過多時 $\alpha^{k}$ 過小的問題，
-% 	同時也保留了CIM當初設計時希望保留的 $RM$ 之間的對應空間關係。\\
-% 	改善後的合併公式如\cref{eq:eq-sf-update}，$\beta_{k}$從[$0.9 \sim 0.99$]之間取出的第$k$個值:\\
-% 		\begin{equation}
-% 		    \label{eq:eq-sf-update}
-% 		    RM_{c}=\frac{1}{n} \sum_{k = 0}^{n-1} \beta_{k} \times RM_{k}  \qquad ,\ where\ n = \textit{H}^{i}_{SF} \times \textit{W}^{i}_{SF}
-% 		\end{equation}
-% 	RM的優化後的時序性合併如\cref{fig:SFN_update}。
-% 	\fig[1][fig:SFN_update][H]{chapter3/SFM_update.png}[優化後空間位置保留機制示意圖][優化後空間位置保留機制]
 
 % 	\subsection{模型流程的精簡}
 
