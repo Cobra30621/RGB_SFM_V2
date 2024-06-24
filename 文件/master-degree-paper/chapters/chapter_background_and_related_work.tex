@@ -108,9 +108,9 @@
 其將皮質中的資訊傳輸路徑分成兩類，Ventral Pathway 和 Dorsal Pathway, 
 Ventral Pathway 由 V1、V2、V4 組成負責處理影像的色彩、形狀等資訊，
 而Dorsal Pathway 由 V1、V2、MT 組成負責處理影像的運動方向的資訊。
-但同時也強調這個分類只是一個大致分類，
-實際上不同的視覺特徵資訊(如顏色、運動方向等)在皮層中也會相互聯繫，
-也就是存在所謂的側向連結，最終才能形成統一的影像感知。
+% 但同時也強調這個分類只是一個大致分類，
+% 實際上不同的視覺特徵資訊(如顏色、運動方向等)在皮層中也會相互聯繫，
+% 也就是存在所謂的側向連結，最終才能形成統一的影像感知。
 
 \begin{figure}[H]
   \centering
@@ -119,24 +119,44 @@ Ventral Pathway 由 V1、V2、V4 組成負責處理影像的色彩、形狀等�
   \label{fig:ParallelProcess}
 \end{figure}
 
-在皮層中，V1 將相同功能的神經束聚在一起形成不同功能的柱狀結構(例如顏色柱、方向柱、線條柱等)
-這些柱狀體負責處理各自的視覺資訊並按照固定規則排列成層，
-並且將左右眼的柱狀層交錯排列形成一個皮層計算模組(Cortical Computational Module)，如\cref{fig:CorticalComputationalModule}，重複上百次來覆蓋左右眼看到的所有影像。
-這樣設計的目的是希望不管從V1中的任何位置和方向移動都可以漸進的對每塊視野的顏色、輪廓、方向、深度等特徵資訊進行充分的分析。
-以上的兩個概念被本論文應用在合併色彩與輪廓特徵與學習綜合特徵中，使我們的模型可以也可以充分學習顏色與輪廓兩個特徵，並隨著層數的深入逐漸組成更完整的影像特徵資訊。
+% 在皮層中，V1 將相同功能的神經束聚在一起形成不同功能的柱狀結構(例如顏色柱、方向柱、線條柱等)
+% 這些柱狀體負責處理各自的視覺資訊並按照固定規則排列成層，
+% 並且將左右眼的柱狀層交錯排列形成一個皮層計算模組(Cortical Computational Module)，如\cref{fig:CorticalComputationalModule}，重複上百次來覆蓋左右眼看到的所有影像。
+% 這樣設計的目的是希望不管從V1中的任何位置和方向移動都可以漸進的對每塊視野的顏色、輪廓、方向、深度等特徵資訊進行充分的分析。
+% 以上的兩個概念被本論文應用在色彩與輪廓特徵學習中，使我們的模型可以也可以充分學習色彩與輪廓兩種特徵，並隨著層數的深入逐漸組成更完整的影像特徵資訊。
+
+% \begin{figure}[H]
+%   \centering
+%   \includegraphics[width=0.7\textwidth]{Visual_Pathway/cortical_computational_module.png}
+%   \caption{皮層計算模組~\cite{1180370208}}
+%   \label{fig:CorticalComputationalModule}
+% \end{figure}
+% \pagebreak
+
+\pagebreak
+根據\cite{10.5555993636}所述，他們透過實驗發現，
+任何高階的皮層都同時接收著複數底層的皮層區所送上來的輸入，
+因此，V1，V2，V3，MT不應該被視為單一皮層，
+而是由許多個小皮質區所組成。
+這些小皮質區不需要了解其所接收到的輸入的意義，
+而其主要工作在於找出輸入之間的關係並記憶它們空間上之順序，
+再利用這些資訊去計算其在未來的輸出。
+這個概念也被運用在CIM和本模型的空間合併模組之中，
+紀錄輸入的空間性關係並傳遞到下一層，
+使下一層的高斯卷積能在有空間性資訊的輸入情況下進行預測。
 
 \begin{figure}[H]
   \centering
-  \includegraphics[width=0.7\textwidth]{Visual_Pathway/cortical_computational_module.png}
-  \caption{皮層計算模組~\cite{1180370208}}
-  \label{fig:CorticalComputationalModule}
+  \includegraphics[width=1\textwidth]{Visual_Pathway/cortical-hierarchy.png}
+  \caption{皮層層狀架構~\cite{10.5555993636}}
+  \label{fig:CorticalHierarchy}
 \end{figure}
 \pagebreak
 
 
 \subsection{CNN-based Interpretable Model}
 CNN-based Interpretable Model(CIM)\cite{YangCNNInterpretable}為 Yang 等人於2023年提出的可解釋性模型，
-該模型是模擬大腦視覺皮層的階層架構和影像的時序性關係來解釋深度學習的決策的過程，
+該模型是模擬大腦視覺皮層的階層架構和影像的空間性關係來解釋深度學習的決策的過程，
 目的是希望使模型的決策過程透明化解決黑箱決策的問題。
 然而該模型目前只能運用於灰階影像上而無法處理彩色影像的問題，
 本論文的目標是基於此模型進行改進，開發出一個更適用於現實彩色影像的新模型。
@@ -153,16 +173,34 @@ CNN-based Interpretable Model(CIM)\cite{YangCNNInterpretable}為 Yang 等人於2
 \end{figure}
 
 
-高斯卷積模組使用高斯函數(公式如\cref{eqn:rbf-gaussian-function})取代原始卷積操作中的內積操作來對輸入進行特徵提取，
+高斯卷積模組使用高斯函數取代原始卷積操作中的內積操作來對輸入進行特徵提取，
 使得該模組計算的結果具有相似度的意義並且此特性也被運用在後續的可解釋性中。\\
-特徵增強模組使用該論文中新提出變形的ReLU函數稱為changed ReLU(簡稱為cReLU)來過濾不重要的特徵使得後續的解釋性可以有更好的發揮。\\
+
+特徵增強模組使用該論文中新提出變形的ReLU函數稱為changed ReLU(簡稱為cReLU)，
+來過濾不重要的特徵使得後續的解釋性可以有更好的發揮。
+cReLU公式於\cref{eq:eq-crelu}，$c$為人工取的一個閥值，
+\begin{equation}
+    \label{eq:eq-crelu}
+    % f(x) = \max(c, x)
+    f(x)= 
+    \begin{cases}
+        0 & \text{if  $x < c$ }\\
+        x & \text{if  $x \geq c$}
+    \end{cases}
+\end{equation}
 
 空間位置保留合併模組為該論文所提出來的全新機制，
 文中他們將一組輸入在經過高斯卷積和特徵增強後產生的輸出稱為$RM$,
 而一張影像又擁有多組資訊，從而產生出多張屬於這個影像的$RM$。
-使用合併公式\cref{eq:eq-sf}並加入時間遺忘函數(forgetting factor)$\alpha$，來進行合併來模擬特徵資訊在皮層中的時序性特徵資訊與皮層的逐層合併的現象，
+合併公式如\cref{eq:eq-sf}，$RM_{c}$為合併後的RM，$RM_{k}$為第k張RM，$n$為輸入資訊的數量，$\alpha$為一個可訓練的時間遺忘函數(forgetting factor)。
+空間位置保留合併模組使用此合併公式來模擬特徵資訊在皮層中的時序性特徵資訊與皮層的逐層合併的現象，
 從而達到在合併的過程中保留特徵之間的時序關係,
-也可讓越後面的層數學習到更完整的特徵資訊。\\
+也可讓越後面的層數學習到更完整的特徵資訊。
+\begin{equation}
+    \label{eq:eq-sf}
+    RM_{c}=\frac{1}{n} \sum_{k = 0}^{n-1} \alpha^{k} \times RM_{k},  \qquad \ where\ n = \textit{H}^{i}_{SF} \times \textit{W}^{i}_{SF}
+\end{equation}
+
 \begin{figure}[H]
   \centering
   \includegraphics[width=0.7\textwidth]{CIM/CIM_SFM.png}
@@ -173,7 +211,7 @@ CNN-based Interpretable Model(CIM)\cite{YangCNNInterpretable}為 Yang 等人於2
 
 \subsubsection{可解釋性}
 文中將每層的高斯卷積模組的濾波器視為二階矩陣稱為特徵映射圖(Feature Map, $FM$),
-一組輸入在每層經過高斯卷積模組和特徵增強模組後的輸出稱為特徵映射響應圖(Response Map, $RM$),
+一組輸入在每層經過高斯卷積模組和特徵增強模組後輸出進行維度轉換後的矩陣稱為特徵映射響應圖(Response Map, $RM$),
 當模型訓練完畢後會讓每個卷積模組中的濾波器對資料集中的所有影像進行反應
 並且從所有反應中找到造成最大反應的影像，每個濾波器都會有屬於自己的最大反映影像，
 稱為特徵映射圖之對應影像(Corresponding Image, $CI$)
@@ -203,11 +241,11 @@ CNN-based Interpretable Model(CIM)\cite{YangCNNInterpretable}為 Yang 等人於2
 
 在可解釋性的方法上，論文中提出了兩個方法，
 第一個方法為特徵圖對應法，
-在將一張影像輸入進模型後
+在將一張影像輸入進模型後，
 第一步視覺化輸入影像中每個區塊在模型中每層的$RM$並找出$RM$中最大反應，
 第二步從$RM$最大反應找出造成反應的$FM$，
 第三步根據$FM$和$CI$的對應關係，找出該$FM$對應之$CI$，
-第四步利用每個區塊的$CI$根據原本的位置組合出輸入影像在模型中被分解的過程
+第四步利用每個區塊的$CI$根據原本的位置組合出輸入影像在模型中被分解的過程，
 這個方法用於了解模型在經過高斯卷積、特徵增強、空間位置保留合併後所關注的特徵資訊。
 範例如\cref{tab:CIM_RMCI_example}
 
@@ -258,7 +296,7 @@ XAI從一開始的小眾領域在近些年開始蓬勃發展成活躍的研究�
 \fig[1][fig:][H]{XAI.png}[可解人工智慧的分類(修改自\cite{YangCNNInterpretable})][可解釋人工智慧的分類]
 
 \subsection{對於 Ante-hoc Explainable Model之研究}
-Ante-hoc explainable 模型(\cite{Nielsen_2022}稱為 Interently Interpretable Models)，
+Ante-hoc Explainable Model(\cite{Nielsen_2022}稱為 Interently Interpretable Models)，
 不同於 Black Box 模型，在模型設計時就會考量可解釋性的需求，
 使得模型本身便具備產生解釋性的能力，
 其最終目標便是產生一個既準確又可以讓人理解決策過程的深度學習模型。
@@ -269,7 +307,7 @@ DT透過一系列的規則去不斷進行抉擇並且可以很容易地被可視
 並且也經常被用在金融等常運用表格去表示資料的領域\cite{grinsztajn2022tree}。
 除了DT外也存在不同類型的模型，例如Nest Generalized Exemplar(NGE)\cite{salzberg1991nearest}、Adaptive-Network-Based Fuzzy Inference System(ANFIS)\cite{256541}、Collection of High Importance Random Path Snippets\\(CHIRPS)\cite{hatwell2020chirps}等等模型;
 
-Steven Salzberg 等人於 1991 提出了NGE\cite{salzberg1991nearest}的理論，
+S. Salzberg 等人於 1991 提出了NGE\cite{salzberg1991nearest}的理論，
 該理論將學習到的特徵映射到歐氏距離n維空間(簡稱為En)形成超矩形。
 所謂的超矩形是一種幾何學的名詞，可以被視為是在n維空間中的長方體。
 NGE便是利用超矩形由於是在n維空間，
@@ -277,31 +315,31 @@ NGE便是利用超矩形由於是在n維空間，
 
 J.-S.R. Jang 等人於1993提出ANFIS模型\cite{256541}，其將模糊系統與神經網路進行結合，由神經網路學習模糊規則並藉由模糊引擎來對輸入資料進行判斷。這個模型的本質上維持著模糊系統的架構，因此我們藉由導出模糊規則檢視模型的判斷條件來解釋模型作出的決策。
 
-Hatwell, J., Gaber等人於2020年提出CHIRPS演算法\cite{hatwell2020chirps}，該演算法是以Random Forest為基礎，從每棵樹中多數分類的決策路徑並從中找到最常出現的條件，
+J. Hatwell等人於2020年提出CHIRPS演算法\cite{hatwell2020chirps}，該演算法是以Random Forest為基礎，從每棵樹中多數分類的決策路徑並從中找到最常出現的條件，
 以這些條件建構出一條條if-then規則，並且分析每個規則的準確度和覆蓋率，提供如果缺少了該規則所造成的影響。該演算法提供之規則在當時與SOTA相同但其覆蓋率更大，並且演算法提供的是人類可以分析理解的規則而不是單純的結果。
 
-以上的研究均在模型本身便具備可解釋性，然而這類模型存在一個問題便是必須再訓練模型前找出有效的特徵提取方法，
+以上的研究均在模型本身便具備可解釋性，然而這類模型存在一個問題便是必須在訓練模型前找出有效的特徵提取方法，
 模型的可解釋性與準確度都會因為使用不同的特徵提取方法而造成很大的影響。
 如何在使用不複雜的特徵提取的同時提高準確度與解釋性也是這類模型的很大的課題。
 
 \subsection{對於 Post-hoc Explainable Method之研究}
-Post-hoc explainable method 與 Ante-hoc explainable model最大的差異是，
+Post-hoc Explainable Method 與 Ante-hoc Explainable Model最大的差異是，
 此種研究所做的並不是開發與"black-box"模型(黑盒模型)相對具可解釋性的"white-box"模型，
-而是著重於在模型完成預測之後，對其結果進行解釋。
+而是著重於在一個模型完成預測之後，對其結果進行解釋。
 
-而\cite{Nielsen_2022}又告訴我們在Post-hoc explainable之下我們可以分成兩類，Local 和 Global，
+根據\cite{Nielsen_2022}所述，在Post-hoc explainable之下可以分成兩類，Local 和 Global，
 這兩類的差別在於Local的特點是針對單一筆預測進行解釋，通常採用的辦法是找出關鍵特徵並且解釋該特徵是如何影響到預測，Local之下針對方法又可以分成，以梯度為基礎的方法(Gradient-based)和以局部干擾為基礎的方法(Perturbation-based)，
 Gradient-based最具代表性的便是Layer-wise Relevance Propagation(LRP)\cite{10.1007/978-3-319-44781-0_8}，
 而Perturbation-based最具代表性則是Local Interpretable Model-agnostic Explanations(LIME)\cite{10.1145/2939672.2939778}。
 
-Alexander Binder 等人於2016年提出了LRP演算法\cite{10.1007/978-3-319-44781-0_8}，該演算法是透過使用模型的倒傳遞演算法，將特定預測類別的分數逐層從輸出逐層傳遞，計算每層的相關性分數，最終回到輸入從而找出關鍵的輸入特徵。此種方法主要的優點便是除了神經網路外，它的原理可以被運用到不同的模型結構之中，但需要選擇合適的分數規則。而LRP的缺點缺點在於由於需要逐層計算每層的相關性分數所以複雜度較高。此外，由於其解釋性是依賴相關性分數的分配與計算，因此選擇合適的分數規則尤為重要。
+A. Binder 等人於2016年提出了LRP演算法\cite{10.1007/978-3-319-44781-0_8}，該演算法是透過使用模型的倒傳遞演算法，將特定預測類別的分數逐層從輸出逐層傳遞，計算每層的相關性分數，最終回到輸入從而找出關鍵的輸入特徵。此種方法主要的優點便是除了神經網路外，它的原理可以被運用到不同的模型結構之中，但需要選擇合適的分數規則。而LRP的缺點缺點在於由於需要逐層計算每層的相關性分數所以複雜度較高。此外，由於其解釋性是依賴相關性分數的分配與計算，因此選擇合適的分數規則尤為重要。
 
-Ribeiro, Marco Tulio 等人於2016年提出了LIME演算法\cite{10.1145/2939672.2939778}，該演算法的核心便是透過為想要解釋預測的輸入影像產生一組干擾樣本，這些干擾將會附加在原始輸入的局部部分形成干擾影像，之後將干擾影像輸入進黑盒模型中進行預測，在著訓練簡單模型(例如:DT、Linear Regression等)使這個簡單的模型能夠接近黑盒模型預測干擾影像的結果，最終透過解釋簡單模型來解釋原始輸入影像。這個演算法的優點在於可以靈活的使用在不同的資料類型和模型架構，然而其缺點在於無法提供模型整體的解釋並且可解釋性依賴於產生的干擾樣本的品質。
+M. T. Ribeiro 等人於2016年提出了LIME演算法\cite{10.1145/2939672.2939778}，該演算法的核心便是透過為想要解釋預測的輸入影像產生一組干擾樣本，這些干擾將會附加在原始輸入的局部部分形成干擾影像，之後將干擾影像輸入進黑盒模型中進行預測，在著訓練簡單模型(例如:DT、Linear Regression等)使這個簡單的模型能夠接近黑盒模型預測干擾影像的結果，最終透過解釋簡單模型來解釋原始輸入影像。這個演算法的優點在於可以靈活的使用在不同的資料類型和模型架構，然而其缺點在於無法提供模型整體的解釋並且可解釋性依賴於產生的干擾樣本的品質。
 
 Global則是針對模型整體去進行解釋，總結出主要的特徵和判斷條件，呈現模型的判斷邏輯，其中最著名的代表則是SHapley Additive exPlanations(SHAP)\cite{NIPS2017_8a20a862}。
 
-Scott M. Lundberg 與 Su-In LeeSHAP在2017年提出了SHAP這個演算法\cite{NIPS2017_8a20a862}。 SHAP運用了博弈論中Shapley Value的概念，SHAP會為
-每個特徵計算其在不同特徵組合的平均貢獻來決定一個Shapley Value來表示特徵的重要性。此外，從研究中也表明每個類別只會有一組唯一的Shapley Value組合。這套方法的優點在於其可以同時提供全域和局部特徵的重要性並且其背後有堅實的博弈論的理論支撐。但其缺點在於實現和計算複雜度較高並且對於不了解博奕論的使用者會難以理解模型呈現出來的Shapley Value。
+S. M. Lundberg 等人在2017年提出了SHAP這個演算法\cite{NIPS2017_8a20a862}。 SHAP運用了博弈論中Shapley Value的概念，SHAP會為
+每個特徵計算其在不同特徵組合的平均貢獻來決定Shapley Value以表示特徵的重要性。此外，從研究中也表明每個類別只會有一組唯一的Shapley Value組合。這套方法的優點在於其可以同時提供全域和局部特徵的重要性並且其背後有堅實的博弈論的理論支撐。但其缺點在於實現和計算複雜度較高並且對於不了解博奕論的使用者會難以理解模型呈現出來的Shapley Value。
 
 以上這些方法都是在"black-box"模型預測完後再對其進行解析，
 然而這種方法也是存在一些缺點的，他們大多只是表示特定特徵的對於類別的重要性，
@@ -309,7 +347,10 @@ Scott M. Lundberg 與 Su-In LeeSHAP在2017年提出了SHAP這個演算法\cite{N
 
 \subsection{近年可解釋性模型趨勢之研究}
 \cite{LONGO2024102301}中有寫到近年來也有一些論文展現出解決上面兩種方法缺點的潛力，
-其中一種是將注意力的解釋整合到神經網路中，來提高表格類資料的可解釋性的論文\cite{Arik_Pfister_2021}，另一種是使用計算論證(Computational Arugmentation)的方式\cite{ijcai2021p600}，透過模擬人類推論的過程，
+其中一個是將注意力的解釋整合到神經網路中，
+透過順序注意力機制(Sequential Attention Mechanism)生成每個特徵在過程中的重要性分數來決定每個步驟中最重要的特徵，
+以提高表格類資料的可解釋性的模型\cite{Arik_Pfister_2021}。
+另一個是使用計算論證(Computational Arugmentation)的方式\cite{ijcai2021p600}，透過模擬人類推論的過程，
 讓模型針對決策過程的每一步提出不同的規則相互論證，
 由此來得到決策的每一步過程的正確規則。特別的是這類模型屬於非單調推理(Non-monotonic reasoning)，代表其允許有新證據時推翻自己的結論，這樣的方法較為符合人類的常見推理方式。
 以上的方法雖然有望解決 Ante-Poc 和 Post-hoc explainable model的問題，但仍需更多的研究來驗證這一點。
