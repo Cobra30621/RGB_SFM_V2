@@ -1116,7 +1116,7 @@ Colored MNIST和Colored Fashion主要用於驗證模型在彩色影像的分類�
     本節將會比較在研究方法中提到的Euclidean(公式於\cref{eq:eq-RGBcdist})、LAB Euclidean(公式於\cref{eq:eq-LAB})、Weighted Euclidean(公式如\cref{eq:eq-weightcdist})三種不同的色彩差距計算方法對模型的影響
     本論文在設計顏色感知區塊計算顏色色差的流程時，
     使用Colored MNIST、Colored Fashion的資料集比較Euclidean、LAB Euclidean、Weighted Euclidean三種不同的色彩差距計算方法，
-    而其餘參數均保持上述的色彩實驗參數不變。
+    而其餘參數均保持\cref{tab:ColoredModelparameters}的色彩實驗參數不變。
 
 	實驗結果如\cref{tab:colordist-experiment}、\cref{tab:Colored-MNIST-diff-cdist-picture}，
     \cref{tab:Colored-MNIST-diff-cdist-picture}為取出Colored MNIST 資料集和Colored Fashion MNIST資料集不同顏色的輸入，比較不同色差計算方法所產出的可解釋性圖片。
@@ -1218,7 +1218,6 @@ Colored MNIST和Colored Fashion主要用於驗證模型在彩色影像的分類�
             \begin{minipage}[t]{0.1\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/Colored_MNIST_diff_cdist/red_8/weight_cdist_RGB_convs_1_RM_CI.png}\end{minipage} &
             \begin{minipage}[t]{0.1\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/Colored_MNIST_diff_cdist/red_8/weight_cdist_RGB_convs_2_RM_CI.png}\end{minipage} \\
             \hline
-            
         \end{tabular}
     \end{table}
 
@@ -1301,12 +1300,12 @@ Colored MNIST和Colored Fashion主要用於驗證模型在彩色影像的分類�
     \pagebreak
 
     \subsection{不同合併方式之比較}
-    本節將會呈現不同的合併方式對模型的影響，
-    使用Colored MNIST的資料集比較兩種不同的合併方式
-    除了合併參數SF外均使用相同的參數設定。
-    一種是按照前面的實驗設計，將 SF 設定為 {(2,2), (1,3)}
-    (我們簡稱SF-22, 示意圖如\cref{fig:SF-22})，在概念上等同於先將一個方格內的特徵圖進行合併再進行橫向合併。
-    另一種為 SF 設定為 {(6,1), (1,2)}(我們簡稱SF-61, 示意圖如\cref{fig:SF-61})
+    本節將會比較不同的合併方式對模型的影響，
+    並且除了合併參數SF外均使用與\cref{tab:ColoredModelparameters}相同的參數設定。
+    第一種是按照\cref{tab:ColoredModelparameters}的實驗設計，將 SF 設定為 \{(2,2), (1,3)\}
+    (我們簡稱SF-22, 示意圖如\cref{fig:SF-22})，在概念上等同於先將一個方格內的特徵圖進行合併再進行橫向合併；
+    第二種為將 SF 設定為 \{(2,2), (3,1)\}(我們簡稱SF-31, 示意圖如\cref{fig:SF-31})，在概念上等同於先將一個方格內的特徵圖進行合併再進行縱向合併；
+    最後一種為 SF 設定為 \{(6,1), (1,2)\}(我們簡稱SF-61, 示意圖如\cref{fig:SF-61})
     在概念上等同於先將縱向的特徵圖進行合併後再將橫向的特徵圖進行合併。
     使用不同的合併方法是在模擬人眼眼球跳動時不同的肉眼軌跡，
     也可以驗證不同的合併方式對於模型的影響。
@@ -1318,6 +1317,11 @@ Colored MNIST和Colored Fashion主要用於驗證模型在彩色影像的分類�
             {\includegraphics[width=0.475\linewidth]{Chapter4/Combine/SF22-combine.png}}
         ~
         \subcaptionbox
+            {$\left\{(2, 2), (3, 1)\right\}$
+            \label{fig:SF-31}}
+            {\includegraphics[width=0.475\linewidth]{Chapter4/Combine/SF31-combine.png}}
+        ~
+        \subcaptionbox
             {$\left\{(6, 1), (1, 2)\right\}$
             \label{fig:SF-61}}
             {\includegraphics[width=0.475\linewidth]{Chapter4/Combine/SF61-combine.png}}
@@ -1326,19 +1330,21 @@ Colored MNIST和Colored Fashion主要用於驗證模型在彩色影像的分類�
         \label{fig:SF}
     \end{figure}
 
-	\cref{fig:ColoredMNIST-SF22-Color-CI2}、\cref{fig:ColoredMNIST-SF61-Color-CI2}分別為使用SF-22和SF-61的CI$^{color}_{1}$和CI$^{gray}_{1}$，
+	\cref{fig:ColoredMNIST-SF22-Color-CI2}、\cref{fig:ColoredMNIST-SF61-Color-CI2}分別為使用SF-22和SF-61的CI$^{color}_{1}$和CI$^{gray}_{1}$。
 	由於使用了不同的合併方式，
 	因此回推出來的CI$^{color}_{1}$和CI$^{gray}_{1}$的影像大小也有所不同。
 	SF-22的$^{color}_{1}$和CI$^{gray}_{1}$大小為（5 x 5）‧（2 x 2）＝（10 x 10），而
     SF-61則是（5 x 5）‧（6 x 1）＝（30 x 5），
-    我們藉由CI$^{color}_{1}$和CI$^{gray}_{1}$即可觀察到合併方式對於影像特徵擷取的影響。
+    我們藉由對SF-22和SF-61在CI$^{color}_{1}$和CI$^{gray}_{1}$的觀察便可以知道不同合併方式對於影像特徵擷取出來的大小和特徵都有所不同。
+
+    實驗結果如\cref{tab:diff-combine-experiment}、\cref{tab:diff-combine-coloredMNIST-pictures}。 在\cref{tab:diff-combine-coloredMNIST-pictures}中我們分別從Colored MNIST資料集和Colored Fashion MNIST資料集中各選擇了三個不同顏色類別、不同形狀類別的輸入影像來觀察合併方式對可解釋性圖形的差異。
 
     \begin{figure}[H]
         \centering
         \subcaptionbox
             {CI$^{color}_{1}$ with SF-22
             \label{fig:ColoredMNIST-SF22-Color-CI2}}
-            {\includegraphics[width=0.5\linewidth]{Chapter4/Combine/SF22_CIs_RGB_convs_1.png}}
+            {\includegraphics[width=0.4\linewidth]{Chapter4/Combine/SF22_CIs_RGB_convs_1.png}}
         ~
         \subcaptionbox
             {CI$^{color}_{1}$ with SF-61
@@ -1354,7 +1360,7 @@ Colored MNIST和Colored Fashion主要用於驗證模型在彩色影像的分類�
         \subcaptionbox
             {CI$^{gray}_{1}$ with SF-22
             \label{fig:ColoredMNIST-SF22-gray-CI2}}
-            {\includegraphics[width=0.5\linewidth]{Chapter4/Combine/SF22_CIs_Gray_convs_1.png}}
+            {\includegraphics[width=0.4\linewidth]{Chapter4/Combine/SF22_CIs_Gray_convs_1.png}}
         ~
         \subcaptionbox
             {CI$^{gray}_{1}$ with SF-61
@@ -1365,8 +1371,6 @@ Colored MNIST和Colored Fashion主要用於驗證模型在彩色影像的分類�
         \label{fig:ColoredMNIST-Gray-CI2}
     \end{figure}
 
-    實驗結果如\cref{tab:diff-combine-experiment}、\cref{tab:diff-combine-coloredMNIST-pictures}。 在\cref{tab:diff-combine-coloredMNIST-pictures}中我們分別從Colored MNIST資料集和Colored Fashion MNIST資料集中各選擇了三個不同顏色類別、不同形狀類別的輸入影像來觀察合併方式對可解釋性圖形的差異。
-
     \begin{table}[H]
         \centering
         \caption{不同合併方法在資料集上的實驗結果}
@@ -1376,21 +1380,24 @@ Colored MNIST和Colored Fashion主要用於驗證模型在彩色影像的分類�
             Dataset & 合併方式 & 訓練準確度 & 測試準確度  \\
             \hline
             \hline
-            \multirow{2}*{\makecell{Colored MNIST \\ （28x28）}}
+            \multirow{3}*{\makecell{Colored MNIST \\ （28x28）}}
             & SF22 & 0.9795 & 0.954 \\
+            ~ & SF31 & 0.969 & 0.9331 \\
             ~ & SF61 & 0.9495 & 0.9262  \\
             \hline
-            \multirow{2}*{\makecell{Colored FashionMNIST \\ （28x28）}}
+            \multirow{3}*{\makecell{Colored FashionMNIST \\ （28x28）}}
             & SF22 & 0.8847 & 0.8223  \\
+            ~ & SF31 & 0.8859 & 0.8373 \\
             ~ & SF61 & 0.8751 & 0.8257 \\
             \hline
         \end{tabular}
     \end{table}
 
+    \pagebreak
+
     {\small
     \setlength{\LTcapwidth}{\textwidth} 
     \begin{longtable}{|c|c|c|c|c|}
-        \endfoot
         \caption{不同合併方式在Colored MNIST資料集上的可解釋性圖片}
         \label{tab:diff-combine-coloredMNIST-pictures}\\
             \hline
@@ -1399,7 +1406,7 @@ Colored MNIST和Colored Fashion主要用於驗證模型在彩色影像的分類�
             & &RM-CI-Gray-0 & RM-CI-Gray-1 & RM-CI-Gray-2\\
             \hline
             \multirow{2} * {SF22} &
-            \multirow{4} * {\begin{minipage}[t]{0.1\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/Combine/diff_combine_example/Colored_MNIST_red_8/origin.png}\end{minipage}} &
+            \multirow{6} * {\begin{minipage}[t]{0.1\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/Combine/diff_combine_example/Colored_MNIST_red_8/origin.png}\end{minipage}} &
             \begin{minipage}[t]{0.08\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/Combine/diff_combine_example/Colored_MNIST_red_8/SF22_RGB_convs_0_RM_CI.png}\end{minipage} &
             \begin{minipage}[t]{0.08\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/Combine/diff_combine_example/Colored_MNIST_red_8/SF22_RGB_convs_1_RM_CI.png}\end{minipage} & 
             \begin{minipage}[t]{0.08\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/Combine/diff_combine_example/Colored_MNIST_red_8/SF22_RGB_convs_2_RM_CI.png}\end{minipage} \\
@@ -1408,6 +1415,18 @@ Colored MNIST和Colored Fashion主要用於驗證模型在彩色影像的分類�
             \begin{minipage}[t]{0.08\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/Combine/diff_combine_example/Colored_MNIST_red_8/SF22_Gray_convs_0_RM_CI.png}\end{minipage} &
             \begin{minipage}[t]{0.08\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/Combine/diff_combine_example/Colored_MNIST_red_8/SF22_Gray_convs_1_RM_CI.png}\end{minipage} &
             \begin{minipage}[t]{0.08\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/Combine/diff_combine_example/Colored_MNIST_red_8/SF22_Gray_convs_2_RM_CI.png}\end{minipage} \\
+            \cline{1-1}
+            \cline{3-5}
+            \multirow{2} * {SF31} &
+             &
+            \begin{minipage}[t]{0.08\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/Combine/diff_combine_example/Colored_MNIST_red_8/SF31_RGB_convs_0_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.08\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/Combine/diff_combine_example/Colored_MNIST_red_8/SF31_RGB_convs_1_RM_CI.png}\end{minipage} & 
+            \begin{minipage}[t]{0.08\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/Combine/diff_combine_example/Colored_MNIST_red_8/SF31_RGB_convs_2_RM_CI.png}\end{minipage} \\
+            \cline{3-5}
+            & &
+            \begin{minipage}[t]{0.08\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/Combine/diff_combine_example/Colored_MNIST_red_8/SF31_Gray_convs_0_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.08\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/Combine/diff_combine_example/Colored_MNIST_red_8/SF31_Gray_convs_1_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.08\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/Combine/diff_combine_example/Colored_MNIST_red_8/SF31_Gray_convs_2_RM_CI.png}\end{minipage} \\
             \cline{1-1}
             \cline{3-5}
             \multirow{2} * {SF61} &
@@ -1425,7 +1444,7 @@ Colored MNIST和Colored Fashion主要用於驗證模型在彩色影像的分類�
             %---------
 
             \multirow{2} * {SF22} &
-            \multirow{4} * {\begin{minipage}[t]{0.1\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/Combine/diff_combine_example/Colored_MNIST_green_5/origin.png}\end{minipage}} &
+            \multirow{6} * {\begin{minipage}[t]{0.1\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/Combine/diff_combine_example/Colored_MNIST_green_5/origin.png}\end{minipage}} &
             \begin{minipage}[t]{0.08\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/Combine/diff_combine_example/Colored_MNIST_green_5/SF22_RGB_convs_0_RM_CI.png}\end{minipage} &
             \begin{minipage}[t]{0.08\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/Combine/diff_combine_example/Colored_MNIST_green_5/SF22_RGB_convs_1_RM_CI.png}\end{minipage} & 
             \begin{minipage}[t]{0.08\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/Combine/diff_combine_example/Colored_MNIST_green_5/SF22_RGB_convs_2_RM_CI.png}\end{minipage} \\
@@ -1434,6 +1453,18 @@ Colored MNIST和Colored Fashion主要用於驗證模型在彩色影像的分類�
             \begin{minipage}[t]{0.08\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/Combine/diff_combine_example/Colored_MNIST_green_5/SF22_Gray_convs_0_RM_CI.png}\end{minipage} &
             \begin{minipage}[t]{0.08\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/Combine/diff_combine_example/Colored_MNIST_green_5/SF22_Gray_convs_1_RM_CI.png}\end{minipage} &
             \begin{minipage}[t]{0.08\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/Combine/diff_combine_example/Colored_MNIST_green_5/SF22_Gray_convs_2_RM_CI.png}\end{minipage} \\
+            \cline{1-1}
+            \cline{3-5}
+            \multirow{2} * {SF31} &
+             &
+            \begin{minipage}[t]{0.08\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/Combine/diff_combine_example/Colored_MNIST_green_5/SF31_RGB_convs_0_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.08\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/Combine/diff_combine_example/Colored_MNIST_green_5/SF31_RGB_convs_1_RM_CI.png}\end{minipage} & 
+            \begin{minipage}[t]{0.08\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/Combine/diff_combine_example/Colored_MNIST_green_5/SF31_RGB_convs_2_RM_CI.png}\end{minipage} \\
+            \cline{3-5}
+            & &
+            \begin{minipage}[t]{0.08\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/Combine/diff_combine_example/Colored_MNIST_green_5/SF31_Gray_convs_0_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.08\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/Combine/diff_combine_example/Colored_MNIST_green_5/SF31_Gray_convs_1_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.08\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/Combine/diff_combine_example/Colored_MNIST_green_5/SF31_Gray_convs_2_RM_CI.png}\end{minipage} \\
             \cline{1-1}
             \cline{3-5}
             \multirow{2} * {SF61} &
@@ -1447,11 +1478,12 @@ Colored MNIST和Colored Fashion主要用於驗證模型在彩色影像的分類�
             \begin{minipage}[t]{0.08\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/Combine/diff_combine_example/Colored_MNIST_green_5/SF61_Gray_convs_1_RM_CI.png}\end{minipage} &
             \begin{minipage}[t]{0.08\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/Combine/diff_combine_example/Colored_MNIST_green_5/SF61_Gray_convs_2_RM_CI.png}\end{minipage} \\
             \hline
-
+            \pagebreak
             %--------
 
+            \hline
             \multirow{2} * {SF22} &
-            \multirow{4} * {\begin{minipage}[t]{0.1\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/Combine/diff_combine_example/Colored_MNIST_blue_3/origin.png}\end{minipage}} &
+            \multirow{6} * {\begin{minipage}[t]{0.1\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/Combine/diff_combine_example/Colored_MNIST_blue_3/origin.png}\end{minipage}} &
             \begin{minipage}[t]{0.08\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/Combine/diff_combine_example/Colored_MNIST_blue_3/SF22_RGB_convs_0_RM_CI.png}\end{minipage} &
             \begin{minipage}[t]{0.08\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/Combine/diff_combine_example/Colored_MNIST_blue_3/SF22_RGB_convs_1_RM_CI.png}\end{minipage} & 
             \begin{minipage}[t]{0.08\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/Combine/diff_combine_example/Colored_MNIST_blue_3/SF22_RGB_convs_2_RM_CI.png}\end{minipage} \\
@@ -1460,6 +1492,18 @@ Colored MNIST和Colored Fashion主要用於驗證模型在彩色影像的分類�
             \begin{minipage}[t]{0.08\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/Combine/diff_combine_example/Colored_MNIST_blue_3/SF22_Gray_convs_0_RM_CI.png}\end{minipage} &
             \begin{minipage}[t]{0.08\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/Combine/diff_combine_example/Colored_MNIST_blue_3/SF22_Gray_convs_1_RM_CI.png}\end{minipage} &
             \begin{minipage}[t]{0.08\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/Combine/diff_combine_example/Colored_MNIST_blue_3/SF22_Gray_convs_2_RM_CI.png}\end{minipage} \\
+            \cline{1-1}
+            \cline{3-5}
+            \multirow{2} * {SF31} &
+             &
+            \begin{minipage}[t]{0.08\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/Combine/diff_combine_example/Colored_MNIST_blue_3/SF31_RGB_convs_0_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.08\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/Combine/diff_combine_example/Colored_MNIST_blue_3/SF31_RGB_convs_1_RM_CI.png}\end{minipage} & 
+            \begin{minipage}[t]{0.08\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/Combine/diff_combine_example/Colored_MNIST_blue_3/SF31_RGB_convs_2_RM_CI.png}\end{minipage} \\
+            \cline{3-5}
+            & &
+            \begin{minipage}[t]{0.08\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/Combine/diff_combine_example/Colored_MNIST_blue_3/SF31_Gray_convs_0_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.08\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/Combine/diff_combine_example/Colored_MNIST_blue_3/SF31_Gray_convs_1_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.08\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/Combine/diff_combine_example/Colored_MNIST_blue_3/SF31_Gray_convs_2_RM_CI.png}\end{minipage} \\
             \cline{1-1}
             \cline{3-5}
             \multirow{2} * {SF61} &
@@ -1479,7 +1523,6 @@ Colored MNIST和Colored Fashion主要用於驗證模型在彩色影像的分類�
 
     \setlength{\LTcapwidth}{\textwidth} 
     \begin{longtable}{|c|c|c|c|c|}
-        \endfoot
         \caption{不同合併方式Colored Fashion MNIST資料集上的可解釋性圖片}
         \label{tab:diff-combine-coloredFashionMNIST-pictures}\\
             \hline
@@ -1488,7 +1531,7 @@ Colored MNIST和Colored Fashion主要用於驗證模型在彩色影像的分類�
             & &RM-CI-Gray-0 & RM-CI-Gray-1 & RM-CI-Gray-2\\
             \hline
             \multirow{2} * {SF22} &
-            \multirow{4} * {\begin{minipage}[t]{0.1\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/Combine/diff_combine_example/Colored_FashionMNIST_red_6/origin.png}\end{minipage}} &
+            \multirow{6} * {\begin{minipage}[t]{0.1\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/Combine/diff_combine_example/Colored_FashionMNIST_red_6/origin.png}\end{minipage}} &
             \begin{minipage}[t]{0.08\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/Combine/diff_combine_example/Colored_FashionMNIST_red_6/SF22_RGB_convs_0_RM_CI.png}\end{minipage} &
             \begin{minipage}[t]{0.08\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/Combine/diff_combine_example/Colored_FashionMNIST_red_6/SF22_RGB_convs_1_RM_CI.png}\end{minipage} & 
             \begin{minipage}[t]{0.08\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/Combine/diff_combine_example/Colored_FashionMNIST_red_6/SF22_RGB_convs_2_RM_CI.png}\end{minipage} \\
@@ -1497,6 +1540,18 @@ Colored MNIST和Colored Fashion主要用於驗證模型在彩色影像的分類�
             \begin{minipage}[t]{0.08\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/Combine/diff_combine_example/Colored_FashionMNIST_red_6/SF22_Gray_convs_0_RM_CI.png}\end{minipage} &
             \begin{minipage}[t]{0.08\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/Combine/diff_combine_example/Colored_FashionMNIST_red_6/SF22_Gray_convs_1_RM_CI.png}\end{minipage} &
             \begin{minipage}[t]{0.08\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/Combine/diff_combine_example/Colored_FashionMNIST_red_6/SF22_Gray_convs_2_RM_CI.png}\end{minipage} \\
+            \cline{1-1}
+            \cline{3-5}
+            \multirow{2} * {SF31} &
+            &
+            \begin{minipage}[t]{0.08\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/Combine/diff_combine_example/Colored_FashionMNIST_red_6/SF31_RGB_convs_0_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.08\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/Combine/diff_combine_example/Colored_FashionMNIST_red_6/SF31_RGB_convs_1_RM_CI.png}\end{minipage} & 
+            \begin{minipage}[t]{0.08\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/Combine/diff_combine_example/Colored_FashionMNIST_red_6/SF31_RGB_convs_2_RM_CI.png}\end{minipage} \\
+            \cline{3-5}
+            & &
+            \begin{minipage}[t]{0.08\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/Combine/diff_combine_example/Colored_FashionMNIST_red_6/SF31_Gray_convs_0_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.08\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/Combine/diff_combine_example/Colored_FashionMNIST_red_6/SF31_Gray_convs_1_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.08\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/Combine/diff_combine_example/Colored_FashionMNIST_red_6/SF31_Gray_convs_2_RM_CI.png}\end{minipage} \\
             \cline{1-1}
             \cline{3-5}
             \multirow{2} * {SF61} &
@@ -1514,7 +1569,7 @@ Colored MNIST和Colored Fashion主要用於驗證模型在彩色影像的分類�
             %---------
 
             \multirow{2} * {SF22} &
-            \multirow{4} * {\begin{minipage}[t]{0.1\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/Combine/diff_combine_example/Colored_FashionMNIST_green_4/origin.png}\end{minipage}} &
+            \multirow{6} * {\begin{minipage}[t]{0.1\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/Combine/diff_combine_example/Colored_FashionMNIST_green_4/origin.png}\end{minipage}} &
             \begin{minipage}[t]{0.08\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/Combine/diff_combine_example/Colored_FashionMNIST_green_4/SF22_RGB_convs_0_RM_CI.png}\end{minipage} &
             \begin{minipage}[t]{0.08\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/Combine/diff_combine_example/Colored_FashionMNIST_green_4/SF22_RGB_convs_1_RM_CI.png}\end{minipage} & 
             \begin{minipage}[t]{0.08\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/Combine/diff_combine_example/Colored_FashionMNIST_green_4/SF22_RGB_convs_2_RM_CI.png}\end{minipage} \\
@@ -1525,6 +1580,20 @@ Colored MNIST和Colored Fashion主要用於驗證模型在彩色影像的分類�
             \begin{minipage}[t]{0.08\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/Combine/diff_combine_example/Colored_FashionMNIST_green_4/SF22_Gray_convs_2_RM_CI.png}\end{minipage} \\
             \cline{1-1}
             \cline{3-5}
+
+            \multirow{2} * {SF31} &
+             &
+            \begin{minipage}[t]{0.08\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/Combine/diff_combine_example/Colored_FashionMNIST_green_4/SF31_RGB_convs_0_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.08\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/Combine/diff_combine_example/Colored_FashionMNIST_green_4/SF31_RGB_convs_1_RM_CI.png}\end{minipage} & 
+            \begin{minipage}[t]{0.08\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/Combine/diff_combine_example/Colored_FashionMNIST_green_4/SF31_RGB_convs_2_RM_CI.png}\end{minipage} \\
+            \cline{3-5}
+            & &
+            \begin{minipage}[t]{0.08\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/Combine/diff_combine_example/Colored_FashionMNIST_green_4/SF31_Gray_convs_0_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.08\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/Combine/diff_combine_example/Colored_FashionMNIST_green_4/SF31_Gray_convs_1_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.08\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/Combine/diff_combine_example/Colored_FashionMNIST_green_4/SF31_Gray_convs_2_RM_CI.png}\end{minipage} \\
+            \cline{1-1}
+            \cline{3-5}
+
             \multirow{2} * {SF61} &
              &
             \begin{minipage}[t]{0.08\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/Combine/diff_combine_example/Colored_FashionMNIST_green_4/SF61_RGB_convs_0_RM_CI.png}\end{minipage} &
@@ -1536,11 +1605,12 @@ Colored MNIST和Colored Fashion主要用於驗證模型在彩色影像的分類�
             \begin{minipage}[t]{0.08\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/Combine/diff_combine_example/Colored_FashionMNIST_green_4/SF61_Gray_convs_1_RM_CI.png}\end{minipage} &
             \begin{minipage}[t]{0.08\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/Combine/diff_combine_example/Colored_FashionMNIST_green_4/SF61_Gray_convs_2_RM_CI.png}\end{minipage} \\
             \hline
-
+            \pagebreak
             %--------
 
+            \hline
             \multirow{2} * {SF22} &
-            \multirow{4} * {\begin{minipage}[t]{0.1\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/Combine/diff_combine_example/Colored_FashionMNIST_blue_0/origin.png}\end{minipage}} &
+            \multirow{6} * {\begin{minipage}[t]{0.1\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/Combine/diff_combine_example/Colored_FashionMNIST_blue_0/origin.png}\end{minipage}} &
             \begin{minipage}[t]{0.08\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/Combine/diff_combine_example/Colored_FashionMNIST_blue_0/SF22_RGB_convs_0_RM_CI.png}\end{minipage} &
             \begin{minipage}[t]{0.08\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/Combine/diff_combine_example/Colored_FashionMNIST_blue_0/SF22_RGB_convs_1_RM_CI.png}\end{minipage} & 
             \begin{minipage}[t]{0.08\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/Combine/diff_combine_example/Colored_FashionMNIST_blue_0/SF22_RGB_convs_2_RM_CI.png}\end{minipage} \\
@@ -1551,6 +1621,20 @@ Colored MNIST和Colored Fashion主要用於驗證模型在彩色影像的分類�
             \begin{minipage}[t]{0.08\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/Combine/diff_combine_example/Colored_FashionMNIST_blue_0/SF22_Gray_convs_2_RM_CI.png}\end{minipage} \\
             \cline{1-1}
             \cline{3-5}
+
+            \multirow{2} * {SF31} &
+             &
+            \begin{minipage}[t]{0.08\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/Combine/diff_combine_example/Colored_FashionMNIST_blue_0/SF31_RGB_convs_0_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.08\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/Combine/diff_combine_example/Colored_FashionMNIST_blue_0/SF31_RGB_convs_1_RM_CI.png}\end{minipage} & 
+            \begin{minipage}[t]{0.08\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/Combine/diff_combine_example/Colored_FashionMNIST_blue_0/SF31_RGB_convs_2_RM_CI.png}\end{minipage} \\
+            \cline{3-5}
+            & &
+            \begin{minipage}[t]{0.08\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/Combine/diff_combine_example/Colored_FashionMNIST_blue_0/SF31_Gray_convs_0_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.08\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/Combine/diff_combine_example/Colored_FashionMNIST_blue_0/SF31_Gray_convs_1_RM_CI.png}\end{minipage} &
+            \begin{minipage}[t]{0.08\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/Combine/diff_combine_example/Colored_FashionMNIST_blue_0/SF31_Gray_convs_2_RM_CI.png}\end{minipage} \\
+            \cline{1-1}
+            \cline{3-5}
+
             \multirow{2} * {SF61} &
              &
             \begin{minipage}[t]{0.08\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/Combine/diff_combine_example/Colored_FashionMNIST_blue_0/SF61_RGB_convs_0_RM_CI.png}\end{minipage} &
@@ -1568,15 +1652,20 @@ Colored MNIST和Colored Fashion主要用於驗證模型在彩色影像的分類�
     \pagebreak
 
     從上面兩個資料集的RM-CI我們可以觀察到，
-    不同的合併方式作用於相同的資料集所學習到的特徵也不盡相同，
-    而導致最後出來的可解釋性圖形的效果有所不同。
+    由於人在書寫數字時習慣從左到右或是從右到左，
+    所以大部分Colored MNIST中的數字都較為扁平，
+    線條大多為橫向，
+    因此SF-22的橫向合併方式對於Colored MNIST較能產生有效的可解釋性影像。
+    而Fashion MNIST則沒有此問題，
+    因此不管縱向或是橫向的合併方式均可以產生有效的有效的可解釋性影像，
+    甚至縱向的合併方式可以訓練出較高的準確度。
+    這也證明了不同的合併方式作用於相同的資料集所學習到的特徵也不盡相同，
+    而這也導致了最後出來的可解釋性圖形的效果也有所不同。
     因此我們在實務上還是需要根據資料集的圖像特性去測試不同的空間合併組合，
     來選擇最適合的該資料集的組合方式，達到最佳的解釋效果。
 
     \subsection{不同濾波器數目之比較}
-    本節將會呈現不同濾波器數目對模型的影響，
-    使用Colored MNIST的資料集比較兩種不同的濾波器數目，
-    除了濾波器數目參數 C 外均使用相同的參數設定。
+    本節將會比較不同濾波器數目對模型的影響，
     由於色彩感知區塊的濾波器固定為30種基礎色彩，
     因此我們能變更濾波器數目的區塊只有色彩特徵傳遞區塊、輪廓感知區塊、輪廓特徵傳遞區塊。
     第一種濾波器數目是按照前面的實驗設計，將C$^{color}_{1}$、C$^{color}_{2}$、C$^{gray}_{0}$、C$^{gray}_{1}$、C$^{gray}_{2}$分別設定為 225、625, 70, 625, 1225(簡稱normal-SFM)。
@@ -1617,7 +1706,6 @@ Colored MNIST和Colored Fashion主要用於驗證模型在彩色影像的分類�
     \subsection{不同相似度函數之比較}
     \label{chapter:diff-rbf-compare}
     本節將會呈現不同相似度函數對模型的影響，
-    使用Colored MNIST 和 Colored Fashion MNIST 的資料集比較兩種不同的卷積函數，
     分別是高斯函數 + cReLU函數(公式於\cref{eqn:rbf-gaussian-function}、\cref{eq:eq-cReLUPercent})和Triangle cReLU函數(公式於\cref{chapter:diff-rbf-compare})，
     在Triangle cReLU函數部分，色彩色彩的w從感知層到傳遞層分別設定為(1, 4.7, 4.31)，而輪廓部分的w從感知層到傳遞層分別設定為(4.6, 3.2, 4.17)
     其餘參數均使用與\cref{tab:ColoredModelparameters}相同的設定。
