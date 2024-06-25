@@ -28,7 +28,7 @@ with torch.no_grad():
 
 	# Load Model
 	models = {'SFMCNN': SFMCNN, 'RGB_SFMCNN':RGB_SFMCNN}
-	checkpoint_filename = '0614_RGB_SFMCNN_best_byupcr94'
+	checkpoint_filename = '0623_RGB_SFMCNN_best_x8s31ghm'
 	checkpoint = torch.load(f'./pth/{config["dataset"]}_pth/{checkpoint_filename}.pth')
 	model = models[arch['name']](**dict(config['model']['args']))
 	model.load_state_dict(checkpoint['model_weights'])
@@ -90,7 +90,7 @@ else:
 
 	FMs['Gray_convs_0'] = model.Gray_convs[0][0].weight.reshape(arch['args']['channels'][1][0],1,*kernel_size)
 	print(f'FM[Gray_convs_0] shape: {FMs["Gray_convs_0"].shape}')
-	FMs['Gray_convs_1'] = model.Gray_convs[2][0].weight.reshape(-1, 5, 6, 1)
+	FMs['Gray_convs_1'] = model.Gray_convs[2][0].weight.reshape(-1, 7, 10, 1)
 	print(f'FM[Gray_convs_1] shape: {FMs["Gray_convs_1"].shape}')
 	FMs['Gray_convs_2'] = model.Gray_convs[3][0].weight.reshape(-1, int(model.Gray_convs[3][0].weight.shape[1] ** 0.5), int(model.Gray_convs[3][0].weight.shape[1] ** 0.5), 1)
 	print(f'FM[Gray_convs_2] shape: {FMs["Gray_convs_2"].shape}')
@@ -102,31 +102,6 @@ if arch['args']['in_channels'] == 1:
 	layers[2] = nn.Sequential(*(list(model.convs[:2]) + list([model.convs[2][:2]])))
 	layers[3] = nn.Sequential(*(list(model.convs[:3]) + list([model.convs[3][:2]])))
 else:
-	# layers['RGB_Conv2d'] = model.RGB_conv2d[:2]
-	# layers['Gray_Conv2d'] = model.GRAY_conv2d[:2]
-
-	# def forward(image):
-	# 	with torch.no_grad():
-	# 		rgb_output = model.RGB_conv2d(image)
-	# 		gray_output = model.GRAY_conv2d(model.gray_transform(image))
-	# 		output = torch.concat(([rgb_output, gray_output]), dim=1)
-	# 		output = model.SFM(output)
-	# 		output = model.convs[0][:2](output)
-	# 	return output
-	# layers[1] = forward
-
-	# def forward(image):
-	# 	with torch.no_grad():
-	# 		rgb_output = model.RGB_conv2d(image)
-	# 		gray_output = model.GRAY_conv2d(model.gray_transform(image))
-	# 		output = torch.concat(([rgb_output, gray_output]), dim=1)
-	# 		output = model.SFM(output)
-	# 		output = nn.Sequential(
-	#             *model.convs[0],
-	#             model.convs[1][:2]
-	#         )(output)
-	# 	return output
-	# layers[2] = forward
 
 	layers['RGB_convs_0'] = model.RGB_convs[0]
 	layers['RGB_convs_1'] = nn.Sequential(*(list(model.RGB_convs[:2]) + list([model.RGB_convs[2][:2]])))
@@ -145,10 +120,6 @@ if arch['args']['in_channels'] == 1:
 	CIs[2], CI_idx, CI_values = get_ci(images, layers[2], kernel_size=kernel_size, stride=stride, sfm_filter=torch.prod(torch.tensor(arch['args']['SFM_filters'][:2]), dim=0))
 	CIs[3], CI_idx, CI_values = get_ci(images, layers[3], kernel_size=kernel_size, stride=stride, sfm_filter=torch.prod(torch.tensor(arch['args']['SFM_filters'][:3]), dim=0))
 else:
-	# CIs["RGB_Conv2d"], CI_idx, CI_values = get_ci(images, layers['RGB_Conv2d'], kernel_size, stride = stride)
-	# CIs["Gray_Conv2d"], CI_idx, CI_values = get_ci(model.gray_transform(images), layers['Gray_Conv2d'], kernel_size, stride = stride)
-	# CIs[1], CI_idx, CI_values = get_ci(images, layers[1], kernel_size=kernel_size, stride=stride, sfm_filter=torch.prod(torch.tensor(arch['args']['SFM_filters'][:1]), dim=0))
-	# CIs[2], CI_idx, CI_values = get_ci(images, layers[2], kernel_size=kernel_size, stride=stride, sfm_filter=torch.prod(torch.tensor(arch['args']['SFM_filters'][:2]), dim=0))
 
 	CIs["RGB_convs_0"], CI_idx, CI_values = get_ci(images, layers['RGB_convs_0'], kernel_size, stride = stride)
 	CIs["RGB_convs_1"], CI_idx, CI_values = get_ci(images, layers["RGB_convs_1"], kernel_size=kernel_size, stride=stride, sfm_filter=torch.prod(torch.tensor(arch['args']['SFM_filters'][:1]), dim=0))
@@ -159,28 +130,24 @@ else:
 	CIs["Gray_convs_2"], CI_idx, CI_values = get_ci(model.gray_transform(images), layers["Gray_convs_2"], kernel_size=kernel_size, stride=stride, sfm_filter=torch.prod(torch.tensor(arch['args']['SFM_filters'][:2]), dim=0))
 	
 
-# def get_RM_CI(layer_num, test_img, plot_shape = None, RM_CI_save_path = None):
-# 	RM = layers[layer_num](test_img.unsqueeze(0))[0]
-# 	if plot_map == None:
-# 		plot_shape = (int(RM.shape[0] ** 0.5),int(RM.shape[0] ** 0.5))
-# 	print(f"{layer_num}_RM: {RM.shape}")
-# 	RM_H, RM_W = RM.shape[1], RM.shape[2]
-# 	FM_H, FM_W = FMs[layer_num].shape[2], FMs[layer_num].shape[3]
-# 	RM_FM = FMs[layer_num][torch.topk(RM, k=1, dim=0, largest=True).indices.flatten()].permute(0,2,3,1).reshape(RM_H,RM_W,FM_H,FM_W,arch['args']['in_channels'])
-# 	CI_H, CI_W = CIs[layer_num].shape[2], CIs[layer_num].shape[3]
-# 	RM_CI = CIs[layer_num][torch.topk(RM, k=1, dim=0, largest=True).indices.flatten()].reshape(RM_H,RM_W,CI_H,CI_W,arch['args']['in_channels'])
-# 	RM_CIs[layer_num] = RM_CI
-# 	if RM_CI_save_path != None:
-# 		plot_map(RM.permute(1,2,0).reshape(RM_H,RM_W,*plot_shape,1).detach().numpy(), path=RM_save_path + f'{layer_num}_RM')
-# 		# plot_map(RM_FM.detach().numpy(), path=RM_CI_save_path + f'{layer_num}_RM_FM')
-# 		plot_map(RM_CI, path=RM_CI_save_path + f'{layer_num}_RM_CI')
-# 	return RM_CI
 
-
-if arch['args']['in_channels'] == 3:
+if config['dataset'] == 'Colored_MNIST' or config['dataset'] == 'Colored_FashionMNIST':
 	label_to_idx = {}
 	i = 0
 	for c in ['red', 'green', 'blue']:
+	    for n in range(10):
+	        label_to_idx[c+'_'+str(n)] = i
+	        i+=1
+	idx_to_label = {value: key for key, value in label_to_idx.items()}
+elif config['dataset'] == 'AnotherColored_MNIST' or config['dataset'] == 'AnotherColored_FashionMNIST':
+	label_to_idx = {}
+	colors = {
+            'brown': [151, 74, 0],
+            'light_blue': [121, 196, 208],
+            'light_pink': [221, 180, 212]
+        }
+	i = 0
+	for c in colors.keys():
 	    for n in range(10):
 	        label_to_idx[c+'_'+str(n)] = i
 	        i+=1
@@ -314,7 +281,7 @@ for test_id in range(450):
 
 		# Gray_convs_0
 		layer_num = 'Gray_convs_0'
-		plot_shape = (5,6)
+		plot_shape = (7,10)
 		print(model.gray_transform)
 		print(model.gray_transform(test_img.unsqueeze(0)).shape)
 		RM = layers[layer_num](model.gray_transform(test_img.unsqueeze(0)))[0]
@@ -353,40 +320,4 @@ for test_id in range(450):
 
 
 	plt.close('all')
-
-
-
-	# kernel_size = [arch['args']['Conv2d_kernel'][0], arch['args']['Conv2d_kernel'][0] * torch.prod(torch.tensor(arch['args']['SFM_filters'][:1])),\
-	# 	arch['args']['Conv2d_kernel'][0] * torch.prod(torch.tensor(arch['args']['SFM_filters'][:2]))]
-	# label = labels[test_id]
-
-	# for kernel_size, layer_name in zip(kernel_size, layer_names):
-	# 	if layer_name == 'Gray_Conv2d':
-    #         split_img = split(gray_transform(test_img).unsqueeze(0), kernel_size, stride=kernel_size)
-    #     else:
-    #         split_img = split(test_img.unsqueeze(0), kernel_size, stride=kernel_size)
-    #     split_img = split_img[0].permute(1,2,3,4,0).detach().numpy()
-
-    #     RM_CI = RM_CIs[layer_name]['RM_CI']
-    # 	RM_CI_idx = RM_CIs[layer_name]['RM_CI_idx']
-
-    # 	dist_arr = np.zeros((RM_CI.shape[:2]))
-    #     for i in range(RM_CI.shape[0]):
-    #         for j in range(RM_CI.shape[1]):
-    #             dist_arr[i][j] = cdist(split_img[i][j], RM_CI[i][j])
-
-    # 	dist_row_idx = dist_arr.argmin() // dist_arr.shape[1]
-    #     dist_col_idx = dist_arr.argmin() % dist_arr.shape[1]
-    #     train_img_idx = int(RM_CI_idx[dist_row_idx][dist_col_idx] // np.multiply(*dist_arr.shape))
-    #     voting[train_labels[train_img_idx].item()] += 1
-
-	# if max(list(voting.values())) == 1:
-	# 	pred = train_labels[train_img_idx].item()
-	# else:
-	# 	pred = max(voting, key=voting.get)
-
-
-
-
-
 

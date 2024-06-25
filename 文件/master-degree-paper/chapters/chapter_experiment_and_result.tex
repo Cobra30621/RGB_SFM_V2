@@ -6,7 +6,7 @@
 
 \chapter{實驗設計與結果}
 \section{資料集介紹}
-本研究主要使用三種資料集，MNIST、Colored MNIST、Colored Fashion MNIST。
+本研究主要使用三種資料集，MNIST\cite{726791}、Colored MNIST、Colored Fashion MNIST。
 MNIST和Fashion MNIST都是現在被廣泛運用在機器學習領域的資料集，
 MNIST是手寫數字影像資料集、Fashion MNIST服飾影像資料集。 
 Colored MNIST和Colored Fashion MNIST則是將MNIST和Fashion MNIST塗上紅、藍、綠三種不同的顏色組成。
@@ -19,7 +19,7 @@ Colored MNIST和Colored Fashion主要用於驗證模型在彩色影像的分類�
     影像大小為28*28並且每個影像均為灰階影像。
     該資料集共有60000筆訓練資料，10000筆測試資料
 
-    \fig[0.5][fig:MNIST-Dataset-picture][H]{chapter4/MNIST.png}[MNIST資料集][MNIST資料集]
+    \fig[1][fig:MNIST-Dataset-picture][H]{chapter4/MNIST.png}[MNIST資料集][MNIST資料集]
     \pagebreak
     \subsection{Colored MNIST 資料集}
     在MNIST的資料集上，塗上紅、藍、綠三種顏色，
@@ -43,7 +43,7 @@ Colored MNIST和Colored Fashion主要用於驗證模型在彩色影像的分類�
     \fig[1][fig:Colored-MNIST-Dataset-picture][H]{chapter4/Colored_MNIST.png}[Colored MNIST資料集][Colored MNIST資料集]
     \pagebreak
     \subsection{Colored Fashion MNIST 資料集}
-    Fashion MNIST的資料集是由10種不同的鞋類和服裝組成的灰階影像資料集，
+    Fashion MNIST\cite{xiao2017fashionmnist}的資料集是由10種不同的鞋類和服裝組成的灰階影像資料集，
     其分類包含有T-Shirt/Top、Trouser、Pullover、Dress、Coat、Sandals、Shirt、Sneaker、Bag、Ankle boot等10類。
     Colored Fashion MNIST便是將Fashion MNIST資料集中的灰階影像塗上紅、藍、綠三種顏色，
     形成紅、藍、綠三色的10類服飾的彩色服飾資料集，如\cref{fig:Colored-Fashion-MNIST-Dataset-picture}。
@@ -81,6 +81,8 @@ Colored MNIST和Colored Fashion主要用於驗證模型在彩色影像的分類�
     $stride_{i}$代表第0~$\sim$ L-1層中高斯卷積模組中的步長；
     $p_{i}$代表第0~$\sim$ L-1層中特徵增強模組中希望保留的$RM$元素的百分比參數 $p\%$；
     $SF_{i}$代表第0~$\sim$ L-2層中空間濾波器的大小並且在(L-1)層不進行空間合併。
+
+    \fig[1][fig:mnist_gray_arch][H]{Chapter4/MNIST_arch.png}[MNIST實驗模型架構圖][MNIST實驗模型架構圖]
 
     \begin{table}[H]
         \centering
@@ -121,13 +123,14 @@ Colored MNIST和Colored Fashion主要用於驗證模型在彩色影像的分類�
     \end{table}
 
 
-    \subsection{Colored MNIST 和 Colored Fashion 實驗設計}
+    \subsection{彩色資料集實驗設計}
     在彩色資料集實驗中，
     我們設定色彩特徵傳遞區塊為兩層，
     其濾波器數目由前到後將C$^{color}_{1}$、C$^{color}_{2}$分別設定為225、625；
     輪廓感知區塊固定一層，其濾波器數目C$^{gray}_{0}$設定為70；
     輪廓特徵傳遞區塊設定為兩層，
-    其濾波器數目由前到後將C$^{gray}_{1}$、C$^{gray}_{2}$分別設定為625、1225；
+    其濾波器數目由前到後將C$^{gray}_{1}$、C$^{gray}_{2}$分別設定為625、1225。
+    其架構如\cref{fig:combine_arch}。
 
     為了方便人們對於模型去進行理解和色彩與輪廓解釋性圖片的對應，
     在色彩感知區塊和輪廓感知區塊我們會使用相同濾波器大小、相同步長，
@@ -1077,15 +1080,16 @@ Colored MNIST和Colored Fashion主要用於驗證模型在彩色影像的分類�
 \pagebreak
 
 \section{實驗分析}
-    \subsection{特徵傳遞區塊之優化效果}
+    \subsection{對CIM優化後的效果}
     本節我們將比較本研究之模型與CIM的效能之比較。
-    在\cref{chapter:chapter3.4}中我們詳細說明了本論文模型在特徵傳遞區塊是
-    以CIM為基礎進行了對高斯卷積模組、特徵強化模組、空間位置保留機制改進而成。
+    在第三章中我們詳細說明了本論文模型
+    以CIM為基礎進行了對高斯卷積模組、特徵強化模組、空間合併機制進行了優化和改進。
     因此在MNIST資料集的實驗中，
     我們盡可能保持輪廓感知區塊與輪廓特徵傳遞層的各項參數與CIM的一致，
     以驗證這些優化對效能與準確率的提升效果。
     根據MNIST的實驗結果(\cref{tab:update-experiment})我們發現，
-    我們在\cref{chapter:chapter3.4}進行的優化可以有效的提升測試準確度並所短訓練時間。
+    我們進行的優化確實可以在不改變可解釋性的情況下，
+    有效的提升測試準確度並所短訓練時間。
     具體而言，優化後的模型
     使測試準確率提升0.2\%，
     訓練時間可以縮短30\%，
