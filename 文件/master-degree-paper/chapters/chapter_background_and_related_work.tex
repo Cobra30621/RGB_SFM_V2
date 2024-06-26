@@ -62,7 +62,7 @@
 \end{figure}
 \pagebreak
 
-此外，在Jeff Hawkins的著作\cite{10.5555/993636}和《Principles of Neural Science》\cite{1180370208}中均有提到，
+此外，在Jeff Hawkins的著作\cite{10.5555993636}和《Principles of Neural Science》\cite{1180370208}中均有提到，
 視網膜能接收到的影像資訊不只是上述的空間性資訊，
 同時也具有不同時間性的資訊，這代表同樣的影像進入視網膜的型態是會隨時間而改變。
 具體而言，眼睛會在每一秒鐘快速移動視線的焦點三到四次(如\cref{fig:Saccade})，
@@ -163,7 +163,7 @@ CNN-based Interpretable Model(CIM)\cite{YangCNNInterpretable}為 Yang 等人於2
 
 \subsubsection{模型架構}
 該模型採用多層結構，
-每層由三個部分組成: 高斯卷積模組、特徵增強模組、空間位置保留合併模組，
+每層由三個部分組成: 高斯卷積模組、整流線性單位函數、空間位置保留機制，
 整體模型架構如\cref{fig:CIM_arch}，
 \begin{figure}[H]
   \centering
@@ -176,7 +176,7 @@ CNN-based Interpretable Model(CIM)\cite{YangCNNInterpretable}為 Yang 等人於2
 高斯卷積模組使用高斯函數取代原始卷積操作中的內積操作來對輸入進行特徵提取，
 使得該模組計算的結果具有相似度的意義並且此特性也被運用在後續的可解釋性中。\\
 
-特徵增強模組使用該論文中新提出變形的ReLU函數稱為changed ReLU(簡稱為cReLU)，
+可過濾整流線性單位函數使用該論文中新提出變形的ReLU函數稱為changed ReLU(簡稱為cReLU)，
 來過濾不重要的特徵使得後續的解釋性可以有更好的發揮。
 cReLU公式於\cref{eq:eq-crelu}，$c$為人工取的一個閥值，
 \begin{equation}
@@ -189,7 +189,7 @@ cReLU公式於\cref{eq:eq-crelu}，$c$為人工取的一個閥值，
     \end{cases}
 \end{equation}
 
-空間位置保留合併機制為該論文所提出來的全新機制，
+空間位置保留機制為該論文所提出來的全新機制，
 文中他們將一組輸入在經過高斯卷積和特徵增強後產生的輸出稱為$RM$,
 而一張影像又擁有多組資訊，從而產生出多張屬於這個影像的$RM$。
 合併公式如\cref{eq:eq-sf}，$RM_{c}$為合併後的RM，
