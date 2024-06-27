@@ -75,6 +75,10 @@
 		\item[]\textit{RM}$^{gray}_{i}$：輪廓特徵傳遞區塊第i層之高斯卷積模組的\textit{RM}, i = 1$\sim$L
 		\item[]\textit{CI}$^{gray}_{i}$：輪廓特徵傳遞區塊第i層之高斯卷積模組的\textit{CI}$_{i}$的對應影像, i = 1$\sim$L
 		\item[]\textit{C}$^{gray}_{i}$, \textit{H}$^{color}_{i}$, \textit{W}$^{color}_{i}$：輪廓特徵傳遞區塊第i層之輸出的通道數、長、寬, i = 1$\sim$L
+
+
+		\item[]\textit{SF}$_{i}$：第i層的空間合併模組的濾波器大小(Spatial Filter)
+		\item[]\textit{H}$^{i}_{SF}$、\textit{W}$^{i}_{SF}$：第i層的空間合併模組輸出的長、寬
 	\end{description}
 \subsection{演算法流程}
 Step 1：決定整個模型的架構與參數，色彩特徵傳遞區塊與輪廓特徵傳遞區塊之層數均為L
@@ -128,7 +132,7 @@ Step 6：計算 loss value 並進行反向傳播
 
 			\fig[0.5][fig:PCCS][H]{chapter3/PCCS.jpg}[PCCS體系的24色色相環\cite{PCCScite}][PCCS體系的24色色相環]
 
-			\fig[1][fig:30Base][H]{chapter3/30BaseColor.png}[濾波器設定的基礎30色][濾波器設定的基礎30色]
+			\fig[0.5][fig:30Base][H]{chapter3/30BaseColor.png}[濾波器設定的基礎30色][濾波器設定的基礎30色]
 
 		\subsubsection{彩色卷積模組}
 			在傳統的卷積操作中，
@@ -215,7 +219,7 @@ Step 6：計算 loss value 並進行反向傳播
 		透過上面步驟的前處理，
 		我們從而可以確保輪廓感知區塊能夠專注於提取輪廓的特徵。
 
-		\fig[0.7][fig:SFN_update][H]{chapter3/grayscale.png}[灰階前處理示意圖][灰階前處理示意圖]
+		\fig[0.7][fig:grayscale][H]{chapter3/grayscale.png}[灰階前處理示意圖][灰階前處理示意圖]
 
 	\subsection{高斯卷積模組的設計與實現}
 		\subsubsection{濾波器初始化}
@@ -385,7 +389,42 @@ Step 6：計算 loss value 並進行反向傳播
 	由於模型在高斯卷積模組為計算輸入濾波器與相似度，
 	因此FM可以被視為模型學習到了輸入影像中的何種特徵。
 
-	\fig[0.7][fig:FM_picture][H]{chapter3/FM.png}[FM示意圖][FM示意圖]
+	\fig[0.5][fig:FM_picture][H]{chapter3/FM.png}[FM示意圖][FM示意圖]
+
+	\begin{figure}[H]
+    \centering
+    \subcaptionbox
+        {$FM^{color}_0$
+        \label{fig:FM_color_0}}
+        {\includegraphics[width=0.3\linewidth]{chapter3/FMs/FMs_RGB_convs_0.png}}
+    ~
+    \subcaptionbox
+        {$FM^{color}_1$
+        \label{fig:FM_color_1}}
+        {\includegraphics[width=0.3\linewidth]{chapter3/FMs/FMs_RGB_convs_1.png}}
+    ~
+    \subcaptionbox
+        {$FM^{color}_2$
+        \label{fig:FM_color_2}}
+        {\includegraphics[width=0.3\linewidth]{chapter3/FMs/FMs_RGB_convs_2.png}}
+
+     \subcaptionbox
+        {$FM^{gray}_0$
+        \label{fig:FM_gray_0}}
+        {\includegraphics[width=0.3\linewidth]{chapter3/FMs/FMs_Gray_convs_0.png}}
+    ~
+    \subcaptionbox
+        {$FM^{gray}_1$
+        \label{fig:FM_gray_1}}
+        {\includegraphics[width=0.3\linewidth]{chapter3/FMs/FMs_Gray_convs_1.png}}
+    ~
+    \subcaptionbox
+        {$FM^{gray}_2$
+        \label{fig:FM_gray_2}}
+        {\includegraphics[width=0.3\linewidth]{chapter3/FMs/FMs_Gray_convs_2.png}}
+    \caption{架構中各層的FM範例}
+    \label{fig:FMs}
+	\end{figure}
 
 	特徵映射響應圖(RM)為當輸入進入卷積模組後所得到的輸出進行維度轉換後的結果，
 	其代表的是輸入區域對於該高斯卷積模組的濾波器的相似度，
@@ -403,10 +442,76 @@ Step 6：計算 loss value 並進行反向傳播
 	人類已無法去解讀出FM的意義。
 	因此我們需要透過CI來找出該濾波器與何種影像最相似，
 	幫助使用者理解FM代表的特徵長相。
+	每一個區塊每一層的高斯卷積模組的濾波器都會有屬於自己的對應CI影像。
+	產生CI的流程如下：
+	\begin{itemize}
+		\item [1]
+		決定要產生CI的目標濾波器
+		\item [2]
+		將訓練資料集所有影像按照感知區塊之高斯模型的kernel大小進行分割
+		\item [3]
+		分析在目標濾波器所屬的高斯模組前是否有經過空間合併模組。\\
+		如果有，則將分割影像按照空間合併範圍進行合併。
+		\item [4]
+		將所有資料集影像輸入進模型，並且記錄該濾波器所有的輸出
+		\item [5]
+		選出該濾波器所有的輸出的最大值，並且找出該最大值的原來位置
+		\item [6]
+		選擇該位置在分割影像中的對應小圖作為目標濾波器的對應CI
+	\end{itemize}
+
+
+	\begin{figure}[H]
+	\centering
+	\label{fig:CI_generator_0}
+	\captionsetup{justification=centering}
+	\caption{色彩感知區塊與輪廓感知區塊的CI產生流程示意圖 \\ 以輪廓感知區塊的高斯卷積模組為例}
+	\includegraphics[width=0.7\textwidth]{chapter3/CI_genenrator_0.png}
+	\end{figure}
+
+	\fig[0.7][fig:CI_generator_1][H]{chapter3/CI_genenrator_1.png}[特徵傳遞區塊之CI產生流程示意圖 \\
+	以輪廓特徵傳遞區塊的第一層為例][特徵傳遞區塊之CI產生流程示意圖]
+
+	\begin{figure}[H]
+    \centering
+    \subcaptionbox
+        {$CI^{color}_0$
+        \label{fig:CI_color_0}}
+        {\includegraphics[width=0.3\linewidth]{chapter3/CIs/CIs_RGB_convs_0.png}}
+    ~
+    \subcaptionbox
+        {$CI^{color}_1$
+        \label{fig:CI_color_1}}
+        {\includegraphics[width=0.3\linewidth]{chapter3/CIs/CIs_RGB_convs_1.png}}
+    ~
+    \subcaptionbox
+        {$CI^{color}_2$
+        \label{fig:CI_color_2}}
+        {\includegraphics[width=0.3\linewidth]{chapter3/CIs/CIs_RGB_convs_2.png}}
+
+     \subcaptionbox
+        {$CI^{gray}_0$
+        \label{fig:CI_gray_0}}
+        {\includegraphics[width=0.3\linewidth]{chapter3/CIs/CIs_Gray_convs_0.png}}
+    ~
+    \subcaptionbox
+        {$CI^{gray}_1$
+        \label{fig:CI_gray_1}}
+        {\includegraphics[width=0.3\linewidth]{chapter3/CIs/CIs_Gray_convs_1.png}}
+    ~
+    \subcaptionbox
+        {$CI^{gray}_2$
+        \label{fig:CI_gray_2}}
+        {\includegraphics[width=0.3\linewidth]{chapter3/CIs/CIs_Gray_convs_2.png}}
+    \caption{架構中各層的CI範例}
+    \label{fig:CIs}
+	\end{figure}
+
 
 	RM-CI為根據輸入影像在某層的卷積模組的每一張RM的最大反應的位置來
 	找到對應位置的CI影像。
 
+	\pagebreak
 	\subsection{色彩感知區塊之視覺化}
 	在色彩感知區塊濾波器本身即可被視為 \textit{C}$^{color}_{0}$ 個不同RGB顏色，
 	並且這個特性導致FM不會學習到輪廓的特徵。
@@ -431,8 +536,10 @@ Step 6：計算 loss value 並進行反向傳播
 		\item [4]
 		找出對應CI的代表色並擴張成與原始CI相同大小的色塊
 		\item [5]
-		利用色塊組出輸入影像在該層的代表影像
+		利用色塊組出輸入影像在該層的代表影像(RM-CI)
 	\end{itemize}
+
+	\fig[0.7][fig:RMCI_Color_generator][H]{chapter3/RMCI_Color_generator.png}[色彩感知區塊產生RM-CI流程圖][色彩感知區塊產生RM-CI流程圖]
 
 	\pagebreak
 
@@ -464,8 +571,10 @@ Step 6：計算 loss value 並進行反向傳播
 		\item [5]
 		找出各個小圖的代表色並擴張成與原始CI相同大小的色塊
 		\item [6]
-		利用色塊組出輸入影像在該層的代表影像
+		利用色塊組出輸入影像在該層的代表影像(RM-CI)
 	\end{itemize}
+
+	\fig[0.7][fig:RMCI_color_transfer][H]{chapter3/RMCI_color_transfer.png}[色彩特徵傳遞區塊產生RM-CI流程圖][色彩特徵傳遞區塊產生RM-CI流程圖]
 	\pagebreak
 
 	\subsection{輪廓感知區塊和輪廓特徵傳遞區塊之視覺化}
@@ -482,8 +591,11 @@ Step 6：計算 loss value 並進行反向傳播
 		\item [3]
 		根據RM的最大反應位置找出對應的CI
 		\item [4]
-		利用CI組出輸入影像在該層的代表影像
+		利用CI組出輸入影像在該層的代表影像(RM-CI)
 	\end{itemize}
+
+	\fig[0.7][fig:RMCI_gray][H]{chapter3/RMCI_gray.png}[輪廓感知區塊和輪廓特徵傳遞區塊產生RM-CI流程圖 \\ 
+	以輪廓感知區塊為例][輪廓感知區塊和輪廓特徵傳遞區塊產生RM-CI流程圖]
 
 \pagebreak
 
