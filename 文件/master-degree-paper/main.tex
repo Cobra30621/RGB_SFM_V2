@@ -33,14 +33,14 @@
         % % \IfFileExists{\letterPubReq}{
         % %     \cleardoublepage
         % %     \includepdf{\letterPubReq}}{}       
-        % 指導教授推薦書
-        \IfFileExists{\letterRecom}{
-           \cleardoublepage
-           \includepdf{\letterRecom}}{}
-        % 口試委員審定書
-        \IfFileExists{\letterVerif}{
-            \cleardoublepage
-            \includepdf{\letterVerif}}{}
+        % % 指導教授推薦書
+        % \IfFileExists{\letterRecom}{
+        %    \cleardoublepage
+        %    \includepdf{\letterRecom}}{}
+        % % 口試委員審定書
+        % \IfFileExists{\letterVerif}{
+        %     \cleardoublepage
+        %     \includepdf{\letterVerif}}{}
         \cleardoublepage
         
         %%%%%%%%%%%% Other frontmatter, eg,abstract %%%%%%%%%%%%
@@ -49,14 +49,14 @@
         \input{chapters/abstract_en} % en 英文摘要
         \input{chapters/acknowledgements} % 誌謝(可略)
  
-        % 論文相似度比對報告電子回條
-        \IfFileExists{\letterThesisSim}{
-           \cleardoublepage
-           \includepdf{\letterThesisSim}}{}
-        % 學術倫理修課證明
-        \IfFileExists{\letterCareCert}{
-           \cleardoublepage
-           \includepdf{\letterCareCert}}{}
+        % % 論文相似度比對報告電子回條
+        % \IfFileExists{\letterThesisSim}{
+        %    \cleardoublepage
+        %    \includepdf{\letterThesisSim}}{}
+        % % 學術倫理修課證明
+        % \IfFileExists{\letterCareCert}{
+        %    \cleardoublepage
+        %    \includepdf{\letterCareCert}}{}
         % 遠距口試申請
         % \IfFileExists{\letterRemoteExam}{
         %    \cleardoublepage

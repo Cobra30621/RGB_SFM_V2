@@ -33,32 +33,32 @@
 \fig[0.5][fig:gray_arch][H]{chapter3/gray_arch.png}[輪廓感知區塊架構圖][輪廓感知區塊架構圖]
 
 特徵傳遞區塊為多層架構，
-以CIM為基礎，
-對高斯卷積模組、特徵強化模組、空間合併模組
-每層均使用
-高斯卷積模組、
-響應篩選模組、
-空間合併模組對輸入的特徵進行學習與合併。
+使用了高斯卷積模組、特徵強化模組、空間合併模組
+負責處理和學習前面感知區塊所提取的特徵。
 
 \fig[0.5][fig:combine_arch][H]{chapter3/combine_arch.png}[特徵傳遞區塊架構圖][特徵傳遞區塊架構圖]
 
 此外，為了在訓練之後使用者可以對彩色和灰階的可解釋性圖片進行對照，
 因此我們對模型加入了一個限制，
-限制色彩特徵傳遞區塊和輪廓特徵傳遞區塊的層數和空間合併方式必須相同。
+限制色彩特徵傳遞區塊和輪廓特徵傳遞區塊的層數和空間合併方式必須相同並且
+色彩感知區塊和輪廓感知區塊的高斯卷積模組 Filter 長寬必須相同。
 
 \pagebreak
 
 \subsection{模型符號說明}
-	由於本研究在可解釋性部分採用了CIM中的特徵圖解析方法來解析本論文模型的決策過程，
-	因此在各個區塊我們均會產生特徵映射圖(Feature Map, FM)、特徵映射響應圖(Response Image, RM)和特徵映射圖之對應影像(Corresponding Image, CI)作為可解釋性的核心要素。
-	具體的產生過程將會在\cref{section:InterablePicture}去介紹。
-
 	\begin{description}
 		\item[]\textit{B}$_{in}$, \textit{H}$_{in}$, \textit{W}$_{in}$：輸入影像之長、寬
 
+		\item[]\textit{FM}：卷積模組之濾波器
+		\item[]\textit{RM}：輸入經過卷積模組和響應篩選模組所輸出的結果
+		\item[]\textit{CI}：卷積模組之濾波器在資料集的對應影像
+		\item[]\textit{SF}$_{i}$：第i層的空間合併模組的濾波器大小(Spatial Filter)
+		\item[]\textit{H}$^{i}_{SF}$、\textit{W}$^{i}_{SF}$：第i層的空間合併模組輸出的長、寬
+
 		\item[]\textit{FM}$^{color}_{0}$：色彩感知區塊之彩色卷積模組的\textit{FM}
 		\item[]\textit{RM}$^{color}_{0}$：色彩感知區塊之彩色卷積模組的\textit{RM}
-		\item[]\textit{CI}$^{color}_{0}$：色彩感知區塊之彩色卷積模組的\textit{CI}
+		\item[]\textit{CI}$^{color}_{0}$：色彩感知區塊之彩色卷積模組的\textit{FM}的對應影像
+		\item[]\textit{H}$^{color}_{Filter}$, {W}$^{color}_{Filter}$： 色彩感知區塊之彩色卷積模組的濾波器長、寬
 		\item[]\textit{C}$^{color}_{0}$, {H}$^{color}_{0}$, {W}$^{color}_{0}$：色彩感知區塊之輸出的通道數、長、寬
 
 		\item[]\textit{FM}$^{color}_{i}$：色彩特徵傳遞區塊第i層之高斯卷積模組的\textit{FM}, i = 1$\sim$L
@@ -68,29 +68,27 @@
 		
 		\item[]\textit{FM}$^{gray}_{0}$：輪廓感知區塊之高斯卷積模組的\textit{FM}
 		\item[]\textit{RM}$^{gray}_{0}$：輪廓感知區塊之高斯卷積模組的\textit{RM}
-		\item[]\textit{CI}$^{gray}_{0}$：輪廓感知區塊之高斯卷機模組的\textit{CI}$_{gray}$的對應影像
-		\item[]\textit{C}$^{gray}_{i}$, \textit{H}$^{gray}_{0}$, {W}$^{gray}_{0}$：輪廓感知區塊之輸出的通道數、長、寬
+		\item[]\textit{CI}$^{gray}_{0}$：輪廓感知區塊之高斯卷積模組的\textit{FM}$^{gray}_{0}$的對應影像
+		\item[]\textit{H}$^{gray}_{Filter}$, {W}$^{gray}_{Filter}$： 輪廓感知區塊之高斯卷積模組的濾波器長、寬
+		\item[]\textit{C}$^{gray}_{0}$, \textit{H}$^{gray}_{0}$, {W}$^{gray}_{0}$：輪廓感知區塊之輸出的通道數、長、寬
 
 		\item[]\textit{FM}$^{gray}_{i}$：輪廓特徵傳遞區塊第i層之高斯卷積模組的\textit{FM}, i = 1$\sim$L
 		\item[]\textit{RM}$^{gray}_{i}$：輪廓特徵傳遞區塊第i層之高斯卷積模組的\textit{RM}, i = 1$\sim$L
 		\item[]\textit{CI}$^{gray}_{i}$：輪廓特徵傳遞區塊第i層之高斯卷積模組的\textit{CI}$_{i}$的對應影像, i = 1$\sim$L
 		\item[]\textit{C}$^{gray}_{i}$, \textit{H}$^{color}_{i}$, \textit{W}$^{color}_{i}$：輪廓特徵傳遞區塊第i層之輸出的通道數、長、寬, i = 1$\sim$L
-
-
-		\item[]\textit{SF}$_{i}$：第i層的空間合併模組的濾波器大小(Spatial Filter)
-		\item[]\textit{H}$^{i}_{SF}$、\textit{W}$^{i}_{SF}$：第i層的空間合併模組輸出的長、寬
 	\end{description}
+
 \subsection{演算法流程}
 Step 1：決定整個模型的架構與參數，色彩特徵傳遞區塊與輪廓特徵傳遞區塊之層數均為L
 
-Step 2：對輸入的彩色影像做灰階前處理產生對應的灰階影像，此時彩色影像
+Step 2：對輸入的彩色影像做灰階前處理產生對應的灰階影像
 
 Step 3：將彩色影像(B$_{in}$, 3, H$_{in}$, W$_{in}$)和灰階影像(B$_{in}$, 1, H$_{in}$, W$_{in}$)分別輸入色彩提取層和輪廓提取層。各自的輸出為色彩輸出(B$_{in}$, 30, H$^{color}_{0}$, W$^{color}_{0}$)，灰階輸出(B$_{in}$, C${_{gray}}$, H$^{gray}_{0}$, W$^{gray}_{0}$)
 
 Step 4：將色彩輸出和灰階輸出分別輸入進各自的特徵傳遞層進行綜合特徵的學習與合併，
 		最終會獲得色彩特徵(B$_{in}$, C$^{color}_{L}$, H$^{color}_{L}$, W$^{color}_{L}$), 灰階特徵(B$_{0}$, C$^{gray}_{L}$, H$^{gray}_{L}$, W$^{gray}_{L}$)
 
-Step 5：將色彩特徵與灰階特徵攤平concat成為(B$_{in}$, C$^{Linear}_{in}$)並輸入進全連接層學習分類特徵
+Step 5：將色彩特徵與灰階特徵攤平後concat成為(B$_{in}$, C$^{Linear}_{in}$)並輸入進全連接層學習分類特徵
 
 Step 6：計算 loss value 並進行反向傳播
 
@@ -98,41 +96,37 @@ Step 6：計算 loss value 並進行反向傳播
 \pagebreak
 
 \section{卷積模組設計與實現}
-	\subsection{卷積模組之實作優化}
-		在CIM的高斯卷積模組實作上，
-		採用了逐個計算每個 Windows 和濾波器之間的歐氏距離並將結果輸入進高斯函數得出相似度。
-		我們改進了這個實作過程，利用了 GPU 的多核優勢，
-		將每次卷積的所有位置的 Windows 取出來後平行放入 GPU 的多個核心，
-		同時計算這些 Windows 與濾波器的歐氏距離再輸入高斯函數中得出相似度，
-		並將這個平行處理方式應用在所有的卷積模組中。
-		這樣的實作方式使得整體模型的訓練速度可以大幅提高，
-		也完整利用GPU的效能，提升了模型效率。
+	% \subsection{卷積模組之實作優化}
+	% 	在CIM的高斯卷積模組實作上，
+	% 	採用了逐個計算每個 Windows 和濾波器之間的歐氏距離並將結果輸入進高斯函數得出相似度。
+	% 	我們改進了這個實作過程，利用了 GPU 的多核優勢，
+	% 	將每次卷積的所有位置的 Windows 取出來後平行放入 GPU 的多個核心，
+	% 	同時計算這些 Windows 與濾波器的歐氏距離再輸入高斯函數中得出相似度，
+	% 	並將這個平行處理方式應用在所有的卷積模組中。
+	% 	這樣的實作方式使得整體模型的訓練速度可以大幅提高，
+	% 	也完整利用GPU的效能，提升了模型效率。
 
 	\subsection{彩色卷積模組的設計與實現}
 		彩色卷積模組為色彩感知區塊的卷積模組，
-		該模組主要是透過將濾波器(Filter)設定30個調色基礎顏色來作為該區塊的權重，
-		並使用彩色卷積模組計算出影像中不同區塊之色彩與filter的相似度。
-		這樣的方法目的在於分析輸入影像的色彩在基礎顏色中的成分後，
-		透過卷積操作來去模擬人眼的眼球跳動，
-		從而重現人眼獲得色彩特徵的效果。
+		該模組主要是透過將濾波器(Filter)設定30個調色基礎顏色的色塊來作為該區塊的權重，
+		並使用彩色卷積模組計算出影像中不同區塊之色彩與Filter色彩的響應值。
 		以下將針對濾波器之設計、彩色卷積模組，兩個部分進行詳細說明。
-		\pagebreak
 		
-
 		\subsubsection{濾波器之設計}
 			由於色彩提取區塊的輸入為彩色影像其輸入通道分別為紅、綠、 藍三色的通道，
 			我們設定輸出的通道數為固定為30，
-			並且將濾波器的形狀設為 $\left(30 , 3\right)$，以表示為30種不同RGB色彩。
+			使得濾波器的形狀為 $\left(30 , 3, H^{color}_{Filter},  W^{color}_{Filter} \right)$，
+			並將其為 30 種不同RGB色彩的$H^{color}_{Filter} * W^{color}_{Filter}$色塊。
 
 			在30種不同色彩的選擇上，
-			我們利用日本色彩研究所於1965年提出的PCCS(Pratical Color Co-ordinate System)中的24色相環中(如\cref{fig:PCCS}所示)的顏色，
+			我們採用日本色彩研究所於1965年提出的PCCS(Pratical Color Co-ordinate System)中的24色相環中(如\cref{fig:PCCS}所示)的顏色，
 			再加上紅、綠、藍、黑、白、灰六個基礎色組成。
 			由於以上的30色均為基礎顏色(如\cref{fig:30Base})，
-			因此我們希望透過計算不同區塊的色彩與這些基礎顏色的相似度來獲得區塊的色彩成分。
+			因此我們希望透過計算不同區塊的色彩與這些基礎顏色的響應值來當作區塊的色彩特徵。
 
-			\fig[0.5][fig:PCCS][H]{chapter3/PCCS.jpg}[PCCS體系的24色色相環\cite{PCCScite}][PCCS體系的24色色相環]
+			\fig[0.4][fig:PCCS][H]{chapter3/PCCS.jpg}[PCCS體系的24色色相環\cite{PCCScite}][PCCS體系的24色色相環]
 
-			\fig[0.5][fig:30Base][H]{chapter3/30BaseColor.png}[濾波器設定的基礎30色][濾波器設定的基礎30色]
+			\fig[0.4][fig:30Base][H]{chapter3/30BaseColor.png}[濾波器設定的基礎30色][濾波器設定的基礎30色]
 
 		\subsubsection{彩色卷積模組}
 			在傳統的卷積操作中，
@@ -145,6 +139,8 @@ Step 6：計算 loss value 並進行反向傳播
 			之後我們計算Windows的代表色與濾波器中不同的顏色的色差，
 			並且利用高斯函數取代內積運算將色差轉換為相似度，
 			以相似度作為反應強度進行輸出。
+
+			\fig[0.5][fig:colorConvolution][H]{chapter3/color_convolution.png}[彩色卷積示意圖][彩色卷積示意圖]
 
 			在色差的計算上，我們曾經考慮過下面三種不同的色差計算方法，分別如下：
 			\begin{itemize}
@@ -164,9 +160,9 @@ Step 6：計算 loss value 並進行反向傳播
 			  \item [2)]
 			  	由CompuPhase公司提出的一種低成本的加權歐氏距離公式\cite{LABformula}(簡稱LAB Euclidean)，
 			  	它的權重由RGB中的紅色在色彩中的分量多少而決定。
-			  	這種色差計算方法的好處是利用這個公式便可以用兩個顏色的RGB值計算出接近CIE L*u*v(CIEL*a*b)空間中的距離，
+			  	這種色差計算方法的好處是利用這個公式便可以用兩個顏色的RGB值計算出接近CIE L*a*b(CIE L*u*v)空間中的距離，
 			  	同時這套公式也被使用在CompuPhase自己的產品中。
-			  	CIELAB是由國際照明委員會提出的色彩空間，
+			  	CIE L*a*b是由國際照明委員會提出的色彩空間，
 			  	是目前描述人眼可見所有顏色最完整的色彩空間，
 			  	因此在CIELAB的距離也會較RGB空間之距離更接近人眼所視。
 			  	其公式如\cref{eq:eq-LAB}，
@@ -182,6 +178,9 @@ Step 6：計算 loss value 並進行反向傳播
 			    	\Delta C & = \sqrt{(2 + \frac{\overline{r}}{256}) * (\Delta R)^2 + 4 * (\Delta G)^2 + (2 + \frac{255 - \overline{r}}{256}) * (\Delta B)^2}
 			    \end{split}
 				\end{equation}
+
+				\fig[0.5][fig:LabColorSpace][H]{chapter3/Lab_color_space.jpg}[CIE L*a*b 色彩模型][CIE L*a*b 色彩模型]
+				
 
 			  \item [3)]
 			  	根據伽馬校正理論，人們對於每個顏色的亮度感知呈現不同的非線性曲線，因此對於不同的色彩的權重應該要是不同的，因此我們參考了一種常見計算色差的加權歐氏距離的公式(之後簡稱Weighted Euclidean)，公式如\cref{eq:eq-weightcdist}。
@@ -215,7 +214,7 @@ Step 6：計算 loss value 並進行反向傳播
 		接著為了消除不同色彩導致的灰度值差異，
 		使該區塊能夠專注於輪廓資訊而不考慮色彩資訊，
 		我們接者進行了Min-max正規化，
-		使每張影像的灰階值統一道$0\sim1$之間。
+		使每張影像的灰階值統一至[$0, 1$]之間。
 		透過上面步驟的前處理，
 		我們從而可以確保輪廓感知區塊能夠專注於提取輪廓的特徵。
 
@@ -224,11 +223,11 @@ Step 6：計算 loss value 並進行反向傳播
 	\subsection{高斯卷積模組的設計與實現}
 		\subsubsection{濾波器初始化}
 			在這個模型之中，除了色彩感知區塊外，
-			其餘區塊的高斯卷積模組的濾波器我們均是使用 Kaiming Uniform 的方式，
-			根據 kaiming 論文\cite{DBLP:journals/corr/HeZR015}中的方式將每個值初始化範圍為$[-\sqrt{\frac{6}{\text{fan\_in}}}, \sqrt{\frac{6}{\text{fan\_in}}}]$,
+			其餘區塊的高斯卷積模組的濾波器我們均是使用 Kaiming Uniform \cite{DBLP:journals/corr/HeZR015}的方式初始化濾波器的參數。
+			初始化範圍為$[-\sqrt{\frac{6}{\text{fan\_in}}}, \sqrt{\frac{6}{\text{fan\_in}}}]$,
 			$\text{fan\_in}$ 為輸入通道數。
 
-			我們在實作中選擇使用 Kaiming Uniform 的原因是因為 Kaiming Uniform 相較於常用的 Uniform 初始化和 Xavier Uniform\cite{pmlr-v9-glorot10a} 初始化多考慮了整流線性單位函數(ReLU)的存在，
+			我們在實作中選擇使用 Kaiming Uniform 的原因是因為 Kaiming Uniform 相較於常用的 Uniform 初始化和 Xavier Uniform\cite{pmlr-v9-glorot10a} 初始化多考慮了整流線性單位函數(ReLU)等非線性激活函數的存在，
 			Uniform 初始化的方式無法解決隨著神經網路的增加而導致梯度消失的問題，
 			Xavier Uniform 為了解決梯度消失問題加入了 rescale 函數 $\frac{1}{\sqrt{\text{n}}}$但卻只適用於激活函數為線性函數的情況下，
 			而 Kaiming Uniform 在解決梯度消失的問題時同時考慮了激活函數為非線性函數的情況並在\cite{DBLP:journals/corr/HeZR015}透過實驗證明了kaiming uniform 在神經網路在不影響準確度的同時更快收斂。
@@ -236,7 +235,6 @@ Step 6：計算 loss value 並進行反向傳播
 
 		\subsubsection{高斯卷積模組}
 			在高斯卷積模組中，
-			我們以CIM的高斯卷積模組為基礎
 			流程如下，
 			首先分別計算每個濾波器與卷積中的每個Slide Windows的歐氏距離
 			其公式如\cref{eq:eq-EulideanDist}，
@@ -246,7 +244,8 @@ Step 6：計算 loss value 並進行反向傳播
 			Filter$_{H}$, Filter$_{W}$ 為卷積的濾波器大小，
 			dist為該濾波器與Window的歐氏距離。
 			在得到每個濾波器與每個Windows之間的歐氏距離後，
-			再將其輸入高斯函數計算出每個濾波器每個Windows之間的相似度。
+			再將其輸入高斯函數計算出每個濾波器每個Windows之間的相似度，
+			並將其作為響應值進行輸出。
 
 			\begin{equation}
 			    \label{eq:eq-EulideanDist}
@@ -286,28 +285,30 @@ Step 6：計算 loss value 並進行反向傳播
 		    \label{fig:rbf}
 			\end{figure}
 
-\section{響應篩選模組之優化設計}
-	在響應篩選模組中，
-	CIM 使用了自行設計的增強特徵的整流線性單位函數(changed ReLU, 簡稱cReLU)，
-	希望透過閥值過濾不重要的特徵，其公式如\cref{eq:eq-crelu}所示，
+\section{響應篩選模組之設計}
+	% 在響應篩選模組中，
+	% CIM 使用了自行設計的增強特徵的整流線性單位函數(changed ReLU, 簡稱cReLU)，
+	% 希望透過閥值過濾不重要的特徵，其公式如\cref{eq:eq-crelu}所示，
 	
-	作為閥值的 $c$ 值需要透過觀察資料集在高斯卷積模組的輸出來設定具體不同的$c$的數值來適應不同的資料集。
-	然而一旦閥值設定過小則會削弱響應篩選的效果，
-	閥值設定過大則會將大部分的特徵都歸零導致無法學習出有效特徵，
-	因此如何設定 $c$ 則成為一個非常困難的問題，並且每次更換資料集都必須面對這個問題。
+	% 作為閥值的 $c$ 值需要透過觀察資料集在高斯卷積模組的輸出來設定具體不同的$c$的數值來適應不同的資料集。
+	% 然而一旦閥值設定過小則會削弱響應篩選的效果，
+	% 閥值設定過大則會將大部分的特徵都歸零導致無法學習出有效特徵，
+	% 因此如何設定 $c$ 則成為一個非常困難的問題，並且每次更換資料集都必須面對這個問題。
 
-	為了解決閥值設定的問題，
-	我們對cReLU的公式進行改善，
+	% 為了解決閥值設定的問題，
+	% 我們對cReLU的公式進行改善，
+	
+	響應篩選模組的主要目的是過濾卷積後響應較弱的值，
+	保留響應較強的值，
+	從而在後續產生可解釋性圖片時能有更好的呈現效果。
+
 	我們將響應篩選模組的輸入稱之為Input，輸入的channel數稱為$C_{in}$，
 	並設定一個希望保留的Input的百分比參數 $p\%$，
 	這代表我們希望保留Input中特徵值最大的前$p\%$的元素。
 	接著從Input中取出第 $p\% * C_{in}$  個最大的元素稱之為$P_{in}$，
 	並且將所有小於$P_{in}$的數值歸零。
-	如此一來，使用者只需要決定希望可以保留 $p\%$ 的數值，
-	無須糾結於設定閥值$c$的具體數值。
-	這種方法簡化了參數設定過程，
-	同時也確保了響應篩選的有效性。
-	改善後的cReLU的公式為\\
+	
+	篩選公式為\\
 	\begin{equation}
 	    \label{eq:eq-cReLUPercent}
 	    f(x)= 
@@ -317,122 +318,153 @@ Step 6：計算 loss value 並進行反向傳播
 	    \end{cases} \quad where \; P_{in} = Input\left[ p\% * C_{in} \right]
 	\end{equation}
 
-	 \pagebreak
 	此外，我們也曾做過實驗將Triangle函數與新的cReLU函數合併成一個新函數稱之為Triangle cReLU函數，其公式如\cref{eqn:rbf-triangle-cReLU-function}。
 	Triangle cReLU函數與高斯函數 + cReLU的實驗數據，將會在\cref{chapter:diff-rbf-compare}中說明。
 	\begin{equation}
       \label{eqn:rbf-triangle-cReLU-function}
       f(x)= 
       \begin{cases}
-	        0 & \text{if  $x < P_{RM}$ }\\
-	        1 - \frac{ \max \left( \| x-m \|, w \right)}{w} & \text{if  $x \geq P_{RM}$}
-	   \end{cases} \quad where \; P_{RM} = RM_{i}\left[ p\% * C_{RM} \right]
+	        0 & \text{if  $x < P_{in}$ }\\
+	        1 - \frac{ \max \left( \| x-m \|, w \right)}{w} & \text{if  $x \geq P_{in}$}
+	   \end{cases} \quad where \; P_{in} = Input_{i}\left[ p\% * C_{in} \right]
   	\end{equation}
-
-\section{空間合併模組之優化設計}
-	在空間合併模組上，
-	CIM為了保留 $RM$ 之間的空間位置關係簡化了眼球跳動的方式，
-	加入了一個可訓練的時間遺忘函數 $\alpha$ 進入合併公式，其公式如\cref{eq:eq-sf}。
-		
-	這樣會導致越早被看到(時間越早)的數值需要乘上的 $\alpha^{k}$ 的 $k$ 值越大，
-	在合併時的加權也就越小。
-	儘管這種做法確實可以使$RM$呈現出空間上的關係，
-	然而當我們需要合併的$RM_{k}$越多時，
-	隨著$k$ 值越來越大，$\alpha^{k}$會快速變小。
-	這樣便造成當我們將$RM_{k}$ 乘上過小的的$\alpha^{k}$後，
-	便會變得這個數值便會在$RM_{c}$中變得無足輕重。
-
-	對於大小較大的影像而言這種方法是有問題的，
-	這會使得影像逐漸喪失一部分$ RM_{k} $ 所擷取的特徵。
-	因此我們提出了將 $\alpha$ 的方法從$\alpha^{k}$，
-	改成從[ $0.9 \sim 0.99$ ]之間進行等距採樣，
-	得到 $k$ 個值代替 $\alpha^{k}$ 按照時序順序去乘以 $RM_{k}$ ，
-	我們將第 $k$ 個RM所對應的 $\alpha$ 稱為 $\beta_{k}$，
-	如此便可以改善當需要合併的 $RM$ 數量過多時 $\alpha^{k}$ 過小的問題，
-	同時也保留了CIM當初設計時希望保留的 $RM$ 之間的對應空間關係。\\
-	改善後的合併公式如\cref{eq:eq-sf-update}，
-	$RM_{c}$為合併後的RM，
-	$RM_{k}$為第k張RM，
-	$\beta_{k}$為從[$0.9 \sim 0.99$]之間取出的第$k$個值，
-	${H}_{i}^{SF}$、${W}_{i}^{SF}$為第i層空間合併模組輸出的長和寬:\\
-		\begin{equation}
-		    \label{eq:eq-sf-update}
-		    RM_{c}=\frac{1}{n} \sum_{k = 0}^{n-1} \beta_{k} \times RM_{k}  \quad where \; n = \textit{H}^{i}_{SF} \times \textit{W}^{i}_{SF}
-		\end{equation}
-	RM的優化後的時序性合併如\cref{fig:SFN_update}。
-	\fig[1][fig:SFN_update][H]{chapter3/SFM_update.png}[優化後空間位置保留機制示意圖][優化後空間位置保留機制]
-
-% 	\subsection{模型流程的精簡}
-
-% 	我們將原來在CIM的模型訓練流程中每層接在空間位置保留合併模組後的維度轉置與Reshape步驟(在\cite{YangCNNInterpretable}模型流程的 Step 4)去除，
-% 	CIM會加入這個步驟的初衷在於方便之後輸出將濾波器輸出成可解釋性圖片，
-% 	然而加入這個步驟導致一些不必要的問題：
-% 	首先，CIM原本在第一層高斯卷積後的高斯卷積模組都只是做(1,1)的卷積操作，但是加入了這個步驟就會將後續的高斯卷積模組的濾波器大小改變，容易引起閱讀者的誤解。
-% 	其次，這個步驟並不會增加準確度或是增加效能，反而是多一些所轉置與Reshape所需要的時間。
-% 	基於以上原因我們決定將此步驟捨棄，使過程容易理解、減少所需時間。
-
-
 \pagebreak
-\section{可解釋性} 
-本研究使用了Yang 在2023年CIM論文中提出的特徵映射法做為解析模型的決策過程的基礎，
-使得模型的決策過程可以被視覺化出來，
-讓使用者了解模型關注的特徵資訊與決策背後的邏輯關係。
-
-	\subsection{FM、RM、CI的意義}
-	\label{section:InterablePicture}
-	特徵映射圖(FM)、特徵映射響應圖(RM)、特徵映射圖之對應影像(CI)，
-	為Yang在CIM論文中提出的名詞，
-	也是本研究在說明可解釋性的核心三要素之一，
-	在後續的模組說明中也會使用到。
-
-	特徵映射圖(FM)為將卷積模組的濾波器提取出來並Reshape成二維矩陣所形成，
+\section{FM、 RM的定義}
+	特徵映射圖(FM)為將卷積模組的濾波器提取出來的結果，
 	由於模型在高斯卷積模組為計算輸入濾波器與相似度，
 	因此FM可以被視為模型學習到了輸入影像中的何種特徵。
 
 	\fig[0.5][fig:FM_picture][H]{chapter3/FM.png}[FM示意圖][FM示意圖]
 
-	\begin{figure}[H]
-    \centering
-    \subcaptionbox
-        {$FM^{color}_0$
-        \label{fig:FM_color_0}}
-        {\includegraphics[width=0.3\linewidth]{chapter3/FMs/FMs_RGB_convs_0.png}}
-    ~
-    \subcaptionbox
-        {$FM^{color}_1$
-        \label{fig:FM_color_1}}
-        {\includegraphics[width=0.3\linewidth]{chapter3/FMs/FMs_RGB_convs_1.png}}
-    ~
-    \subcaptionbox
-        {$FM^{color}_2$
-        \label{fig:FM_color_2}}
-        {\includegraphics[width=0.3\linewidth]{chapter3/FMs/FMs_RGB_convs_2.png}}
-
-     \subcaptionbox
-        {$FM^{gray}_0$
-        \label{fig:FM_gray_0}}
-        {\includegraphics[width=0.3\linewidth]{chapter3/FMs/FMs_Gray_convs_0.png}}
-    ~
-    \subcaptionbox
-        {$FM^{gray}_1$
-        \label{fig:FM_gray_1}}
-        {\includegraphics[width=0.3\linewidth]{chapter3/FMs/FMs_Gray_convs_1.png}}
-    ~
-    \subcaptionbox
-        {$FM^{gray}_2$
-        \label{fig:FM_gray_2}}
-        {\includegraphics[width=0.3\linewidth]{chapter3/FMs/FMs_Gray_convs_2.png}}
-    \caption{架構中各層的FM範例}
-    \label{fig:FMs}
-	\end{figure}
-
-	特徵映射響應圖(RM)為當輸入進入卷積模組後所得到的輸出進行維度轉換後的結果，
+	特徵映射響應圖(RM)為當輸入進入卷積模組後所得到的輸出，
 	其代表的是輸入區域對於該高斯卷積模組的濾波器的相似度，
 	也被視為輸入對該高斯卷機模組所有的濾波器的反應強度。
 	同一層、不同位置的RM數值為輸入影像的不同位置對於某個濾波器的反應，
 	不同層、同一位置的RM數值為輸入影像的同一位置對於不同濾波器的反應。
 
-	\fig[0.7][fig:RM_picture][H]{chapter3/RM-example.png}[RM示意圖\cite{YangCNNInterpretable}][RM示意圖]
+	\fig[0.7][fig:RM_picture][H]{chapter3/RM-example.png}[RM示意圖][RM示意圖]
+
+\pagebreak
+\section{空間合併模組之優化設計}
+	% 在空間合併模組上，
+	% CIM為了保留 $RM$ 之間的空間位置關係簡化了眼球跳動的方式，
+	% 加入了一個可訓練的時間遺忘函數 $\alpha$ 進入合併公式，其公式如\cref{eq:eq-sf}。
+		
+	% 這樣會導致越早被看到(時間越早)的數值需要乘上的 $\alpha^{k}$ 的 $k$ 值越大，
+	% 在合併時的加權也就越小。
+	% 儘管這種做法確實可以使輸出值呈現出空間上的關係，
+	% 然而當我們需要合併的$RM_{k}$越多時，
+	% 隨著$k$ 值越來越大，$\alpha^{k}$會快速變小。
+	% 這樣便造成當我們將數值乘上過小的的$\alpha^{k}$後，
+	% 便會變得這個數值便會在最終合併結果中變得無足輕重。
+	% 對於大小較大的影像而言這種方法是有問題的，
+	% 這會使得影像逐漸喪失一部分特徵。
+
+	% 此外，
+	% 在 CIM 的空間合併模組中為了方便輸出可視化圖片
+	% 在實作上對輸入進行了維度轉換，
+	% 將最後一維 Reshape 成一個二維矩陣，
+	% 稱為特徵響應圖（RM）(其操作如\cref{fig:RM_picture})，
+	% 然後乘上$\alpha$值進行合併。
+	% 然而，我們認為此步驟會造成兩個問題：
+	% 首先，CIM原本在第一層高斯卷積後的高斯卷積模組都只是做(1,1)的卷積操作，
+	% 但是加入了這個步驟就會導致後續的高斯卷積模組的濾波器大小改變，容易引起閱讀者的誤解；
+	% 其次，這個步驟並不會增加準確度或是增加效能，反而是多一些所轉置與Reshape所需要的時間。
+	% 基於以上原因我們決定將此步驟捨棄。
+	% 在空間合併模組前不再進行維度轉換和Reshape，
+	% 並將輸入重新命名為GFR（Gaussian Feature Response），
+	% 以區別於原來的RM。
+	% 由於我們在空間合併模組前並沒有進行維度轉換和Reshape，
+	% 因此公式的輸入使用RM的代稱已不再準確，
+	% 所以我們將沒有進行轉換的空間合併模組輸入重新命名為GFR（Gaussian Feature Response）
+	% 來與原來的RM做區分。
+
+	在空間合併模組中，
+	我們模擬皮層的層狀合併架構(\cref{fig:CorticalHierarchy})和眼球跳動的概念(\cref{fig:Saccade})，
+	運用不同的加權參數值模擬眼球跳動的順序，
+	將RM根據其空間位置關係對應到不同的加權參數值後進行合併，
+	使得下一層卷積模組能夠在考慮特徵空間位置的前提下學習更大範圍的特徵。
+
+	其步驟如下:
+	一組輸入資訊經過卷積模組和響應篩選模組後會產生一個RM三維矩陣，
+	一張輸入影像為多組輸入資訊的集合，因此產生多個RM矩陣，
+	並且將這些RM根據 $SF_{i}$ 透過\cref{eq:eq-sf-update}進行合併，
+	產生新的累積特徵響應圖(ARM)並輸入到下一層。
+
+	為了保留RM之間的空間關係，
+	我們先從[ $0.9 \sim 0.99$ ]之間進行等距採樣由小到大得到 $k$ 個值，
+	將其稱為$\beta_{k}$。
+	k 越小代表越早被眼球注視，k越大表示越晚被眼球注視，
+	並按照RM合併的順序，
+	將RM和$\beta_{k}$相乘並加總。
+	其合併公式如\cref{eq:eq-sf-update}，
+	$ARM_{c}$為合併後的ARM，
+	$RM_{k}$為第k個RM，
+	$\beta_{k}$為從[$0.9 \sim 0.99$]之間取出的第$k$個值，
+	${H}_{i}^{SF}$、${W}_{i}^{SF}$為第i層空間合併模組輸出的長和寬:\\
+		\begin{equation}
+		    \label{eq:eq-sf-update}
+		    ARM_{c}=\frac{1}{n} \sum_{k = 0}^{n-1} \beta_{k} \times RM_{k}  \quad where \; n = \textit{H}^{i}_{SF} \times \textit{W}^{i}_{SF}
+		\end{equation}
+
+	% 得到 $k$ 個值代替 $\alpha^{k}$ 按照時序順序去乘以GBF ，
+	% 我們將第 $k$ 個 $GFR$ 所對應的 $\alpha$ 稱為 $\beta_{k}$，
+	% 如此便可以改善當需要合併的 $RM$ 數量過多時 $\alpha^{k}$ 過小的問題，
+	% 同時也保留了CIM當初設計時希望保留的輸入之間的對應空間關係。\\
+	
+	
+	RM的優化後的合併示意圖如\cref{fig:SFN_update}。
+	\fig[0.5][fig:SFN_update][H]{chapter3/SFM_update.png}[優化後空間位置保留機制示意圖][優化後空間位置保留機制]
+
+
+\pagebreak
+\section{可解釋性} 
+本研究以RM-CI做為解析模型的決策過程的基礎，
+使得模型的決策過程可以被視覺化出來，
+讓使用者了解模型關注的特徵資訊與決策背後的邏輯關係。
+
+	\subsection{CI的意義}
+	\label{section:InterablePicture}
+	% \begin{figure}[H]
+    % \centering
+    % \subcaptionbox
+    %     {$FM^{color}_0$
+    %     \label{fig:FM_color_0}}
+    %     {\includegraphics[width=0.3\linewidth]{chapter3/FMs/FMs_RGB_convs_0.png}}
+    % ~
+    % \subcaptionbox
+    %     {$FM^{color}_1$
+    %     \label{fig:FM_color_1}}
+    %     {\includegraphics[width=0.3\linewidth]{chapter3/FMs/FMs_RGB_convs_1.png}}
+    % ~
+    % \subcaptionbox
+    %     {$FM^{color}_2$
+    %     \label{fig:FM_color_2}}
+    %     {\includegraphics[width=0.3\linewidth]{chapter3/FMs/FMs_RGB_convs_2.png}}
+
+    %  \subcaptionbox
+    %     {$FM^{gray}_0$
+    %     \label{fig:FM_gray_0}}
+    %     {\includegraphics[width=0.3\linewidth]{chapter3/FMs/FMs_Gray_convs_0.png}}
+    % ~
+    % \subcaptionbox
+    %     {$FM^{gray}_1$
+    %     \label{fig:FM_gray_1}}
+    %     {\includegraphics[width=0.3\linewidth]{chapter3/FMs/FMs_Gray_convs_1.png}}
+    % ~
+    % \subcaptionbox
+    %     {$FM^{gray}_2$
+    %     \label{fig:FM_gray_2}}
+    %     {\includegraphics[width=0.3\linewidth]{chapter3/FMs/FMs_Gray_convs_2.png}}
+    % \caption{架構中各層的FM範例}
+    % \label{fig:FMs}
+	% \end{figure}
+
+	% 特徵映射響應圖(RM)為當輸入進入卷積模組後所得到的輸出進行維度轉換後的結果，
+	% 其代表的是輸入區域對於該高斯卷積模組的濾波器的相似度，
+	% 也被視為輸入對該高斯卷機模組所有的濾波器的反應強度。
+	% 同一層、不同位置的RM數值為輸入影像的不同位置對於某個濾波器的反應，
+	% 不同層、同一位置的RM數值為輸入影像的同一位置對於不同濾波器的反應。
 
 	特徵映射圖之對應影像(CI)為記錄資料集中所有影像對特定濾波器的反應，
 	從中選出與該濾波器有最大的反應的影像，
@@ -448,14 +480,14 @@ Step 6：計算 loss value 並進行反向傳播
 		\item [1]
 		決定要產生CI的目標濾波器
 		\item [2]
-		將訓練資料集所有影像按照感知區塊之高斯模型的kernel大小進行分割
+		將訓練資料集所有影像按照感知區塊之卷積模組的Filter大小進行分割
 		\item [3]
 		分析在目標濾波器所屬的高斯模組前是否有經過空間合併模組。\\
 		如果有，則將分割影像按照空間合併範圍進行合併。
 		\item [4]
-		將所有資料集影像輸入進模型，並且記錄該濾波器所有的輸出
+		將所有資料集影像輸入進模型，並且記錄目標濾波器所有的輸出
 		\item [5]
-		選出該濾波器所有的輸出的最大值，並且找出該最大值的原來位置
+		選出目標濾波器所有的輸出的最大值，並且找出該最大值的位置
 		\item [6]
 		選擇該位置在分割影像中的對應小圖作為目標濾波器的對應CI
 	\end{itemize}
@@ -507,10 +539,6 @@ Step 6：計算 loss value 並進行反向傳播
     \label{fig:CIs}
 	\end{figure}
 
-
-	RM-CI為根據輸入影像在某層的卷積模組的每一張RM的最大反應的位置來
-	找到對應位置的CI影像。
-
 	\pagebreak
 	\subsection{色彩感知區塊之視覺化}
 	在色彩感知區塊濾波器本身即可被視為 \textit{C}$^{color}_{0}$ 個不同RGB顏色，
@@ -536,10 +564,10 @@ Step 6：計算 loss value 並進行反向傳播
 		\item [4]
 		找出對應CI的代表色並擴張成與原始CI相同大小的色塊
 		\item [5]
-		利用色塊組出輸入影像在該層的代表影像(RM-CI)
+		利用色塊組出輸入影像在該層的代表影像(RM-CI-Color-0)
 	\end{itemize}
 
-	\fig[0.7][fig:RMCI_Color_generator][H]{chapter3/RMCI_Color_generator.png}[色彩感知區塊產生RM-CI流程圖][色彩感知區塊產生RM-CI流程圖]
+	\fig[0.6][fig:RMCI_Color_generator][H]{chapter3/RMCI_Color_generator.png}[色彩感知區塊產生RM-CI流程圖][色彩感知區塊產生RM-CI流程圖]
 
 	\pagebreak
 
@@ -556,7 +584,7 @@ Step 6：計算 loss value 並進行反向傳播
 	再加入了分割這個步驟後，每個CI都能反映出不同部分對應的顏色和位置，
 	從而更好的呈現CI的顏色分布。
 
-	\fig[1][fig:Color_CI][H]{chapter3/Color_CI.png}[色彩特徵傳遞區塊產生CI示意圖][色彩特徵傳遞區塊產生CI示意圖]
+	\fig[0.7][fig:Color_CI][H]{chapter3/Color_CI.png}[色彩特徵傳遞區塊產生CI示意圖][色彩特徵傳遞區塊產生CI示意圖]
 
 	總結色彩特徵傳遞區塊產生可解釋性圖片的流程如下:
 	\begin{itemize}
@@ -571,10 +599,10 @@ Step 6：計算 loss value 並進行反向傳播
 		\item [5]
 		找出各個小圖的代表色並擴張成與原始CI相同大小的色塊
 		\item [6]
-		利用色塊組出輸入影像在該層的代表影像(RM-CI)
+		利用色塊組出輸入影像在該層的代表影像(RM-CI-Color-i)，i 為區塊的第i層
 	\end{itemize}
 
-	\fig[0.7][fig:RMCI_color_transfer][H]{chapter3/RMCI_color_transfer.png}[色彩特徵傳遞區塊產生RM-CI流程圖][色彩特徵傳遞區塊產生RM-CI流程圖]
+	\fig[1][fig:RMCI_color_transfer][H]{chapter3/RMCI_color_transfer.png}[色彩特徵傳遞區塊產生RM-CI流程圖][色彩特徵傳遞區塊產生RM-CI流程圖]
 	\pagebreak
 
 	\subsection{輪廓感知區塊和輪廓特徵傳遞區塊之視覺化}
@@ -591,11 +619,33 @@ Step 6：計算 loss value 並進行反向傳播
 		\item [3]
 		根據RM的最大反應位置找出對應的CI
 		\item [4]
-		利用CI組出輸入影像在該層的代表影像(RM-CI)
+		利用CI組出輸入影像在該層的代表影像(RM-CI-Gray-i)，i 為特徵傳遞區塊的第i層，第0層為輪廓感知區塊
 	\end{itemize}
 
 	\fig[0.7][fig:RMCI_gray][H]{chapter3/RMCI_gray.png}[輪廓感知區塊和輪廓特徵傳遞區塊產生RM-CI流程圖 \\ 
 	以輪廓感知區塊為例][輪廓感知區塊和輪廓特徵傳遞區塊產生RM-CI流程圖]
+
+\pagebreak
+
+	\subsection{RM-CI的可解釋性}
+	根據上面視覺化流程，
+	當我們產出輸入影像在每層的代表影像，也就是每層的RM-CI的時候，
+	我們就可以針對每層的RM-CI進行解釋。
+	RM-CI的定義為輸入影像在某層的卷積模組的最大響應濾波器的對應影像，
+	所以我們透過從後到前觀察每層的RM-CI可以知道，
+	模型在每層的卷積模組中是由於看到了哪些特徵才做出最後的預測。
+
+	以\cref{fig:Explain_example}為例，
+	我們從 RM-CI-Color-2 和 RM-CI-Gray-2 中我們可以解釋出，
+	模型特徵傳遞區塊的最後一層是因為看到影像的上面部分有一個下彎弧，
+	中間部分有曲線向下，下面部分有上彎弧，
+	配合上在三個部分都有看到綠色，所以才判斷影像為綠色的0。
+	而模型會認為影像的上面部分要有下彎弧的依據是因為中間部分有斜曲線，
+	右上角有另一半斜曲線，組合成一個下彎弧，
+	所以才導致模型認為影像的上半部分為下彎弧，
+	以此類推。
+	我們便可以對依序推出模型的每層的判斷歷程。
+	\fig[0.7][fig:Explain_example][H]{chapter3/Explain_example.png}[可解釋性的範例][可解釋性的範例]
 
 \pagebreak
 
