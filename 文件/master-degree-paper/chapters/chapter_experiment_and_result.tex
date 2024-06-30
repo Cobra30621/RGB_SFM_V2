@@ -1711,10 +1711,20 @@ Colored MNIST和Colored Fashion主要用於驗證模型在彩色影像的分類�
 
     \subsection{不同相似度函數之比較}
     \label{chapter:diff-rbf-compare}
-    本節將會呈現不同相似度函數對模型的影響，
-    分別是高斯函數 + cReLU函數(公式於\cref{eqn:rbf-gaussian-function}、\cref{eq:eq-cReLUPercent})和Triangle cReLU函數(公式於\cref{chapter:diff-rbf-compare})，
+    本節將會比較不同相似度函數對模型的影響，
+    分別是高斯函數 + cReLU函數(公式於\cref{eqn:rbf-gaussian-function}、\cref{eq:eq-cReLUPercent})和Triangle + cReLU函數。
+    此外，我們在實作時將Triangle函數與新的cReLU函數合併成一個新函數稱之為Triangle cReLU函數，其公式如\cref{eqn:rbf-triangle-cReLU-function}。
     在Triangle cReLU函數部分，色彩色彩的w從感知層到傳遞層分別設定為(1, 4.7, 4.31)，而輪廓部分的w從感知層到傳遞層分別設定為(4.6, 3.2, 4.17)
     其餘參數均使用與\cref{tab:ColoredModelparameters}相同的設定。
+
+    \begin{equation}
+      \label{eqn:rbf-triangle-cReLU-function}
+      f(x)= 
+      \begin{cases}
+            0 & \text{if  $x < P_{RM}$ }\\
+            1 - \frac{ \max \left( \| x-m \|, w \right)}{w} & \text{if  $x \geq P_{RM}$}
+       \end{cases} \quad where \; P_{RM} = RM\left[ p\% * N_{RM} \right]
+    \end{equation}
 
     實驗結果如\cref{tab:diff-function-experiment}所示，
     Triangle cReLU 函數與高斯函數在準確度上相差無幾，
@@ -1784,8 +1794,6 @@ Colored MNIST和Colored Fashion主要用於驗證模型在彩色影像的分類�
             \hline
         \end{tabular}
     \end{table}
-    
-    \pagebreak
 
     接著為輪廓誤判的部分，
     輪廓誤判多發生在形狀相近的數字（如3、8、和 5、3）上，

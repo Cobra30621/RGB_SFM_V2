@@ -119,7 +119,7 @@ Step 6：計算 loss value 並進行反向傳播
 			並將其為 30 種不同RGB色彩的$H^{color}_{Filter} * W^{color}_{Filter}$色塊。
 
 			在30種不同色彩的選擇上，
-			我們採用日本色彩研究所於1965年提出的PCCS(Pratical Color Co-ordinate System)中的24色相環中(如\cref{fig:PCCS}所示)的顏色，
+			我們採用日本色彩研究所於1965年提出的PCCS(Practical Color Co-ordinate System)中的24色相環中(如\cref{fig:PCCS}所示)的顏色，
 			再加上紅、綠、藍、黑、白、灰六個基礎色組成。
 			由於以上的30色均為基礎顏色(如\cref{fig:30Base})，
 			因此我們希望透過計算不同區塊的色彩與這些基礎顏色的響應值來當作區塊的色彩特徵。
@@ -183,7 +183,11 @@ Step 6：計算 loss value 並進行反向傳播
 				
 
 			  \item [3)]
-			  	根據伽馬校正理論，人們對於每個顏色的亮度感知呈現不同的非線性曲線，因此對於不同的色彩的權重應該要是不同的，因此我們參考了一種常見計算色差的加權歐氏距離的公式(之後簡稱Weighted Euclidean)，公式如\cref{eq:eq-weightcdist}。
+			  	根據2019年提出的伽馬校正論文\cite{GammaCorrection}中所述，
+			  	人們對於每個顏色的亮度感知呈現不同的非線性曲線，
+			  	因此對於不同的色彩的權重應該要是不同的。
+			  	我們參考了一種常見計算色差的加權歐氏距離的公式(之後簡稱Weighted Euclidean)，
+			  	公式如\cref{eq:eq-weightcdist}。
 			  	\begin{equation}
 			    \label{eq:eq-weightcdist}
 			    	\Delta C = \sqrt{2 * (\Delta R)^2 + 4 * (\Delta G)^2 + 3 * (\Delta B)^2}
@@ -285,6 +289,23 @@ Step 6：計算 loss value 並進行反向傳播
 		    \label{fig:rbf}
 			\end{figure}
 
+\section{FM、 RM的定義}
+	特徵映射圖(FM)為將卷積模組的濾波器提取出來的結果，
+	由於模型在高斯卷積模組為計算輸入濾波器與相似度，
+	因此FM可以被視為模型學習到了輸入影像中的何種特徵。
+
+	\fig[0.5][fig:FM_picture][H]{chapter3/FM.png}[FM示意圖][FM示意圖]
+
+	特徵映射響應圖(RM)為當輸入進入卷積模組後所得到的輸出，
+	其代表的是輸入區域對於該高斯卷積模組的濾波器的相似度，
+	也被視為輸入對該高斯卷機模組所有的濾波器的反應強度。
+	同一層、不同位置的RM數值為輸入影像的不同位置對於某個濾波器的反應，
+	不同層、同一位置的RM數值為輸入影像的同一位置對於不同濾波器的反應。
+
+	\fig[0.7][fig:RM_picture][H]{chapter3/RM-example.png}[RM示意圖][RM示意圖]
+
+\pagebreak
+
 \section{響應篩選模組之設計}
 	% 在響應篩選模組中，
 	% CIM 使用了自行設計的增強特徵的整流線性單位函數(changed ReLU, 簡稱cReLU)，
@@ -302,50 +323,26 @@ Step 6：計算 loss value 並進行反向傳播
 	保留響應較強的值，
 	從而在後續產生可解釋性圖片時能有更好的呈現效果。
 
-	我們將響應篩選模組的輸入稱之為Input，輸入的channel數稱為$C_{in}$，
-	並設定一個希望保留的Input的百分比參數 $p\%$，
-	這代表我們希望保留Input中特徵值最大的前$p\%$的元素。
-	接著從Input中取出第 $p\% * C_{in}$  個最大的元素稱之為$P_{in}$，
-	並且將所有小於$P_{in}$的數值歸零。
+	我們將輸入的所有RM的響應值總個數$N_{RM}$，
+	並設定一個希望保留的RM的百分比參數 $p\%$，
+	這代表我們希望保留所有RM中響應值最大的前$p\%$的元素。
+	接著從RM中取出第 $p\% * N_{RM}$  個最大的元素稱之為$P_{RM}$，
+	並且將所有小於$P_{RM}$的數值歸零，
+	篩選公式如\cref{eq:eq-cReLUPercent}。
+	此公式代表的意義為保留響應值前$p\%$最大的值並刪除其餘響應值較弱的值。
 	
 	篩選公式為\\
 	\begin{equation}
 	    \label{eq:eq-cReLUPercent}
 	    f(x)= 
 	    \begin{cases}
-	        0 & \text{if  $x < P_{in}$ }\\
-	        x & \text{if  $x \geq P_{in}$}
-	    \end{cases} \quad where \; P_{in} = Input\left[ p\% * C_{in} \right]
+	        0 & \text{if  $x < P_{RM}$ }\\
+	        x & \text{if  $x \geq P_{RM}$}
+	    \end{cases} \quad where \; P_{RM} = RM\left[ p\% * N_{RM} \right]
 	\end{equation}
-
-	此外，我們也曾做過實驗將Triangle函數與新的cReLU函數合併成一個新函數稱之為Triangle cReLU函數，其公式如\cref{eqn:rbf-triangle-cReLU-function}。
-	Triangle cReLU函數與高斯函數 + cReLU的實驗數據，將會在\cref{chapter:diff-rbf-compare}中說明。
-	\begin{equation}
-      \label{eqn:rbf-triangle-cReLU-function}
-      f(x)= 
-      \begin{cases}
-	        0 & \text{if  $x < P_{in}$ }\\
-	        1 - \frac{ \max \left( \| x-m \|, w \right)}{w} & \text{if  $x \geq P_{in}$}
-	   \end{cases} \quad where \; P_{in} = Input_{i}\left[ p\% * C_{in} \right]
-  	\end{equation}
 \pagebreak
-\section{FM、 RM的定義}
-	特徵映射圖(FM)為將卷積模組的濾波器提取出來的結果，
-	由於模型在高斯卷積模組為計算輸入濾波器與相似度，
-	因此FM可以被視為模型學習到了輸入影像中的何種特徵。
 
-	\fig[0.5][fig:FM_picture][H]{chapter3/FM.png}[FM示意圖][FM示意圖]
-
-	特徵映射響應圖(RM)為當輸入進入卷積模組後所得到的輸出，
-	其代表的是輸入區域對於該高斯卷積模組的濾波器的相似度，
-	也被視為輸入對該高斯卷機模組所有的濾波器的反應強度。
-	同一層、不同位置的RM數值為輸入影像的不同位置對於某個濾波器的反應，
-	不同層、同一位置的RM數值為輸入影像的同一位置對於不同濾波器的反應。
-
-	\fig[0.7][fig:RM_picture][H]{chapter3/RM-example.png}[RM示意圖][RM示意圖]
-
-\pagebreak
-\section{空間合併模組之優化設計}
+\section{空間合併模組之設計}
 	% 在空間合併模組上，
 	% CIM為了保留 $RM$ 之間的空間位置關係簡化了眼球跳動的方式，
 	% 加入了一個可訓練的時間遺忘函數 $\alpha$ 進入合併公式，其公式如\cref{eq:eq-sf}。
@@ -558,9 +555,9 @@ Step 6：計算 loss value 並進行反向傳播
 		\item [1]
 		輸入影像後，找出色彩感應區塊的RM
 		\item [2]
-		從RM中找出每個RM的最大反應
+		從RM中找出每個RM的最大響應值
 		\item [3]
-		根據RM的最大反應位置找出對應的CI
+		根據RM的最大響應找出造成響應的濾波器對應的CI
 		\item [4]
 		找出對應CI的代表色並擴張成與原始CI相同大小的色塊
 		\item [5]
@@ -591,9 +588,9 @@ Step 6：計算 loss value 並進行反向傳播
 		\item [1]
 		輸入影像後，找出色彩感應區塊的RM
 		\item [2]
-		從RM中找出每個RM的最大反應
+		從RM中找出每個RM的最大響應
 		\item [3]
-		根據RM的最大反應位置找出對應的CI
+		根據RM的最大反應位置找出造成響應的濾波器對應的CI
 		\item [4]
 		將對應的CI分割成數個與$CI_{color}$相同大小的小圖
 		\item [5]
