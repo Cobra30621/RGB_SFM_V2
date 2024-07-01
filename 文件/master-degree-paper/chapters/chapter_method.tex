@@ -253,7 +253,7 @@ Step 6：計算 loss value 並進行反向傳播
 
 			\begin{equation}
 			    \label{eq:eq-EulideanDist}
-			    dist = \sqrt{\sum_{i = 1}^{K} (Windows_{i} - Filter_{i})} \quad where \; K = Filter_{H} * Filter_{W} * C_{in}
+			    dist = \sqrt{\sum_{i = 1}^{K} (Windows_{i} - Filter_{i})^{2}} \quad where \; K = Filter_{H} * Filter_{W} * C_{in}
 			\end{equation}
 
 				我們在此利用高斯函數取代內積的原因在於高斯函數是以距離為基礎的函數，
@@ -263,7 +263,7 @@ Step 6：計算 loss value 並進行反向傳播
 			  $x$ 為輸入值、$m$ 為中心點、$\sigma$ 為寬度參數
 			  \begin{equation}
 			      \label{eqn:rbf-gaussian-function}
-			      \phi (x) = \exp \left( -\frac{\| x-m \|^2}{2\sigma ^2} \right) 
+			      \phi (x) = \exp \left( -\frac{dist^2}{2\sigma ^2} \right) 
 			  \end{equation}
 
 		  	此外，我們在選擇如何將距離轉換成相似度的函數時，
@@ -271,7 +271,7 @@ Step 6：計算 loss value 並進行反向傳播
 		  	其公式如\cref{eqn:rbf-triangle-function}，x為輸入值，m為中心點，w為寬度參數。
 		  	\begin{equation}
 		      \label{eqn:rbf-triangle-function}
-		      \phi (x) = 1 - \frac{ \max \left( \| x-m \|, w \right)}{w}
+		      \phi (x) = 1 - \frac{ \max \left( dist, w \right)}{w}
 		  	\end{equation}
 
 		  	\begin{figure}[H]
