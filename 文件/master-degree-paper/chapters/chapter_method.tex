@@ -11,8 +11,7 @@
 整個模型可以分成三個部分，色彩感知區塊、輪廓感知區塊和特徵傳遞區塊。
 
 \fig[1][fig:model_arch][H]{model_arch.png}[模型架構圖][模型架構圖]
-
-\pagebreak
+\fig[1][fig:model_arch_simple][H]{model_arch_simple.png}[模型架構簡圖][模型架構簡圖]
 
 這三種區塊均由不同的卷積模組、響應篩選模組、空間合併模組所組成。
 卷積模組利用不同的方式學習與提取輸入的特徵，
@@ -129,6 +128,7 @@ Step 6：計算 loss value 並進行反向傳播
 			\fig[0.4][fig:30Base][H]{chapter3/30BaseColor.png}[濾波器設定的基礎30色][濾波器設定的基礎30色]
 
 		\subsubsection{彩色卷積模組}
+			\label{chapter:color_convolution}
 			在傳統的卷積操作中，
 			我們會在輸入影像上使用一個稱為Slide Windows的滑動窗口，
 			並且與不同的濾波器進行內積運算來計算輸出，
@@ -142,65 +142,88 @@ Step 6：計算 loss value 並進行反向傳播
 
 			\fig[0.5][fig:colorConvolution][H]{chapter3/color_convolution.png}[彩色卷積示意圖][彩色卷積示意圖]
 
-			在色差的計算上，我們曾經考慮過下面三種不同的色差計算方法，分別如下：
-			\begin{itemize}
-			  \item [1)] 
-			  	計算RGB色彩空間的歐氏距離(Euclidean Distance)來代表顏色之間的差距，
-			  	其公式如\cref{eq:eq-RGBcdist}。
-			  	他是三種方法之中最為快速
-			  	$\Delta$C代表兩個顏色的色差，
-			  	$\Delta$R為兩個顏色R值的差距，
-			  	$\Delta$G為兩個顏色G值的差距，
-			  	$\Delta$B為兩個顏色B值的差距。
-			  	\begin{equation}
-			    \label{eq:eq-RGBcdist}
-			    	\Delta C = \sqrt{(\Delta R)^2 + (\Delta G)^2 + (\Delta B)^2}
-				\end{equation}
+			在色差的計算上，我們使用由CompuPhase公司提出的一種低成本的加權歐氏距離公式\cite{LABformula}(簡稱LAB Euclidean)，
+		  	它的權重由RGB中的紅色在色彩中的分量多少而決定。
+		  	這種色差計算方法的好處是利用這個公式便可以用兩個顏色的RGB值計算出接近CIE L*a*b(CIE L*u*v)空間中的距離，
+		  	同時這套公式也被使用在CompuPhase自己的產品中。
+		  	CIE L*a*b是由國際照明委員會提出的色彩空間，
+		  	是目前描述人眼可見所有顏色最完整的色彩空間，
+		  	因此在CIELAB的距離也會較RGB空間之距離更接近人眼所視。
+		  	其公式如\cref{eq:eq-LAB}，
+		  	其中C$_{1}$代表第一個顏色，
+		  	C$_{2}$代表第二個顏色。
+		  	\begin{equation}
+		    \label{eq:eq-LAB}
+		    \begin{split}
+		    	\overline{r} & = \frac{C_{1,R} + C_{2,R}}{2} \\
+		    	\Delta R & = C_{1,R} - C_{2,R} \\
+		    	\Delta G & = C_{1,G} - C_{2,G} \\
+		    	\Delta B & = C_{1,B} - C_{2,B} \\
+		    	\Delta C & = \sqrt{(2 + \frac{\overline{r}}{256}) * (\Delta R)^2 + 4 * (\Delta G)^2 + (2 + \frac{255 - \overline{r}}{256}) * (\Delta B)^2}
+		    \end{split}
+			\end{equation}
 
-			  \item [2)]
-			  	由CompuPhase公司提出的一種低成本的加權歐氏距離公式\cite{LABformula}(簡稱LAB Euclidean)，
-			  	它的權重由RGB中的紅色在色彩中的分量多少而決定。
-			  	這種色差計算方法的好處是利用這個公式便可以用兩個顏色的RGB值計算出接近CIE L*a*b(CIE L*u*v)空間中的距離，
-			  	同時這套公式也被使用在CompuPhase自己的產品中。
-			  	CIE L*a*b是由國際照明委員會提出的色彩空間，
-			  	是目前描述人眼可見所有顏色最完整的色彩空間，
-			  	因此在CIELAB的距離也會較RGB空間之距離更接近人眼所視。
-			  	其公式如\cref{eq:eq-LAB}，
-			  	其中C$_{1}$代表第一個顏色，
-			  	C$_{2}$代表第二個顏色。
-			  	\begin{equation}
-			    \label{eq:eq-LAB}
-			    \begin{split}
-			    	\overline{r} & = \frac{C_{1,R} + C_{2,R}}{2} \\
-			    	\Delta R & = C_{1,R} - C_{2,R} \\
-			    	\Delta G & = C_{1,G} - C_{2,G} \\
-			    	\Delta B & = C_{1,B} - C_{2,B} \\
-			    	\Delta C & = \sqrt{(2 + \frac{\overline{r}}{256}) * (\Delta R)^2 + 4 * (\Delta G)^2 + (2 + \frac{255 - \overline{r}}{256}) * (\Delta B)^2}
-			    \end{split}
-				\end{equation}
+			\fig[0.5][fig:LabColorSpace][H]{chapter3/Lab_color_space.jpg}[CIE L*a*b 色彩模型][CIE L*a*b 色彩模型]
 
-				\fig[0.5][fig:LabColorSpace][H]{chapter3/Lab_color_space.jpg}[CIE L*a*b 色彩模型][CIE L*a*b 色彩模型]
+			% 在色差的計算上，我們曾經考慮過下面三種不同的色差計算方法，分別如下：
+			% \begin{itemize}
+			%   \item [1)] 
+			%   	計算RGB色彩空間的歐氏距離(Euclidean Distance)來代表顏色之間的差距，
+			%   	其公式如\cref{eq:eq-RGBcdist}。
+			%   	他是三種方法之中最為快速
+			%   	$\Delta$C代表兩個顏色的色差，
+			%   	$\Delta$R為兩個顏色R值的差距，
+			%   	$\Delta$G為兩個顏色G值的差距，
+			%   	$\Delta$B為兩個顏色B值的差距。
+			%   	\begin{equation}
+			%     \label{eq:eq-RGBcdist}
+			%     	\Delta C = \sqrt{(\Delta R)^2 + (\Delta G)^2 + (\Delta B)^2}
+			% 	\end{equation}
+
+			%   \item [2)]
+			%   	由CompuPhase公司提出的一種低成本的加權歐氏距離公式\cite{LABformula}(簡稱LAB Euclidean)，
+			%   	它的權重由RGB中的紅色在色彩中的分量多少而決定。
+			%   	這種色差計算方法的好處是利用這個公式便可以用兩個顏色的RGB值計算出接近CIE L*a*b(CIE L*u*v)空間中的距離，
+			%   	同時這套公式也被使用在CompuPhase自己的產品中。
+			%   	CIE L*a*b是由國際照明委員會提出的色彩空間，
+			%   	是目前描述人眼可見所有顏色最完整的色彩空間，
+			%   	因此在CIELAB的距離也會較RGB空間之距離更接近人眼所視。
+			%   	其公式如\cref{eq:eq-LAB}，
+			%   	其中C$_{1}$代表第一個顏色，
+			%   	C$_{2}$代表第二個顏色。
+			%   	\begin{equation}
+			%     \label{eq:eq-LAB}
+			%     \begin{split}
+			%     	\overline{r} & = \frac{C_{1,R} + C_{2,R}}{2} \\
+			%     	\Delta R & = C_{1,R} - C_{2,R} \\
+			%     	\Delta G & = C_{1,G} - C_{2,G} \\
+			%     	\Delta B & = C_{1,B} - C_{2,B} \\
+			%     	\Delta C & = \sqrt{(2 + \frac{\overline{r}}{256}) * (\Delta R)^2 + 4 * (\Delta G)^2 + (2 + \frac{255 - \overline{r}}{256}) * (\Delta B)^2}
+			%     \end{split}
+			% 	\end{equation}
+
+			% 	\fig[0.5][fig:LabColorSpace][H]{chapter3/Lab_color_space.jpg}[CIE L*a*b 色彩模型][CIE L*a*b 色彩模型]
 				
 
-			  \item [3)]
-			  	根據2019年提出的伽馬校正論文\cite{GammaCorrection}中所述，
-			  	人們對於每個顏色的亮度感知呈現不同的非線性曲線，
-			  	因此對於不同的色彩的權重應該要是不同的。
-			  	我們參考了一種常見計算色差的加權歐氏距離的公式(之後簡稱Weighted Euclidean)，
-			  	公式如\cref{eq:eq-weightcdist}。
-			  	\begin{equation}
-			    \label{eq:eq-weightcdist}
-			    	\Delta C = \sqrt{2 * (\Delta R)^2 + 4 * (\Delta G)^2 + 3 * (\Delta B)^2}
-				\end{equation}
-				然而，在\cite{LABformula}中也有提到，根據伽馬校正的理論，或許我們應該對不同的顏色分布的影像設定不同的加權值才會比較符合人眼的視覺對顏色亮度的感知。
-			\end{itemize}
-			這三個色差的計算方法各有其優缺點，
-			並且經過我們的實驗(實驗詳細於\cref{chapter:diff-colordist-compare})後發現三者在準確度和可解釋圖片的產生上十分相似，
-			但考量到Euclidean方法會容易受到RGB值的細微不同而產生變化。
-			而根據上面提到\cite{LABformula}中的說法，
-			如果使用Weight Euclidean方法會需要因應不同的資料集去調整加權數值，會增加問題的複雜度。
-			因此我們最終選擇了穩定性較高的LAB Euclidean方法來計算色彩感知區塊中輸入影像和30類基礎顏色的色差值，
-			之後將色差值輸入高斯函數中做為評估相似度的依據。
+			%   \item [3)]
+			%   	根據2019年提出的伽馬校正論文\cite{GammaCorrection}中所述，
+			%   	人們對於每個顏色的亮度感知呈現不同的非線性曲線，
+			%   	因此對於不同的色彩的權重應該要是不同的。
+			%   	我們參考了\cite{LABformula}提及的加權歐氏距離的公式(之後簡稱Weighted Euclidean)，
+			%   	公式如\cref{eq:eq-weightcdist}。
+			%   	\begin{equation}
+			%     \label{eq:eq-weightcdist}
+			%     	\Delta C = \sqrt{2 * (\Delta R)^2 + 4 * (\Delta G)^2 + 3 * (\Delta B)^2}
+			% 	\end{equation}
+			% 	然而，在\cite{LABformula}中也有提到，根據伽馬校正的理論，或許我們應該對不同的顏色分布的影像設定不同的加權值才會比較符合人眼的視覺對顏色亮度的感知。
+			% \end{itemize}
+			% 這三個色差的計算方法各有其優缺點，
+			% 並且經過我們的實驗(實驗詳細於\cref{chapter:diff-colordist-compare})後發現三者在準確度和可解釋圖片的產生上十分相似，
+			% 但考量到Euclidean方法會容易受到RGB值的細微不同而產生變化。
+			% 而根據上面提到\cite{LABformula}中的說法，
+			% 如果使用Weight Euclidean方法會需要因應不同的資料集去調整加權數值，會增加問題的複雜度。
+			% 因此我們最終選擇了穩定性較高的LAB Euclidean方法來計算色彩感知區塊中輸入影像和30類基礎顏色的色差值，
+			% 之後將色差值輸入高斯函數中做為評估相似度的依據。
 
 	\subsection{灰階前處理的設計與實現}
 		在輪廓感知區塊中，
@@ -479,14 +502,14 @@ Step 6：計算 loss value 並進行反向傳播
 		\item [2]
 		將訓練資料集所有影像按照感知區塊之卷積模組的Filter大小進行分割
 		\item [3]
-		分析在目標濾波器所屬的高斯模組前是否有經過空間合併模組。\\
-		如果有，則將分割影像按照空間合併範圍進行合併。
-		\item [4]
 		將所有資料集影像輸入進模型，並且記錄目標濾波器所有的輸出
-		\item [5]
+		\item [4]
 		選出目標濾波器所有的輸出的最大值，並且找出該最大值的位置
+		\item [5]
+		選擇該位置在分割影像中的對應小圖
 		\item [6]
-		選擇該位置在分割影像中的對應小圖作為目標濾波器的對應CI
+		分析在目標濾波器所屬的高斯模組前是否有經過空間合併模組。\\
+		如果有，則將分割影像按照空間合併範圍進行合併作為目標濾波器的對應CI
 	\end{itemize}
 
 
@@ -495,10 +518,10 @@ Step 6：計算 loss value 並進行反向傳播
 	\label{fig:CI_generator_0}
 	\captionsetup{justification=centering}
 	\caption{色彩感知區塊與輪廓感知區塊的CI產生流程示意圖 \\ 以輪廓感知區塊的高斯卷積模組為例}
-	\includegraphics[width=0.7\textwidth]{chapter3/CI_genenrator_0.png}
+	\includegraphics[width=1\textwidth]{chapter3/CI_genenrator_0.png}
 	\end{figure}
 
-	\fig[0.7][fig:CI_generator_1][H]{chapter3/CI_genenrator_1.png}[特徵傳遞區塊之CI產生流程示意圖 \\
+	\fig[1][fig:CI_generator_1][H]{chapter3/CI_genenrator_1.png}[特徵傳遞區塊之CI產生流程示意圖 \\
 	以輪廓特徵傳遞區塊的第一層為例][特徵傳遞區塊之CI產生流程示意圖]
 
 	\begin{figure}[H]
