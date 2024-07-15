@@ -63,19 +63,11 @@ class CIFAR10(Dataset):
         
     def __getitem__(self, index: int) -> Tuple[Any, Any]:
         img, target = self.data[index], self.targets[index]
-
-        plt.imshow(img)
-        plt.show()
-
         if self.transform is not None:
             img = self.transform(img)
 
         if self.target_transform is not None:
-            target = self.target_transform(target)
-
-        plt.imshow(img.permute(1,2,0))
-        plt.show()
-        
+            target = self.target_transform(target)    
         return img, target
 
     def __len__(self) -> int:
