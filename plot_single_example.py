@@ -28,7 +28,7 @@ with torch.no_grad():
 
 	# Load Model
 	models = {'SFMCNN': SFMCNN, 'RGB_SFMCNN':RGB_SFMCNN}
-	checkpoint_filename = '0614_RGB_SFMCNN_best_p5c296up'
+	checkpoint_filename = 'RGB_SFMCNN_best_t1np8eon'
 	checkpoint = torch.load(f'./pth/{config["dataset"]}_pth/{checkpoint_filename}.pth')
 	model = models[arch['name']](**dict(config['model']['args']))
 	model.load_state_dict(checkpoint['model_weights'])
@@ -85,11 +85,11 @@ if arch['args']['in_channels'] == 1:
 	layers[2] = nn.Sequential(*(list(model.convs[:2]) + list([model.convs[2][:2]])))
 	layers[3] = nn.Sequential(*(list(model.convs[:3]) + list([model.convs[3][:2]])))
 else:
-	layers['RGB_convs_0'] = model.RGB_convs[0]
+	layers['RGB_convs_0'] = model.RGB_convs[0][:2]
 	layers['RGB_convs_1'] = nn.Sequential(*(list(model.RGB_convs[:2]) + list([model.RGB_convs[2][:2]])))
 	layers['RGB_convs_2'] = nn.Sequential(*(list(model.RGB_convs[:3]) + list([model.RGB_convs[3][:2]])))
 	
-	layers['Gray_convs_0'] = model.Gray_convs[0]
+	layers['Gray_convs_0'] = model.Gray_convs[0][:2]
 	layers['Gray_convs_1'] = nn.Sequential(*(list(model.Gray_convs[:2]) + list([model.Gray_convs[2][:2]])))
 	layers['Gray_convs_2'] = nn.Sequential(*(list(model.Gray_convs[:3]) + list([model.Gray_convs[3][:2]])))
 	
@@ -121,12 +121,12 @@ else:
 # 	        i+=1
 # 	idx_to_label = {value: key for key, value in label_to_idx.items()}
 
-test_id = "160"
+test_id = "240"
 test_img = torchvision.io.read_image(f'./test_images/origin_{test_id}.png')
 test_img = test_img.to(torch.float32)
 test_img /= 255
 test_img = test_img[:3, :, :]
-label = "green_4"
+label = "red_0"
 
 save_path = f'./single_detect/{config["dataset"]}_{checkpoint_filename}/example/{label}/{test_id}/'
 # save_path = f'./single_detect/{config["dataset"]}_{checkpoint_filename}/example/{labels[test_id].argmax().item()}/example_{test_id}/'
@@ -134,6 +134,8 @@ RM_save_path = f'{save_path}/RMs/'
 RM_CI_save_path = f'{save_path}/RM_CIs/'
 os.makedirs(RM_save_path, exist_ok=True)
 os.makedirs(RM_CI_save_path, exist_ok=True)
+
+
 
 # 輸入影像分割
 # segments = split(test_img.unsqueeze(0), kernel_size=arch['args']['Conv2d_kernel'][0], stride = (arch['args']['strides'][0], arch['args']['strides'][0]))[0]
@@ -209,7 +211,7 @@ else:
 	# 平行架構
 	# RGB_convs_0
 	layer_num = 'RGB_convs_0'
-	plot_shape = (2,15)
+	plot_shape = (5,6)
 	RM = layers[layer_num](test_img.unsqueeze(0))[0]
 	print(f"{layer_num}_RM: {RM.shape}")
 	RM_H, RM_W = RM.shape[1], RM.shape[2]
@@ -221,6 +223,8 @@ else:
 	RM_CI = RM_CI.permute(0,1,4,2,3).reshape(*RM_CI.shape[:2], arch['args']['in_channels'], -1).mean(dim=-1).unsqueeze(-2).unsqueeze(-2).repeat(1, 1, *RM_CI.shape[2:4], 1)
 	RM_CIs[layer_num] = RM_CI
 	plot_map(RM.permute(1,2,0).reshape(RM_H,RM_W,*plot_shape,1).detach().numpy(), path=RM_save_path + f'{layer_num}_RM')
+	print(RM.permute(1,2,0).reshape(RM_H,RM_W,*plot_shape,1).detach().numpy()[1, 5])
+	input()
 	plot_map(RM_FM.detach().numpy(), path=RM_CI_save_path + f'{layer_num}_RM_FM')
 	plot_map(RM_CI, path=RM_CI_save_path + f'{layer_num}_RM_CI')
 

@@ -183,8 +183,7 @@ for test_id in range(450):
 		print(f"Layer{layer_num}_RM: {RM.shape}")
 		RM_H, RM_W = RM.shape[1], RM.shape[2]
 		plot_map(RM.permute(1,2,0).reshape(RM_H,RM_W,int(RM.shape[0] ** 0.5),int(RM.shape[0] ** 0.5),1).detach().numpy(), path=RM_save_path + f'{layer_num}_RM')
-		CI_H, CI_W = CIs[layer_num].shape[2], CIs[layer_num].shape[3]
-		RM_CI = CIs[layer_num][torch.topk(RM, k=1, dim=0, largest=True).indices.flatten()].reshape(RM_H,RM_W,CI_H,CI_W,1)
+		CI_H, CI_W = CIs[layer_num].shape[2], CIs[layer_num].shape[3]		RM_CI = CIs[layer_num][torch.topk(RM, k=1, dim=0, largest=True).indices.flatten()].reshape(RM_H,RM_W,CI_H,CI_W,1)
 		plot_map(RM_CI.detach().numpy(), vmax=1, vmin=0, path=RM_CI_save_path + f'Layer{layer_num}_RM_CI', cmap='gray')
 		RM_CIs[layer_num] = RM_CI
 
