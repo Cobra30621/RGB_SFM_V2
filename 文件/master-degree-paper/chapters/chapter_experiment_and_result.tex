@@ -63,6 +63,16 @@ Colored MNIST和Colored Fashion主要用於驗證模型在彩色影像的分類�
 
     \fig[1][fig:Colored-Fashion-MNIST-Dataset-picture][H]{chapter4/Colored Fashion MNIST.png}[Colored Fashion MNIST資料集][Colored Fashion MNIST資料集]
     \pagebreak
+
+    \subsection{CIFAR-10 資料集}
+    CIFAR-10 資料集\cite{CIFAR10} 是由各種現實影像所組成，共有10個類別，
+    分別為airplane、automobile、bird、cat、deer、dog、frog、horse、ship 和 truck，
+    如\cref{fig:CIFAR10}，
+    每個影像為彩色圖像，解析度為 28 * 28。
+    該資料集共有50000筆訓練資料，10000筆測試資料。
+
+    \fig[1][fig:CIFAR10][H]{chapter4/CIFAR10.png}[CIFAR10資料集\cite{CIFAR10}][CIFAR10資料集]
+    \pagebreak
 \section{實驗設計}
     \subsection{MNIST 實驗設計}
     首先在MNIST資料集的部分，
@@ -124,13 +134,16 @@ Colored MNIST和Colored Fashion主要用於驗證模型在彩色影像的分類�
 
 
     \subsection{彩色資料集實驗設計}
+    \label{chapter:ColoredModel}
+    \fig[1][fig:color_model_arch][H]{model_arch.png}[彩色實驗架構圖][彩色實驗架構圖]
+    我們將使用Colored MNIST 和Colored Fashion MNIST 資料集的實驗稱為彩色資料集實驗。
     在彩色資料集實驗中，
     我們設定色彩特徵傳遞區塊為兩層，
     其濾波器數目由前到後將C$^{color}_{1}$、C$^{color}_{2}$分別設定為225、625；
     輪廓感知區塊固定一層，其濾波器數目C$^{gray}_{0}$設定為70；
     輪廓特徵傳遞區塊設定為兩層，
     其濾波器數目由前到後將C$^{gray}_{1}$、C$^{gray}_{2}$分別設定為625、1225。
-    其架構如\cref{fig:model_arch}。
+    其架構如\cref{fig:color_model_arch}。
 
     為了方便人們對於模型去進行理解和色彩與輪廓解釋性圖片的對應，
     在色彩感知區塊和輪廓感知區塊我們會使用相同濾波器大小、相同步長，
@@ -181,7 +194,18 @@ Colored MNIST和Colored Fashion主要用於驗證模型在彩色影像的分類�
             $SF\_{i}$ &  \makecell{色彩 $\left\{(2, 2), (1, 3)\right\}$ \\ 輪廓 $\left\{(2, 2), (1, 3)\right\}$ }  \\
             \hline 
         \end{tabular}
-    \end{table}
+    \end{table} 
+    \pagebreak
+
+    \subsection{CIFAR10實驗設計}
+    由於現實影像的特徵複雜度較為複雜，
+    在CIFAR10實驗中我們將色彩區塊和輪廓區塊的濾波器數目增多，
+    我們設定色彩特徵傳遞區塊為二層，
+    其濾波器數目由前到後將C$^{color}_{1}$、C$^{color}_{2}$分別設定為225、625；
+    輪廓感知區塊固定一層，其濾波器數目C$^{gray}_{0}$設定為100；
+    輪廓特徵傳遞區塊設定為兩層，
+    其濾波器數目由前到後將C$^{gray}_{1}$、C$^{gray}_{2}$分別設定為1225、2500。
+    其餘相關參數設定和彩色資料集實驗相同，如\cref{tab:ColoredModelparameters}。
 
 \section{實驗結果}
     \subsection{實驗結果資料}
@@ -197,7 +221,8 @@ Colored MNIST和Colored Fashion主要用於驗證模型在彩色影像的分類�
     合併SF設定為為(2,2), (1,3), (3,1)。
 
     但由於CIM無法處理彩色影像，因此我們在Colored MNIST與Colored Fashion MNIST 資料集上，
-    將比較本模型、AlexNet、ResNet\-18、GoogLeNet、DenseNet等四種模型效果。
+    將比較本模型、AlexNet、ResNet\-18、GoogLeNet、DenseNet等四種模型效果，
+    以上的模型均執行 200 epochs，learning rate = 0.001。
 
     \begin{table}[H]
         \centering
@@ -229,12 +254,25 @@ Colored MNIST和Colored Fashion主要用於驗證模型在彩色影像的分類�
             ~ & GoogLeNet~\cite{Szegedy_2015_CVPR} & 1.0 & 0.898   \\
             ~ & DenseNet~\cite{Huang_2017_CVPR} & 1.0 &  0.9012 \\
             \hline
+            \multirow{5}*{\makecell{CIFAR10 \\ （28x28）}} 
+            & Ours & 0.5918 & 0.5012 \\
+            ~ & AlexNet~\cite{NIPS2012_c399862d} & 0.9992 & 0.7592   \\
+            ~ & ResNet18~\cite{He_2016_CVPR} & 0.9781 & 0.7591   \\
+            ~ & GoogLeNet~\cite{Szegedy_2015_CVPR} & - & -   \\
+            ~ & DenseNet~\cite{Huang_2017_CVPR} & - &  - \\
+            \hline
         \end{tabular}   
     \end{table}
 
     \pagebreak
     \subsection{可解釋性圖片}
-    \cref{tab:MNIST-pictures}、\cref{tab:coloredMNIST-pictures}、\cref{tab:coloredFashionMNIST-pictures}中：
+    在本章中，我們將展示MNIST、Colored MNIST和Colored Fashion MNIST三個資料集的可解釋性圖片範例。
+    由於模型在CIFAR10資料集上的準確度較低，
+    表明模型未能充分學習到該資料集的特徵，
+    呈現可解釋性圖片沒有實際意義，
+    因此改為於\cref{chapter:failureAnalysis}分析其學習失敗的原因。
+
+    \cref{tab:MNIST-pictures}、\cref{tab:coloredMNIST-pictures}、\cref{tab:coloredFashionMNIST-pictures}的符號意義：
     \begin{description}
         \item[RM-CI-Color-0] 為色彩感知區塊根據RM$^{color}_{0}$每一張RM選擇最大的反應並在CI$^{color}_{0}$的對應位置中找到的CI影像；
         \item[RM-CI-Color-1] 為色彩特徵傳遞區塊的第一層根據RM$^{color}_{1}$每一張RM選擇最大的反應並在CI$^{color}_{1}$的對應位置中找到的CI影像；
@@ -1101,6 +1139,20 @@ Colored MNIST和Colored Fashion主要用於驗證模型在彩色影像的分類�
 
     \begin{table}[H]
         \centering
+        \caption{硬體設備}
+        \begin{tabular}{| c | c |}
+            \hline
+            CPU & Intel(R) Xeon(R) CPU E5-2620 v4 @ 2.10GHz \\
+            \hline
+            Memory & 64 GB \\
+            \hline 
+            GPU & NVIDIA GeForce RTX 4060 Ti \\
+            \hline
+        \end{tabular}
+    \end{table}
+
+    \begin{table}[H]
+        \centering
         \caption{特徵傳遞區塊之優化實驗結果}
         \label{tab:update-experiment}
         \begin{tabular}{| c | c | c | c | c |}
@@ -1194,7 +1246,7 @@ Colored MNIST和Colored Fashion主要用於驗證模型在彩色影像的分類�
             \hline
             色差計算方法 & Input & RM-CI-0 & RM-CI-1 & RM-CI-2 \\
             \hline
-            Euclidean &
+            \makecell[c]{Euclidean} &
             \multirow{3}*{\begin{minipage}[t]{0.1\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/Colored_MNIST_diff_cdist/blue_3/origin.png}\end{minipage}} & 
             \begin{minipage}[t]{0.1\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/Colored_MNIST_diff_cdist/blue_3/cdist_RGB_convs_0_RM_CI.png}\end{minipage} &
             \begin{minipage}[t]{0.1\columnwidth}\centering\includegraphics[width=1\textwidth]{Chapter4/Colored_MNIST_diff_cdist/blue_3/cdist_RGB_convs_1_RM_CI.png}\end{minipage} &
@@ -1706,8 +1758,8 @@ Colored MNIST和Colored Fashion主要用於驗證模型在彩色影像的分類�
     本節將會比較不同濾波器數目對模型的影響，
     由於色彩感知區塊的濾波器固定為30種基礎色彩，
     因此我們能變更濾波器數目的區塊只有色彩特徵傳遞區塊、輪廓感知區塊、輪廓特徵傳遞區塊。
-    第一種濾波器數目是按照前面的實驗設計，將C$^{color}_{1}$、C$^{color}_{2}$、C$^{gray}_{0}$、C$^{gray}_{1}$、C$^{gray}_{2}$分別設定為 225、625, 70, 625, 1225(簡稱normal-SFM)。
-    第二種濾波器數目則是將濾波器數目大幅縮小，將C$^{color}_{1}$、C$^{color}_{2}$、C$^{gray}_{0}$、C$^{gray}_{1}$、C$^{gray}_{2}$分別設定為 100、225、30、100、225(簡稱tiny-SFM)。
+    第一種濾波器數目是按照前面的實驗設計，將C$^{color}_{1}$、C$^{color}_{2}$、C$^{gray}_{0}$、C$^{gray}_{1}$、C$^{gray}_{2}$分別設定為 225、625, 70, 625, 1225(簡稱Normal-SFM)。
+    第二種濾波器數目則是將濾波器數目大幅縮小，將C$^{color}_{1}$、C$^{color}_{2}$、C$^{gray}_{0}$、C$^{gray}_{1}$、C$^{gray}_{2}$分別設定為 100、225、30、100、225(簡稱Tiny-SFM)。
     其餘參數設定則與\cref{tab:ColoredModelparameters}相同。
 
     實驗結果如\cref{tab:diff-channels-experiment}，
@@ -1719,7 +1771,7 @@ Colored MNIST和Colored Fashion主要用於驗證模型在彩色影像的分類�
     其影像複雜度必定大於Colored MNIST而會需要較多的濾波器，
     因此我們將模型的濾波器數目下降，
     也確實導致了模型在 Color Fashion MNIST 的準確度的下降；
-    而由於Colored MNIST 的影像複雜度較小因此 tiny-SFM 在 Colored MNIST 可以表現的與 normal-SFM 相同，甚至更好。
+    而由於Colored MNIST 的影像複雜度較小因此 Tiny-SFM 在 Colored MNIST 可以表現的與 Normal-SFM 相同，甚至更好。
 
     \begin{table}[H]
         \centering
@@ -1731,12 +1783,12 @@ Colored MNIST和Colored Fashion主要用於驗證模型在彩色影像的分類�
             \hline
             \hline
             \multirow{2}*{\makecell{Colored MNIST \\ （28x28）}}
-            & normal-SFM & 0.9795 & 0.954 & 43s \\
-            ~ & tiny-SFM & 0.968 & 0.9585 & 22s \\
+            & Normal-SFM & 0.9795 & 0.954 & 43s \\
+            ~ & Tiny-SFM & 0.968 & 0.9585 & 22s \\
             \hline
             \multirow{2}*{\makecell{Colored Fashion MNIST \\ （28x28）}}
-            & normal-SFM & 0.8847 & 0.8223 & 42s \\
-            ~ & tiny-SFM & 0.8404 & 0.8092 & 22s \\
+            & Normal-SFM & 0.8847 & 0.8223 & 42s \\
+            ~ & Tiny-SFM & 0.8404 & 0.8092 & 22s \\
             \hline
         \end{tabular}
     \end{table}
@@ -1745,9 +1797,33 @@ Colored MNIST和Colored Fashion主要用於驗證模型在彩色影像的分類�
     \label{chapter:diff-rbf-compare}
     本節將會比較不同激活函數對模型的影響，
     分別是高斯函數 + cReLU函數(公式於\cref{eqn:rbf-gaussian-function}、\cref{eq:eq-cReLUPercent})和Triangle + cReLU函數。
-    此外，我們在實作時將Triangle函數與新的cReLU函數合併成一個新函數稱之為Triangle cReLU函數，其公式如\cref{eqn:rbf-triangle-cReLU-function}。
+
+    我們在選擇如何將距離轉換成相似度的函數時，
+    也嘗試了\cite{YangCNNInterpretable}中提到了一個三角形的放射狀基底函數(以下簡稱Triangle函數)
+    其公式如\cref{eqn:rbf-triangle-function}，x為輸入值，m為中心點，w為寬度參數。
+    並且在實作時將Triangle函數與新的cReLU函數合併成一個新函數稱之為Triangle cReLU函數，其公式如\cref{eqn:rbf-triangle-cReLU-function}。
     在Triangle cReLU函數部分，色彩色彩的w從感知層到傳遞層分別設定為(1, 4.7, 4.31)，而輪廓部分的w從感知層到傳遞層分別設定為(4.6, 3.2, 4.17)
     其餘參數均使用與\cref{tab:ColoredModelparameters}相同的設定。
+
+    \begin{equation}
+          \label{eqn:rbf-triangle-function}
+          \phi (x) = 1 - \frac{ \max \left( dist, w \right)}{w}
+    \end{equation}
+
+    \begin{figure}[H]
+        \centering
+        \subcaptionbox
+            {高斯函數
+            \label{fig:gaussian}}
+            {\includegraphics[width=0.33\linewidth]{chapter3/gaussian.png}}
+        ~
+        \subcaptionbox
+            {Triangle函數
+            \label{fig:triangle}}
+            {\includegraphics[width=0.33\linewidth]{chapter3/triangle.png}}
+        \caption{高斯函數與Triangle函數\cite{YangCNNInterpretable}}
+        \label{fig:rbf}
+    \end{figure}
 
     \begin{equation}
       \label{eqn:rbf-triangle-cReLU-function}
@@ -1779,16 +1855,99 @@ Colored MNIST和Colored Fashion主要用於驗證模型在彩色影像的分類�
             \hline
             \multirow{2}*{\makecell{Colored MNIST \\ （28x28）}}
             & 高斯函數 + cReLU & 0.9795 & 0.954 & 43s \\
-            ~ & Triangle cReLU 函數 & 0.978 & 0.9551 & 42s \\
+            ~ & Triangle cReLU & 0.978 & 0.9551 & 42s \\
             \hline
             \multirow{2}*{\makecell{Colored Fashion MNIST \\ （28x28）}}
             & 高斯函數 + cReLU & 0.8847 & 0.8223 & 42s \\
-            ~ & Triangle cReLU函數 & 0.9101 & 0.8289 & 42s \\
+            ~ & Triangle cReLU & 0.9101 & 0.8289 & 42s \\
             \hline
         \end{tabular}
     \end{table}
 
+
+    \subsection{不同模型深度之比較}
+    本節將會比較不同模型深度對於效果之影響，
+    由於本研究之模型的深度會受制於影像的解析度，
+    因此如果要加深模型深度我們必須將影像尺寸進行放大。
+
+    我們將Colored MNIST 資料集的影像大小從 28*28 放大至 320 * 320，
+    並將模型的顏色部分和輪廓部分的深度從3層加深至5層，
+    色彩部分濾波器數目由前到後為 30, 100, 225, 625, 1225；
+    輪廓部分濾波器數目由前到後為 70, 100, 225, 625, 1225，
+    其餘的參數如\cref{tab:DeepColoredModelparameters}，
+    我們稱加深後的模型為Deep-SFM，而在\cref{chapter:ColoredModel}的模型在本節稱為Normal-SFM。
+
+    \begin{table}[H]
+        \centering
+        \caption{Deep-SFM 參數設定}
+        \label{tab:DeepColoredModelparameters}
+        \begin{tabular}{| c | c |}
+            \hline
+            參數 & 設定值 \\
+            \hline
+            \hline
+            影像類別數量 & 30 \\
+            \hline
+            訓練批次大小 & 256 \\
+            \hline
+            訓練迭代次數 & 200 \\
+            \hline
+            優化器 & Adam \\
+            \hline
+            學習率 & 0.001 \\
+            \hline
+            損失函數 & Cross Entropy \\
+            \hline
+            L(層數) & 5 \\
+            \hline
+            i & 1 to L \\
+            \hline
+            $Filter\_{i}$ & \makecell{色彩 $\left\{(5, 5), (1, 1), (1, 1), (1, 1), (1, 1)\right\}$ \\ 輪廓 $\left\{(5, 5), (1, 1), (1, 1), (1, 1), (1, 1)\right\}$ }\\
+            \hline 
+            $stride\_{i}$ & \makecell{色彩 $\left\{(4, 4), (1, 1), (1, 1), (1, 1), (1, 1)\right\}$ \\ 輪廓 $\left\{(4, 4), (1, 1), (1, 1), (1, 1), (1, 1)\right\}$ } \\
+            \hline
+            $p\_{i}$ & \makecell{色彩 $\left\{0.3, 0.35, 0.4, 0.45, 0.5\right\}$  \\ 輪廓 $\left\{0.3, 0.35, 0.4, 0.45, 0.5\right\}$ } \\
+            \hline
+            $SF\_{i}$ &  \makecell{色彩 $\left\{(4, 4), (2, 2), (1, 4), (4, 1)\right\}$ \\ 輪廓 $\left\{(4, 4), (2, 2), (1, 4), (4, 1)\right\}$ }  \\
+            \hline 
+        \end{tabular}
+    \end{table}
+
+    \begin{table}[H]
+        \centering
+        \caption{不同深度在Colored MNIST資料集上的實驗結果}
+        \label{tab:diff-deep-experiment}
+        \begin{tabular}{| c | c | c | c | c |}
+            \hline
+            模型 & 訓練準確度 & 測試準確度 \\
+            \hline
+            \hline
+            Normal-SFM & 0.9795 & 0.954 \\
+            Deep-SFM & 0.9616 & 0.9244  \\
+            \hline
+        \end{tabular}
+    \end{table}
+
+
+    從實驗結果來看，本研究的模型在加深深度後，確實加快了收斂速度。
+    從\cref{fig:diff_deep_valid_acc}可見，Normal-SFM模型在第50個epoch後驗證準確度達到0.9012後增長開始放緩；
+    而Deep-SFM模型在第14個epoch後驗證準確度達到0.8044便開始放緩。
+    這表明，增加模型深度可以加快訓練過程的收斂速度。然
+    而，儘管增加模型深度能夠加快收斂速度，卻也導致了一些問題。
+    Deep-SFM模型的訓練準確度和測試準確度均低於Normal-SFM模型，分別為0.9616和0.9244，
+    顯示出過度加深深度可能導致模型在訓練和測試時的準確度下降。
+    這可能是由於過深的模型結構引入了過度擬合或計算複雜度增加的問題，
+    從而影響了模型的泛化能力。
+    因此，模型深度的增加需在收斂速度和準確度之間找到一個平衡點。
+    \fig[0.7][fig:diff_deep_valid_acc][H]{chapter4/Diff_deep_valid_accuracy.png}[Deep-SFM和Normal-SFM 的 valid accuracy][Deep-SFM和Normal-SFM 的 valid accuracy]
+    \pagebreak
+
+
+
     \subsection{可解釋性圖片失敗案例分析}
+    \label{chapter:failureAnalysis}
+
+    \subsubsection{彩色資料集失敗案例分析}
     本節將呈現在實驗中的部分可解釋性圖片無法解釋決策依據的失敗案例，
     而失敗的案例可以分成色彩判斷錯誤和輪廓誤判錯誤兩種。
 
@@ -1853,4 +2012,17 @@ Colored MNIST和Colored Fashion主要用於驗證模型在彩色影像的分類�
         \end{tabular}
     \end{table}
 
+    \subsubsection{CIFAR10 實驗失敗原因分析}
+    在 CIFAR-10 實驗中，
+    我們的模型在訓練集上的準確度為 0.5918，
+    而在測試集上的準確度為 0.5012。
+    我們推測其失敗的原因主要在於模型中使用的輪廓感知區塊和特徵傳遞區塊均採用了高斯卷積模組。
+    高斯卷積模組利用歐式距離來評估特徵之間的相似度。
+    然而，使用歐式距離意味著對於每個特徵的旋轉、平移等變換都需要不同的濾波器來學習。
+    這一特性在處理簡單特徵的數字和服飾資料集時並不明顯，
+    但在實際應用中處理現實世界的影像時，
+    所需的濾波器數量會大幅增加，
+    超出可估計的範圍，
+    從而限制了模型的效能。
+    這是我們研究模型的一個主要限制。
 \end{document}

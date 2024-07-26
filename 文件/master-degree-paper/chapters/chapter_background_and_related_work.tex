@@ -11,7 +11,7 @@
 
 要了解人如何感知色彩，
 我們必須要先了解人眼中感知彩色影像的這條重要的 Central Visual Pathway 會經過哪些的部位與流程，
-根據 《 Neuroscience 》 \cite{Purves2004Neuroscience3E}所介紹，
+根據 \textit{Neuroscience} \cite{Purves2004Neuroscience3E}所介紹，
 彩色影像在 Central Visual Pathway 會經過的部位總共可以分為三個重要部位：視網膜(Retina)、外側膝狀體(外膝體，Lateral Geniculate Nucleus)、視覺皮層(Visual Cortex)，
 彩色影像從視網膜進入後會送入外膝體，外膝體在收到兩側眼球的資訊後會將不同的資訊平行傳輸至不同的視覺皮層，視覺皮層則負責對這些資訊進行分層的整合與感知。
 詳細的Central Visual Pathway 如\cref{fig:Central_Visual_Pathway}
@@ -33,7 +33,7 @@
 視網膜會將光轉換成動作電位並透過視神經傳輸至外膝體正式開始將資訊傳輸至大腦，
 也因此Central Visual Pathway 才會將視網膜視為感知彩色影像的第一個重要部位。
 
-根據 《 Neuroscience-Exploring the Brain 》 \cite{bear2016neuroscience}
+根據 \textit{Neuroscience-Exploring the Brain} \cite{bear2016neuroscience}
 我們知道視網膜的基礎架構是由五類細胞組成如\cref{fig:RetinaBasic}，分別是: 感光細胞(Photoreceptor cell)、 水平細胞(Horizontal cell)、 無長突細胞(Amacrine cell)、 雙極細胞(Bipolar cell)、 神經節細胞(Ganglion cell)。 感光細胞包含我們常聽到的視錐細胞等負責將輸入的光轉化為動作電位、 
 雙極細胞負責將會將感光細胞的電位傳送到神經節細胞、
 水平細胞和無長突細胞負責協助雙極細胞傳輸資訊，
@@ -72,7 +72,7 @@
 \end{figure}
 \pagebreak
 
-此外，在Jeff Hawkins的著作\cite{10.5555993636}和《Principles of Neural Science》\cite{1180370208}中均有提到，
+此外，在\textit{On Intelligence} \cite{10.5555993636}和\textit{Principles of Neural Science}\cite{1180370208}中均有提到，
 視網膜能接收到的影像資訊不只是上述的空間性資訊，
 同時也具有不同時間性的資訊，這代表同樣的影像進入視網膜的型態是會隨時間而改變。
 具體而言，眼睛會在每一秒鐘快速移動視線的焦點三到四次(如\cref{fig:Saccade})，
@@ -109,12 +109,12 @@
 \subsubsection{視覺皮層}
 皮層可以說是大腦最重要的地方，高級認知功能例如:記憶、思考、感覺等均在此發生。
 根據\cite{10.5555993636}中的說明，人類的大腦中皮質以分層結構存在的，
-而視覺皮層又可以分為初級視覺皮層(Primary visual cortex, V1)和紋外皮層(V2、V4、IT層)這四層。
+而視覺皮層又可以分為初級視覺皮層(Primary Visual Cortex, V1)和紋外皮層(V2、V4、IT層)這四層。
 初級視覺皮層負責接收外膝體傳輸來的資訊並開始處理顏色、方向、輪廓等視覺資訊，
 其餘皮層則負責整合和傳遞資訊給下面的皮層，因此隨著皮層的深入，所得到的視覺資訊也會越來越完整。
 
 
-\cite{1180370208}提出一種影像資訊處理架構，
+\textit{Principles of Neural Science} \cite{1180370208}中提出一種影像資訊處理架構，
 示意圖如\cref{fig:ParallelProcess}，
 其將皮質中的資訊傳輸路徑分成兩類，Ventral Pathway 和 Dorsal Pathway, 
 Ventral Pathway 由 V1、V2、V4 組成負責處理影像的色彩、形狀等資訊，
@@ -208,7 +208,7 @@ cReLU公式於\cref{eq:eq-crelu}，$c$為人工取的一個閥值，
 $RM_{k}$為第k張RM，
 $n$為輸入資訊的數量，
 ${H}_{i}^{SF}$、${W}_{i}^{SF}$為第i層空間位置保留合併機制輸出的長和寬，
-$\alpha$為一個可訓練的時間遺忘函數(forgetting factor)。
+$\alpha$為一個可訓練的時間遺忘函數(Forgetting Factor)。
 空間位置保留合併模組使用此合併公式來模擬特徵資訊在皮層中的時序性特徵資訊與皮層的逐層合併的現象，
 從而達到在合併的過程中保留特徵之間的時序關係,
 也可讓越後面的層數學習到更完整的特徵資訊。

@@ -7,11 +7,12 @@
 \section{以卷積神經網路為基礎之新型可解釋性深度學習模型}
 \subsection{模型架構}
 
-此章節將介紹本論文所提出的可解釋性模型整體架構與每個部分的功能，並說明資料在模型中的運作方式，模型架構圖如\cref{fig:model_arch}。
+此章節將介紹本論文所提出的可解釋性模型整體架構與每個部分的功能，並說明資料在模型中的運作方式，模型架構圖如\cref{fig:model_arch_simple}。
 整個模型可以分成三個部分，色彩感知區塊、輪廓感知區塊和特徵傳遞區塊。
 
-\fig[1][fig:model_arch][H]{model_arch.png}[模型架構圖][模型架構圖]
-\fig[1][fig:model_arch_simple][H]{model_arch_simple.png}[模型架構簡圖][模型架構簡圖]
+\fig[1][fig:model_arch_simple][H]{model_arch_simple.png}[模型架構圖][模型架構圖]
+
+\pagebreak
 
 這三種區塊均由不同的卷積模組、響應篩選模組、空間合併模組所組成。
 卷積模組利用不同的方式學習與提取輸入的特徵，
@@ -52,7 +53,7 @@
 		\item[]\textit{RM}：輸入經過卷積模組和響應篩選模組所輸出的結果
 		\item[]\textit{CI}：卷積模組之濾波器在資料集的對應影像
 		\item[]\textit{SF}$_{i}$：第i層的空間合併模組的濾波器大小(Spatial Filter)
-		\item[]\textit{H}$^{i}_{SF}$、\textit{W}$^{i}_{SF}$：第i層的空間合併模組輸出的長、寬
+		\item[]\textit{H}$^{SF}_{i}$、\textit{W}$^{SF}_{i}$：第i層的空間合併模組輸出的長、寬
 
 		\item[]\textit{FM}$^{color}_{0}$：色彩感知區塊之彩色卷積模組的\textit{FM}
 		\item[]\textit{RM}$^{color}_{0}$：色彩感知區塊之彩色卷積模組的\textit{RM}
@@ -89,7 +90,7 @@ Step 4：將色彩輸出和灰階輸出分別輸入進各自的特徵傳遞層�
 
 Step 5：將色彩特徵與灰階特徵攤平後concat成為(B$_{in}$, C$^{Linear}_{in}$)並輸入進全連接層學習分類特徵
 
-Step 6：計算 loss value 並進行反向傳播
+Step 6：計算 Loss Value 並進行反向傳播
 
 
 \pagebreak
@@ -122,6 +123,10 @@ Step 6：計算 loss value 並進行反向傳播
 			再加上紅、綠、藍、黑、白、灰六個基礎色組成。
 			由於以上的30色均為基礎顏色(如\cref{fig:30Base})，
 			因此我們希望透過計算不同區塊的色彩與這些基礎顏色的響應值來當作區塊的色彩特徵。
+
+			我們選擇使用PCCS體系的24色相環加上六個基礎色，
+			是為了驗證使用少量基礎色來初始化濾波器進行彩色卷積是否能夠有效的組合出影像中的色彩特徵。
+			在實際應用中，使用者可以自行設定不同的顏色或是其他色相環來進行初始化。
 
 			\fig[0.4][fig:PCCS][H]{chapter3/PCCS.jpg}[PCCS體系的24色色相環\cite{PCCScite}][PCCS體系的24色色相環]
 
@@ -165,66 +170,6 @@ Step 6：計算 loss value 並進行反向傳播
 
 			\fig[0.5][fig:LabColorSpace][H]{chapter3/Lab_color_space.jpg}[CIE L*a*b 色彩模型][CIE L*a*b 色彩模型]
 
-			% 在色差的計算上，我們曾經考慮過下面三種不同的色差計算方法，分別如下：
-			% \begin{itemize}
-			%   \item [1)] 
-			%   	計算RGB色彩空間的歐氏距離(Euclidean Distance)來代表顏色之間的差距，
-			%   	其公式如\cref{eq:eq-RGBcdist}。
-			%   	他是三種方法之中最為快速
-			%   	$\Delta$C代表兩個顏色的色差，
-			%   	$\Delta$R為兩個顏色R值的差距，
-			%   	$\Delta$G為兩個顏色G值的差距，
-			%   	$\Delta$B為兩個顏色B值的差距。
-			%   	\begin{equation}
-			%     \label{eq:eq-RGBcdist}
-			%     	\Delta C = \sqrt{(\Delta R)^2 + (\Delta G)^2 + (\Delta B)^2}
-			% 	\end{equation}
-
-			%   \item [2)]
-			%   	由CompuPhase公司提出的一種低成本的加權歐氏距離公式\cite{LABformula}(簡稱LAB Euclidean)，
-			%   	它的權重由RGB中的紅色在色彩中的分量多少而決定。
-			%   	這種色差計算方法的好處是利用這個公式便可以用兩個顏色的RGB值計算出接近CIE L*a*b(CIE L*u*v)空間中的距離，
-			%   	同時這套公式也被使用在CompuPhase自己的產品中。
-			%   	CIE L*a*b是由國際照明委員會提出的色彩空間，
-			%   	是目前描述人眼可見所有顏色最完整的色彩空間，
-			%   	因此在CIELAB的距離也會較RGB空間之距離更接近人眼所視。
-			%   	其公式如\cref{eq:eq-LAB}，
-			%   	其中C$_{1}$代表第一個顏色，
-			%   	C$_{2}$代表第二個顏色。
-			%   	\begin{equation}
-			%     \label{eq:eq-LAB}
-			%     \begin{split}
-			%     	\overline{r} & = \frac{C_{1,R} + C_{2,R}}{2} \\
-			%     	\Delta R & = C_{1,R} - C_{2,R} \\
-			%     	\Delta G & = C_{1,G} - C_{2,G} \\
-			%     	\Delta B & = C_{1,B} - C_{2,B} \\
-			%     	\Delta C & = \sqrt{(2 + \frac{\overline{r}}{256}) * (\Delta R)^2 + 4 * (\Delta G)^2 + (2 + \frac{255 - \overline{r}}{256}) * (\Delta B)^2}
-			%     \end{split}
-			% 	\end{equation}
-
-			% 	\fig[0.5][fig:LabColorSpace][H]{chapter3/Lab_color_space.jpg}[CIE L*a*b 色彩模型][CIE L*a*b 色彩模型]
-				
-
-			%   \item [3)]
-			%   	根據2019年提出的伽馬校正論文\cite{GammaCorrection}中所述，
-			%   	人們對於每個顏色的亮度感知呈現不同的非線性曲線，
-			%   	因此對於不同的色彩的權重應該要是不同的。
-			%   	我們參考了\cite{LABformula}提及的加權歐氏距離的公式(之後簡稱Weighted Euclidean)，
-			%   	公式如\cref{eq:eq-weightcdist}。
-			%   	\begin{equation}
-			%     \label{eq:eq-weightcdist}
-			%     	\Delta C = \sqrt{2 * (\Delta R)^2 + 4 * (\Delta G)^2 + 3 * (\Delta B)^2}
-			% 	\end{equation}
-			% 	然而，在\cite{LABformula}中也有提到，根據伽馬校正的理論，或許我們應該對不同的顏色分布的影像設定不同的加權值才會比較符合人眼的視覺對顏色亮度的感知。
-			% \end{itemize}
-			% 這三個色差的計算方法各有其優缺點，
-			% 並且經過我們的實驗(實驗詳細於\cref{chapter:diff-colordist-compare})後發現三者在準確度和可解釋圖片的產生上十分相似，
-			% 但考量到Euclidean方法會容易受到RGB值的細微不同而產生變化。
-			% 而根據上面提到\cite{LABformula}中的說法，
-			% 如果使用Weight Euclidean方法會需要因應不同的資料集去調整加權數值，會增加問題的複雜度。
-			% 因此我們最終選擇了穩定性較高的LAB Euclidean方法來計算色彩感知區塊中輸入影像和30類基礎顏色的色差值，
-			% 之後將色差值輸入高斯函數中做為評估相似度的依據。
-
 	\subsection{灰階前處理的設計與實現}
 		在輪廓感知區塊中，
 		為了使該區塊能夠專注於提取輪廓特徵而不需考慮色彩因素，
@@ -256,8 +201,9 @@ Step 6：計算 loss value 並進行反向傳播
 
 			我們在實作中選擇使用 Kaiming Uniform 的原因是因為 Kaiming Uniform 相較於常用的 Uniform 初始化和 Xavier Uniform\cite{pmlr-v9-glorot10a} 初始化多考慮了整流線性單位函數(ReLU)等非線性激活函數的存在，
 			Uniform 初始化的方式無法解決隨著神經網路的增加而導致梯度消失的問題，
-			Xavier Uniform 為了解決梯度消失問題加入了 rescale 函數 $\frac{1}{\sqrt{\text{n}}}$但卻只適用於激活函數為線性函數的情況下，
-			而 Kaiming Uniform 在解決梯度消失的問題時同時考慮了激活函數為非線性函數的情況並在\cite{DBLP:journals/corr/HeZR015}透過實驗證明了kaiming uniform 在神經網路在不影響準確度的同時更快收斂。
+			Xavier Uniform 為了解決梯度消失問題加入了 Rescale 函數 $\frac{1}{\sqrt{\text{n}}}$但卻只適用於激活函數為線性函數的情況下，
+			而 Kaiming Uniform 在解決梯度消失的問題時同時考慮了激活函數為非線性函數的情況
+			並在論文\cite{DBLP:journals/corr/HeZR015}中透過實驗證明了Kaiming Uniform 在神經網路在不影響準確度的同時更快收斂。
 			由於我們的模型中在響應篩選模組中使用的非線性函數ReLU的變形去進行響應篩選，因此選擇了 Kaiming Uniform 來去進行後面的實驗。
 
 		\subsubsection{高斯卷積模組}
@@ -289,35 +235,14 @@ Step 6：計算 loss value 並進行反向傳播
 			      \phi (x) = \exp \left( -\frac{dist^2}{2\sigma ^2} \right) 
 			  \end{equation}
 
-		  	此外，我們在選擇如何將距離轉換成相似度的函數時，
-		  	也嘗試了\cite{YangCNNInterpretable}中提到了一個三角形的放射狀基底函數(以下簡稱Triangle函數)
-		  	其公式如\cref{eqn:rbf-triangle-function}，x為輸入值，m為中心點，w為寬度參數。
-		  	\begin{equation}
-		      \label{eqn:rbf-triangle-function}
-		      \phi (x) = 1 - \frac{ \max \left( dist, w \right)}{w}
-		  	\end{equation}
-
-		  	\begin{figure}[H]
-		    \centering
-		    \subcaptionbox
-		        {高斯函數
-		        \label{fig:gaussian}}
-		        {\includegraphics[width=0.33\linewidth]{chapter3/gaussian.png}}
-		    ~
-		    \subcaptionbox
-		        {Triangle函數
-		        \label{fig:triangle}}
-		        {\includegraphics[width=0.33\linewidth]{chapter3/triangle.png}}
-		    \caption{高斯函數與Triangle函數\cite{YangCNNInterpretable}}
-		    \label{fig:rbf}
-			\end{figure}
+\pagebreak
 
 \section{FM、 RM的定義}
 	特徵映射圖(FM)為將卷積模組的濾波器提取出來的結果，
 	由於模型在高斯卷積模組為計算輸入濾波器與相似度，
 	因此FM可以被視為模型學習到了輸入影像中的何種特徵。
 
-	\fig[0.5][fig:FM_picture][H]{chapter3/FM.png}[FM示意圖][FM示意圖]
+	\fig[0.7][fig:FM_picture][H]{chapter3/FM.png}[FM示意圖][FM示意圖]
 
 	特徵映射響應圖(RM)為當輸入進入卷積模組後所得到的輸出，
 	其代表的是輸入區域對於該高斯卷積模組的濾波器的相似度，
@@ -363,6 +288,15 @@ Step 6：計算 loss value 並進行反向傳播
 	        x & \text{if  $x \geq P_{RM}$}
 	    \end{cases} \quad where \; P_{RM} = RM\left[ p\% * N_{RM} \right]
 	\end{equation}
+
+	我們選擇使用 cReLU 函數而非傳統的 ReLU、Sigmoid 或 Leaky ReLU 函數，
+	原因在於傳統的 ReLU、Sigmoid 和 Leaky ReLU 均為全域性函數，
+	主要針對負數部分進行篩選或減弱。
+	由於我們的響應值域在 [0, max(RM)] 範圍內，
+	使用 ReLU、Sigmoid 或 Leaky ReLU 函數將無法去除過小的響應值。
+	然而，cReLU 函數可以根據輸入範圍進行局部篩選，
+	從而有效地去除過小的響應值，只保留響應值較大的部分，提升了模型的表現。
+
 \pagebreak
 
 \section{空間合併模組之設計}
@@ -445,46 +379,6 @@ Step 6：計算 loss value 並進行反向傳播
 
 	\subsection{CI的意義}
 	\label{section:InterablePicture}
-	% \begin{figure}[H]
-    % \centering
-    % \subcaptionbox
-    %     {$FM^{color}_0$
-    %     \label{fig:FM_color_0}}
-    %     {\includegraphics[width=0.3\linewidth]{chapter3/FMs/FMs_RGB_convs_0.png}}
-    % ~
-    % \subcaptionbox
-    %     {$FM^{color}_1$
-    %     \label{fig:FM_color_1}}
-    %     {\includegraphics[width=0.3\linewidth]{chapter3/FMs/FMs_RGB_convs_1.png}}
-    % ~
-    % \subcaptionbox
-    %     {$FM^{color}_2$
-    %     \label{fig:FM_color_2}}
-    %     {\includegraphics[width=0.3\linewidth]{chapter3/FMs/FMs_RGB_convs_2.png}}
-
-    %  \subcaptionbox
-    %     {$FM^{gray}_0$
-    %     \label{fig:FM_gray_0}}
-    %     {\includegraphics[width=0.3\linewidth]{chapter3/FMs/FMs_Gray_convs_0.png}}
-    % ~
-    % \subcaptionbox
-    %     {$FM^{gray}_1$
-    %     \label{fig:FM_gray_1}}
-    %     {\includegraphics[width=0.3\linewidth]{chapter3/FMs/FMs_Gray_convs_1.png}}
-    % ~
-    % \subcaptionbox
-    %     {$FM^{gray}_2$
-    %     \label{fig:FM_gray_2}}
-    %     {\includegraphics[width=0.3\linewidth]{chapter3/FMs/FMs_Gray_convs_2.png}}
-    % \caption{架構中各層的FM範例}
-    % \label{fig:FMs}
-	% \end{figure}
-
-	% 特徵映射響應圖(RM)為當輸入進入卷積模組後所得到的輸出進行維度轉換後的結果，
-	% 其代表的是輸入區域對於該高斯卷積模組的濾波器的相似度，
-	% 也被視為輸入對該高斯卷機模組所有的濾波器的反應強度。
-	% 同一層、不同位置的RM數值為輸入影像的不同位置對於某個濾波器的反應，
-	% 不同層、同一位置的RM數值為輸入影像的同一位置對於不同濾波器的反應。
 
 	特徵映射圖之對應影像(CI)為記錄資料集中所有影像對特定濾波器的反應，
 	從中選出與該濾波器有最大的反應的影像，
@@ -712,7 +606,7 @@ $j$的數量為類別的數量。
 下面以\cref{fig:linear-RM-Input}的影像為範例，
 RM-CI-Color-2為色彩特徵傳遞區塊的第二層根據RM$^{color}_{2}$每一張RM選擇最大的反應並在CI$^{color}_{2}$的對應位置中找到的CI影像，
 RM-CI-Gray-2為輪廓特徵傳遞區塊的第二層根據RM$^{gray}_{2}$每一張RM選擇最大的反應並在CI$^{gray}_{2}$的對應位置中找到的CI影像，
-從\cref{fig:linear-RM-CI-color-2}和\cref{fig:linear-RM-CI-gray-2}可以看出我們在色彩和特徵傳遞區塊的最後一層的RM-CI為綠色和0的影像，
+從\cref{fig:RM-CI}  可以看出我們在色彩和特徵傳遞區塊的最後一層的RM-CI為綠色和0的影像，
 根據上面全連接層可解釋性的原理，
 期望輸出為10(green 0 的label idx 為10)時，
 第10個神經元應該較其他神經元反應高，
