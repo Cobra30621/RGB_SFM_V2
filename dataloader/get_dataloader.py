@@ -13,6 +13,7 @@ from .Colored_FashionMNIST import Colored_FashionMNIST
 from .AnotherColored_MNIST import AnotherColored_MNIST
 from .AnotherColored_FashionMNIST import AnotherColored_FashionMNIST
 from .CIFAR10 import CIFAR10
+from .Colorful_MNIST import Colorful_MNIST
 from torchvision import transforms
 
 dataset_classes = {
@@ -28,6 +29,7 @@ dataset_classes = {
     'AnotherColored_MNIST':AnotherColored_MNIST,
     'AnotherColored_FashionMNIST':AnotherColored_FashionMNIST,
     'CIFAR10': CIFAR10,
+    'Colorful_MNIST':Colorful_MNIST
 }
 
 def get_dataloader(dataset, root: str = '.', batch_size=32, input_size: tuple = (28, 28)):
