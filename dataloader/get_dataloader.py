@@ -34,14 +34,20 @@ dataset_classes = {
 
 def get_dataloader(dataset, root: str = '.', batch_size=32, input_size: tuple = (28, 28)):
     if dataset in dataset_classes:
-        transform = transforms.Compose([
-            transforms.ToTensor(),
+        train_transform = transforms.Compose([
             transforms.Resize([*input_size]),
+            transforms.ToTensor(),
+            transforms.ConvertImageDtype(torch.float),
+        ])
+
+        test_transform = transforms.Compose([
+            transforms.Resize([*input_size]),
+            transforms.ToTensor(),
             transforms.ConvertImageDtype(torch.float),
         ])
         
-        train_dataset = dataset_classes[dataset](root, train = True, transform = transform)
-        test_dataset = dataset_classes[dataset](root, train = False, transform = transform)
+        train_dataset = dataset_classes[dataset](root, train = True, transform = train_transform)
+        test_dataset = dataset_classes[dataset](root, train = False, transform = test_transform)
 
         train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
         test_dataloader = DataLoader(test_dataset, batch_size=batch_size, shuffle=True)

@@ -2,9 +2,11 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 
+
 from torch.utils.data import Dataset
 from mlxtend.data import loadlocal_mnist
 from typing import Any, Callable, Optional, Tuple
+from PIL import Image
 
 def unpickle(file):
     import pickle
@@ -31,7 +33,6 @@ class CIFAR10(Dataset):
             self.data, self.targets = self._load_train_data()
         else:
             self.data, self.targets = self._load_test_data()
-        self.num2label = unpickle('./data/cifar-10-batches-py/batches.meta')[b'label_names']
         
     def _load_train_data(self):
         images = np.array([])
@@ -65,12 +66,15 @@ class CIFAR10(Dataset):
     def __getitem__(self, index: int) -> Tuple[Any, Any]:
         img, target = self.data[index], self.targets[index]
 
+        # doing this so that it is consistent with all other datasets
+        # to return a PIL Image
+        img = Image.fromarray(img)
+
         if self.transform is not None:
             img = self.transform(img)
 
         if self.target_transform is not None:
             target = self.target_transform(target)    
-
         return img, target
 
     def __len__(self) -> int:
