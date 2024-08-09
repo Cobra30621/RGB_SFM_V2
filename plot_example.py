@@ -28,7 +28,7 @@ with torch.no_grad():
 
 	# Load Model
 	models = {'SFMCNN': SFMCNN, 'RGB_SFMCNN':RGB_SFMCNN}
-	checkpoint_filename = '0623_RGB_SFMCNN_best_x8s31ghm'
+	checkpoint_filename = '0717_RGB_SFMCNN_best_ur64scdt'
 	checkpoint = torch.load(f'./pth/{config["dataset"]}_pth/{checkpoint_filename}.pth')
 	model = models[arch['name']](**dict(config['model']['args']))
 	model.load_state_dict(checkpoint['model_weights'])
@@ -56,23 +56,6 @@ if arch['args']['in_channels'] == 1:
 	FMs[3] = model.convs[3][0].weight.reshape(-1, int(model.convs[3][0].weight.shape[1]**0.5), int(model.convs[3][0].weight.shape[1]**0.5), 1)
 	print(f'FM[3] shape: {FMs[3].shape}')
 else:
-	# kernel_size = arch['args']['Conv2d_kernel'][0]
-	# weights = torch.concat([model.RGB_conv2d[0].weights, model.RGB_conv2d[0].black_block, model.RGB_conv2d[0].white_block])
-	# weights = weights.reshape(arch['args']['channels'][0][0],arch['args']['in_channels'],1,1)
-	# weights = weights.repeat(1,1,*kernel_size)
-	# FMs['RGB_Conv2d'] = weights
-	# print(f'FM[RGB_Conv2d] shape: {FMs["RGB_Conv2d"].shape}')
-
-	# FMs['Gray_Conv2d'] = model.GRAY_conv2d[0].weight.reshape(arch['args']['channels'][0][1],1,*kernel_size)
-	# print(f'FM[Gray_Conv2d] shape: {FMs["Gray_Conv2d"].shape}')
-
-	# print(model.convs[0][0].weight.shape)
-	# FMs[1] = model.convs[0][0].weight.reshape(-1, int(model.convs[0][0].weight.shape[1]**0.5), int(model.convs[0][0].weight.shape[1]**0.5), 1)
-	# print(f'FM[1] shape: {FMs[1].shape}')
-
-	# FMs[2] = model.convs[1][0].weight.reshape(-1, int(model.convs[1][0].weight.shape[1]**0.5), int(model.convs[1][0].weight.shape[1]**0.5), 1)
-	# print(f'FM[2] shape: {FMs[2].shape}')
-
 	# 平行架構
 	kernel_size = arch['args']['Conv2d_kernel'][0]
 	weights = torch.concat([model.RGB_convs[0][0].weights, model.RGB_convs[0][0].black_block, model.RGB_convs[0][0].white_block])
@@ -183,7 +166,8 @@ for test_id in range(450):
 		print(f"Layer{layer_num}_RM: {RM.shape}")
 		RM_H, RM_W = RM.shape[1], RM.shape[2]
 		plot_map(RM.permute(1,2,0).reshape(RM_H,RM_W,int(RM.shape[0] ** 0.5),int(RM.shape[0] ** 0.5),1).detach().numpy(), path=RM_save_path + f'{layer_num}_RM')
-		CI_H, CI_W = CIs[layer_num].shape[2], CIs[layer_num].shape[3]		RM_CI = CIs[layer_num][torch.topk(RM, k=1, dim=0, largest=True).indices.flatten()].reshape(RM_H,RM_W,CI_H,CI_W,1)
+		CI_H, CI_W = CIs[layer_num].shape[2], CIs[layer_num].shape[3]		
+		RM_CI = CIs[layer_num][torch.topk(RM, k=1, dim=0, largest=True).indices.flatten()].reshape(RM_H,RM_W,CI_H,CI_W,1)
 		plot_map(RM_CI.detach().numpy(), vmax=1, vmin=0, path=RM_CI_save_path + f'Layer{layer_num}_RM_CI', cmap='gray')
 		RM_CIs[layer_num] = RM_CI
 
@@ -235,8 +219,8 @@ for test_id in range(450):
 		plot_map(RM_CI, path=RM_CI_save_path + f'{layer_num}_RM_CI_origin')
 		RM_CI = RM_CI.permute(0,1,4,2,3).reshape(*RM_CI.shape[:2], arch['args']['in_channels'], -1).mean(dim=-1).unsqueeze(-2).unsqueeze(-2).repeat(1, 1, *RM_CI.shape[2:4], 1)
 		RM_CIs[layer_num] = RM_CI
-		plot_map(RM.permute(1,2,0).reshape(RM_H,RM_W,*plot_shape,1).detach().numpy(), path=RM_save_path + f'{layer_num}_RM')
-		plot_map(RM_FM.detach().numpy(), path=RM_CI_save_path + f'{layer_num}_RM_FM')
+		# plot_map(RM.permute(1,2,0).reshape(RM_H,RM_W,*plot_shape,1).detach().numpy(), path=RM_save_path + f'{layer_num}_RM')
+		# plot_map(RM_FM.detach().numpy(), path=RM_CI_save_path + f'{layer_num}_RM_FM')
 		plot_map(RM_CI, path=RM_CI_save_path + f'{layer_num}_RM_CI')
 
 		# RGB_convs_1
@@ -255,7 +239,7 @@ for test_id in range(450):
 		RM_CI = RM_CI.reshape(RM_H, RM_CI.shape[0]//RM_H, RM_W, RM_CI.shape[1]//RM_W, *RM_CI.shape[2:])
 		RM_CI = RM_CI.permute(0, 2, 1, 4, 3, 5, 6).reshape(RM_H, RM_W, CI_H, CI_W, 3)
 		RM_CIs[layer_num] = RM_CI
-		plot_map(RM.permute(1,2,0).reshape(RM_H,RM_W,*plot_shape,1).detach().numpy(), path=RM_save_path + f'{layer_num}_RM')
+		# plot_map(RM.permute(1,2,0).reshape(RM_H,RM_W,*plot_shape,1).detach().numpy(), path=RM_save_path + f'{layer_num}_RM')
 		plot_map(RM_CI, path=RM_CI_save_path + f'{layer_num}_RM_CI')
 
 		# RGB_convs_2
@@ -274,7 +258,7 @@ for test_id in range(450):
 		RM_CI = RM_CI.reshape(RM_H, RM_CI.shape[0]//RM_H, RM_W, RM_CI.shape[1]//RM_W, *RM_CI.shape[2:])
 		RM_CI = RM_CI.permute(0, 2, 1, 4, 3, 5, 6).reshape(RM_H, RM_W, CI_H, CI_W, 3)
 		RM_CIs[layer_num] = RM_CI
-		plot_map(RM.permute(1,2,0).reshape(RM_H,RM_W,*plot_shape,1).detach().numpy(), path=RM_save_path + f'{layer_num}_RM')
+		# plot_map(RM.permute(1,2,0).reshape(RM_H,RM_W,*plot_shape,1).detach().numpy(), path=RM_save_path + f'{layer_num}_RM')
 		plot_map(RM_CI, path=RM_CI_save_path + f'{layer_num}_RM_CI')
 
 
@@ -290,7 +274,7 @@ for test_id in range(450):
 		RM_CI = CIs[layer_num][torch.topk(RM, k=1, dim=0, largest=True).indices.flatten()].reshape(RM_H,RM_W,CI_H,CI_W,1)
 		print(test_id, torch.topk(RM, k=1, dim=0, largest=True))
 		RM_CIs[layer_num] = RM_CI
-		plot_map(RM.permute(1,2,0).reshape(RM_H,RM_W,*plot_shape,1).detach().numpy(), path=RM_save_path + f'{layer_num}_RM')
+		# plot_map(RM.permute(1,2,0).reshape(RM_H,RM_W,*plot_shape,1).detach().numpy(), path=RM_save_path + f'{layer_num}_RM')
 		plot_map(RM_CI, path=RM_CI_save_path + f'{layer_num}_RM_CI', cmap='gray')
 
 		# Gray_convs_1
@@ -302,7 +286,7 @@ for test_id in range(450):
 		CI_H, CI_W = CIs[layer_num].shape[2], CIs[layer_num].shape[3]
 		RM_CI = CIs[layer_num][torch.topk(RM, k=1, dim=0, largest=True).indices.flatten()].reshape(RM_H,RM_W,CI_H,CI_W,1)
 		RM_CIs[layer_num] = RM_CI
-		plot_map(RM.permute(1,2,0).reshape(RM_H,RM_W,*plot_shape,1).detach().numpy(), path=RM_save_path + f'{layer_num}_RM')
+		# plot_map(RM.permute(1,2,0).reshape(RM_H,RM_W,*plot_shape,1).detach().numpy(), path=RM_save_path + f'{layer_num}_RM')
 		plot_map(RM_CI, path=RM_CI_save_path + f'{layer_num}_RM_CI', cmap='gray')
 
 		# Gray_convs_2
@@ -314,7 +298,7 @@ for test_id in range(450):
 		CI_H, CI_W = CIs[layer_num].shape[2], CIs[layer_num].shape[3]
 		RM_CI = CIs[layer_num][torch.topk(RM, k=1, dim=0, largest=True).indices.flatten()].reshape(RM_H,RM_W,CI_H,CI_W,1)
 		RM_CIs[layer_num] = RM_CI
-		plot_map(RM.permute(1,2,0).reshape(RM_H,RM_W,*plot_shape,1).detach().numpy(), path=RM_save_path + f'{layer_num}_RM')
+		# plot_map(RM.permute(1,2,0).reshape(RM_H,RM_W,*plot_shape,1).detach().numpy(), path=RM_save_path + f'{layer_num}_RM')
 		plot_map(RM_CI, path=RM_CI_save_path + f'{layer_num}_RM_CI', cmap='gray')
 
 

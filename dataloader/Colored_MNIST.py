@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 
 from torch.utils.data import Dataset
 from typing import Any, Callable, Optional, Tuple
+from PIL import Image
 
 
 class Colored_MNIST(Dataset):
@@ -42,10 +43,10 @@ class Colored_MNIST(Dataset):
     def __getitem__(self, index: int) -> Tuple[Any, Any]:
         img, target = self.data[index], self.targets[index]
 
+        img = Image.fromarray(np.uint8(img))
+
         if self.transform is not None:
             img = self.transform(img)
-        if torch.max(img) > 1:
-            img /= 255
 
         if self.target_transform is not None:
             target = self.target_transform(target)

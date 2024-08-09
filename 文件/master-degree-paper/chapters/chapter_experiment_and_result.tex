@@ -258,8 +258,8 @@ Colored MNIST和Colored Fashion主要用於驗證模型在彩色影像的分類�
             & Ours & 0.5918 & 0.5012 \\
             ~ & AlexNet~\cite{NIPS2012_c399862d} & 0.9992 & 0.7592   \\
             ~ & ResNet18~\cite{He_2016_CVPR} & 0.9781 & 0.7591   \\
-            ~ & GoogLeNet~\cite{Szegedy_2015_CVPR} & - & -   \\
-            ~ & DenseNet~\cite{Huang_2017_CVPR} & - &  - \\
+            ~ & GoogLeNet~\cite{Szegedy_2015_CVPR} & 1.0 & 0.7696   \\
+            ~ & DenseNet~\cite{Huang_2017_CVPR} & 1.0 &  0.8485 \\
             \hline
         \end{tabular}   
     \end{table}
@@ -1402,21 +1402,21 @@ Colored MNIST和Colored Fashion主要用於驗證模型在彩色影像的分類�
 
     \begin{figure}[H]
         \subcaptionbox
-            {$\left\{(2, 2), (1, 3)\right\}$
+            {
             \label{fig:SF-22}}
             {\includegraphics[width=0.475\linewidth]{Chapter4/Combine/SF22-combine.png}}
         ~
         \subcaptionbox
-            {$\left\{(2, 2), (3, 1)\right\}$
+            {
             \label{fig:SF-31}}
             {\includegraphics[width=0.475\linewidth]{Chapter4/Combine/SF31-combine.png}}
         ~
         \subcaptionbox
-            {$\left\{(6, 1), (1, 2)\right\}$
+            {
             \label{fig:SF-61}}
             {\includegraphics[width=0.475\linewidth]{Chapter4/Combine/SF61-combine.png}}
         ~
-        \caption{不同合併方式}
+        \caption{不同合併方式 (a) $\left\{(2, 2), (1, 3)\right\}$；(b) $\left\{(2, 2), (3, 1)\right\}$；(c) $\left\{(6, 1), (1, 2)\right\}$}
         \label{fig:SF}
     \end{figure}
 
@@ -1432,32 +1432,32 @@ Colored MNIST和Colored Fashion主要用於驗證模型在彩色影像的分類�
     \begin{figure}[H]
         \centering
         \subcaptionbox
-            {CI$^{color}_{1}$ with SF2213
+            {
             \label{fig:ColoredMNIST-SF22-Color-CI2}}
             {\includegraphics[width=0.4\linewidth]{Chapter4/Combine/SF22_CIs_RGB_convs_1.png}}
         ~
         \subcaptionbox
-            {CI$^{color}_{1}$ with SF6112
+            {
             \label{fig:ColoredMNIST-SF61-Color-CI2}}
             {\includegraphics[width=0.8\linewidth]{Chapter4/Combine/SF61_CIs_RGB_convs_1.png}}
         ~
-        \caption{Colored MNIST的CI$^{color}_{1}$}
+        \caption{Colored MNIST的CI$^{color}_{1}$ (a) CI$^{color}_{1}$ with SF2213；(b) CI$^{color}_{1}$ with SF6112}
         \label{fig:ColoredMNIST-Color-CI2}
     \end{figure}
 
     \begin{figure}[H]
         \centering
         \subcaptionbox
-            {CI$^{gray}_{1}$ with SF2213
+            {
             \label{fig:ColoredMNIST-SF22-gray-CI2}}
             {\includegraphics[width=0.4\linewidth]{Chapter4/Combine/SF22_CIs_Gray_convs_1.png}}
         ~
         \subcaptionbox
-            {CI$^{gray}_{1}$ with SF6112
+            {
             \label{fig:ColoredMNIST-SF61-gray-CI2}}
             {\includegraphics[width=1\linewidth]{Chapter4/Combine/SF61_CIs_Gray_convs_1.png}}
         ~
-        \caption{Colored MNIST的CI$^{gray}_{1}$}
+        \caption{Colored MNIST的CI$^{gray}_{1}$ (a) CI$^{gray}_{1}$ with SF2213；(b) CI$^{gray}_{1}$ with SF6112}
         \label{fig:ColoredMNIST-Gray-CI2}
     \end{figure}
 
@@ -1813,15 +1813,15 @@ Colored MNIST和Colored Fashion主要用於驗證模型在彩色影像的分類�
     \begin{figure}[H]
         \centering
         \subcaptionbox
-            {高斯函數
+            {
             \label{fig:gaussian}}
             {\includegraphics[width=0.33\linewidth]{chapter3/gaussian.png}}
         ~
         \subcaptionbox
-            {Triangle函數
+            {
             \label{fig:triangle}}
             {\includegraphics[width=0.33\linewidth]{chapter3/triangle.png}}
-        \caption{高斯函數與Triangle函數\cite{YangCNNInterpretable}}
+        \caption{高斯函數與Triangle函數\cite{YangCNNInterpretable} (a) 高斯函數；(b)Triangle函數}
         \label{fig:rbf}
     \end{figure}
 
@@ -1875,7 +1875,10 @@ Colored MNIST和Colored Fashion主要用於驗證模型在彩色影像的分類�
     色彩部分濾波器數目由前到後為 30, 100, 225, 625, 1225；
     輪廓部分濾波器數目由前到後為 70, 100, 225, 625, 1225，
     其餘的參數如\cref{tab:DeepColoredModelparameters}，
-    我們稱加深後的模型為Deep-SFM，而在\cref{chapter:ColoredModel}的模型在本節稱為Normal-SFM。
+    我們稱加深後的模型為Deep-SFM，其架構圖如\cref{fig:deep_sfm_arch}。
+    而在\cref{chapter:ColoredModel}的模型在本節稱為Normal-SFM。
+
+    \fig[1][fig:deep_sfm_arch][H]{Chapter4/Deep-SFM論文架構.png}[Deep-SFM架構圖][Deep-SFM架構圖]
 
     \begin{table}[H]
         \centering
@@ -1940,9 +1943,37 @@ Colored MNIST和Colored Fashion主要用於驗證模型在彩色影像的分類�
     從而影響了模型的泛化能力。
     因此，模型深度的增加需在收斂速度和準確度之間找到一個平衡點。
     \fig[0.7][fig:diff_deep_valid_acc][H]{chapter4/Diff_deep_valid_accuracy.png}[Deep-SFM和Normal-SFM 的 valid accuracy][Deep-SFM和Normal-SFM 的 valid accuracy]
-    \pagebreak
 
 
+
+    \subsection{模型對單一影像中有不同色彩影像的效果驗證}
+    我們在Color MNIST資料集的30個類別之上，
+    額外增加一個Colorful的類別，
+    其中的影像中的每個pixel均隨機採用PCCS中的24色相環的其中一種顏色，
+    示意圖如\cref{fig:Colorful_Images}。
+    模型採用\cref{chapter:ColoredModel}所介紹的模型架構和參數。
+    我們希望可以透過調整過後的資料集可以測試模型對於單一影像中不同色彩的效果。
+    最終結果，訓練準確度為0.9838，測試準確度為0.9603。
+
+    \begin{figure}[H]
+        \centering
+        \subcaptionbox
+            {}
+            {\includegraphics[width=0.3\linewidth]{chapter4/Colorful_MNIST_1.png}}
+        ~
+        \subcaptionbox
+            {}
+            {\includegraphics[width=0.3\linewidth]{chapter4/Colorful_MNIST_2.png}}
+        \subcaptionbox
+            {}
+            {\includegraphics[width=0.3\linewidth]{chapter4/Colorful_MNIST_3.png}}
+        \caption{Colorful 類別影像示意圖}
+        \label{fig:Colorful_Images}
+    \end{figure}
+
+    從實驗結果來看我們的模型確實有足夠的能力在色彩上更加多樣的影像組合下學習色彩特徵。
+    此外，我們經由調整Color MNIST資料集增加了Colorful的類別，
+    但準確度也並未受到其影響，也間接地證明了模型是存在足夠的準確度。
 
     \subsection{可解釋性圖片失敗案例分析}
     \label{chapter:failureAnalysis}
