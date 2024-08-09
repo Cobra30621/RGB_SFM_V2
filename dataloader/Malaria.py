@@ -7,6 +7,7 @@ from torch.utils.data import Dataset
 from typing import Any, Callable, Optional, Tuple
 from torchvision import transforms, datasets
 from torchvision.io import read_image
+from PIL import Image
 
 class MalariaCellDataset(Dataset):
     def __init__(self,
@@ -62,6 +63,7 @@ class MalariaCellDataset(Dataset):
     def __getitem__(self, index: int) -> Tuple[Any, Any]:
 
         img, target = self.data[index], self.targets[index]
+        img = Image.fromarray(img)
         
         if self.transform is not None:
             img = self.transform(img)
