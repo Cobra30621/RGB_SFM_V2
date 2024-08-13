@@ -41,7 +41,7 @@ class MalariaCellDataset(Dataset):
         return  images[train_idx], labels[train_idx], images[test_idx], labels[test_idx]
 
     def _load_data(self):
-        image_file = f"{self.root}/cell_images/"
+        image_file = f"{self.root}/Malaria_Dataset/"
         image_dataset = []
         label_dataset = []
         label_to_num = {'Parasitized':0, 'Uninfected':1}
