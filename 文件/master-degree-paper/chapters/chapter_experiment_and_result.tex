@@ -272,7 +272,7 @@ Colored MNIST和Colored Fashion主要用於驗證模型在彩色影像的分類�
     呈現可解釋性圖片沒有實際意義，
     因此改為於\cref{chapter:failureAnalysis}分析其學習失敗的原因。
 
-    \cref{tab:MNIST-pictures}、\cref{tab:coloredMNIST-pictures}、\cref{tab:coloredFashionMNIST-pictures}的符號意義：
+    下面表格的符號意義：
     \begin{description}
         \item[RM-CI-Color-0] 為色彩感知區塊根據RM$^{color}_{0}$每一張RM選擇最大的反應並在CI$^{color}_{0}$的對應位置中找到的CI影像；
         \item[RM-CI-Color-1] 為色彩特徵傳遞區塊的第一層根據RM$^{color}_{1}$每一張RM選擇最大的反應並在CI$^{color}_{1}$的對應位置中找到的CI影像；
@@ -282,14 +282,14 @@ Colored MNIST和Colored Fashion主要用於驗證模型在彩色影像的分類�
         \item[RM-CI-Gray-1] 為輪廓特徵傳遞區塊的第一層根據RM$^{gray}_{1}$每一張RM選擇最大的反應並在CI$^{gray}_{1}$的對應位置中找到的CI影像；
         \item[RM-CI-Gray-2] 為輪廓特徵傳遞區塊的第二層根據RM$^{gray}_{2}$每一張RM選擇最大的反應並在CI$^{gray}_{2}$的對應位置中找到的CI影像；
     \end{description}
-    以下的\cref{tab:MNIST-pictures}、\cref{tab:coloredMNIST-pictures}、\cref{tab:coloredFashionMNIST-pictures}為模型在三種資料集的30類中各類別所獲得的可解釋性圖形。
+    以下的三張表格為模型在三種資料集的30類中各類別所獲得的可解釋性圖形。
     我們從以下的結果可以觀察出，當我們獲得某一層的RM時，我們確實可以從RM對應到FM，再找到對應的CI來幫助我們理解FM所學習到的特徵，由此觀察到模型在輸入影像中特定部分學習到的特徵，解析模型的決策。
     \pagebreak
     {\small
     \begin{longtable}{|c|c|c|c|c|c|}
         \endfoot
         \caption{本研究之模型在 MNIST 上 可解釋性圖片}
-        \label{tab:MNIST-pictures}\\
+        \label{tab:MNIST-pictures} \\
         \hline
         Label & Input & RM-CI-Gray-0 & RM-CI-Gray-1 & RM-CI-Gray-2 &RM-CI-Gray-3\\
         \hline
@@ -1201,7 +1201,7 @@ Colored MNIST和Colored Fashion主要用於驗證模型在彩色影像的分類�
         \label{eq:eq-weightcdist}
             \Delta C = \sqrt{2 * (\Delta R)^2 + 4 * (\Delta G)^2 + 3 * (\Delta B)^2}
         \end{equation}
-        然而，在\cite{LABformula}中也有提到，根據伽馬校正的理論，或許我們應該對不同的顏色分布的影像設定不同的加權值才會比較符合人眼的視覺對顏色亮度的感知。
+        然而，在\cite{LABformula}中也有提到，或許我們應該對不同的顏色分布的影像設定不同的加權值才會比較符合人眼的視覺對顏色亮度的感知。
     \end{itemize}
 
     本論文在設計顏色感知區塊計算顏色色差的流程時，
@@ -1393,9 +1393,9 @@ Colored MNIST和Colored Fashion主要用於驗證模型在彩色影像的分類�
     本節將會比較不同的合併方式對模型的影響，
     並且除了合併參數SF外均使用與\cref{tab:ColoredModelparameters}相同的參數設定。
     第一種是按照\cref{tab:ColoredModelparameters}的實驗設計，將 SF 設定為 \{(2,2), (1,3)\}
-    (我們簡稱SF2213, 示意圖如\cref{fig:SF-22})，在概念上等同於先將一個方格內的特徵圖進行合併再進行橫向合併；
-    第二種為將 SF 設定為 \{(2,2), (3,1)\}(我們簡稱SF2231, 示意圖如\cref{fig:SF-31})，在概念上等同於先將一個方格內的特徵圖進行合併再進行縱向合併；
-    最後一種為 SF 設定為 \{(6,1), (1,2)\}(我們簡稱SF6112, 示意圖如\cref{fig:SF-61})
+    (我們簡稱SF2213, 示意圖如圖 4.7(a))，在概念上等同於先將一個方格內的特徵圖進行合併再進行橫向合併；
+    第二種為將 SF 設定為 \{(2,2), (3,1)\}(我們簡稱SF2231, 示意圖如圖 4.7(b))，在概念上等同於先將一個方格內的特徵圖進行合併再進行縱向合併；
+    最後一種為 SF 設定為 \{(6,1), (1,2)\}(我們簡稱SF6112, 示意圖如圖 4.7(c))
     在概念上等同於先將縱向的特徵圖進行合併後再將橫向的特徵圖進行合併。
     使用不同的合併方法是在模擬人眼眼球跳動時不同的肉眼軌跡，
     也可以驗證不同的合併方式對於模型的影響。
@@ -1427,7 +1427,7 @@ Colored MNIST和Colored Fashion主要用於驗證模型在彩色影像的分類�
     SF6112則是（5 x 5）‧（6 x 1）＝（30 x 5），
     我們藉由對SF2213和SF6112在CI$^{color}_{1}$和CI$^{gray}_{1}$的觀察便可以知道不同合併方式對於影像特徵擷取出來的大小和特徵都有所不同。
 
-    實驗結果如\cref{tab:diff-combine-experiment}、\cref{tab:diff-combine-coloredMNIST-pictures}。 在\cref{tab:diff-combine-coloredMNIST-pictures}中我們分別從Colored MNIST資料集和Colored Fashion MNIST資料集中各選擇了三個不同顏色類別、不同形狀類別的輸入影像來觀察合併方式對可解釋性圖形的差異。
+    實驗結果如\cref{tab:diff-combine-experiment}、 表 4.13、 表 4.14，我們分別從Colored MNIST資料集和Colored Fashion MNIST資料集中各選擇了三個不同顏色類別、不同形狀類別的輸入影像來觀察合併方式對可解釋性圖形的差異。
 
     \begin{figure}[H]
         \centering
@@ -1880,6 +1880,8 @@ Colored MNIST和Colored Fashion主要用於驗證模型在彩色影像的分類�
 
     \fig[1][fig:deep_sfm_arch][H]{Chapter4/Deep-SFM論文架構.png}[Deep-SFM架構圖][Deep-SFM架構圖]
 
+    \fig[0.35][fig:deep_sfm_arch_virtical][H]{Chapter4/Deep-SFM論文架構_virtical.png}[Deep-SFM架構圖(縱向)][Deep-SFM架構圖(縱向)]
+
     \begin{table}[H]
         \centering
         \caption{Deep-SFM 參數設定}
@@ -1945,6 +1947,21 @@ Colored MNIST和Colored Fashion主要用於驗證模型在彩色影像的分類�
     \fig[0.7][fig:diff_deep_valid_acc][H]{chapter4/Diff_deep_valid_accuracy.png}[Deep-SFM和Normal-SFM 的 valid accuracy][Deep-SFM和Normal-SFM 的 valid accuracy]
 
 
+    \begin{figure}[H]
+        \centering
+        \subcaptionbox
+            {}
+            {\includegraphics[width=0.3\linewidth]{Chapter4/Colored_MNIST_deep_SFM/origin_25.png}}
+        ~
+        \subcaptionbox
+            {}
+            {\includegraphics[width=0.3\linewidth]{Chapter4/Colored_MNIST_deep_SFM/RGB_convs_0_RM_CI.png}}
+        \subcaptionbox
+            {}
+            {\includegraphics[width=0.3\linewidth]{Chapter4/Colored_MNIST_deep_SFM/Gray_convs_0_RM_CI.png}}
+        \caption{Deep-SFM 可解釋性圖片舉例 (a) 輸入圖片；(b) RM-CI-Color-0；(c) RM-CI-Gray-0}
+        \label{fig:deep-SFM-example}
+    \end{figure}
 
     \subsection{模型對單一影像中有不同色彩影像的效果驗證}
     我們在Color MNIST資料集的30個類別之上，
@@ -1967,9 +1984,27 @@ Colored MNIST和Colored Fashion主要用於驗證模型在彩色影像的分類�
         \subcaptionbox
             {}
             {\includegraphics[width=0.3\linewidth]{chapter4/Colorful_MNIST_3.png}}
-        \caption{Colorful 類別影像示意圖}
+        \caption{Colorful 類別影像示意圖 (a) 範例一；(b) 範例二；(c)範例三}
         \label{fig:Colorful_Images}
     \end{figure}
+
+    \begin{table}[H]
+        \centering
+        \caption{不同模型在調整後的Colored MNIST資料集上的實驗結果}
+        \label{tab:diff-Colored-MNIST-experiment}
+        \begin{tabular}{| c | c | c | c | c |}
+            \hline
+            模型 & 訓練準確度 & 測試準確度 \\
+            \hline
+            \hline
+            Normal-SFM & 0.9838 & 0.9603 \\
+            AlexNet~\cite{NIPS2012_c399862d} & 0.9998 & 0.992  \\
+            ResNet18~\cite{He_2016_CVPR} & 0.9998 & 0.9836 \\
+            GoogLeNet~\cite{Szegedy_2015_CVPR} & 1.0 & 0.9932 \\
+            DenseNet~\cite{Huang_2017_CVPR} & 1.0 & 0.9926   \\
+            \hline
+        \end{tabular}
+    \end{table}
 
     從實驗結果來看我們的模型確實有足夠的能力在色彩上更加多樣的影像組合下學習色彩特徵。
     此外，我們經由調整Color MNIST資料集增加了Colorful的類別，

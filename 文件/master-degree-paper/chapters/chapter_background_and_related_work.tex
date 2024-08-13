@@ -59,7 +59,7 @@
 
 上面講的基礎架構只是最基本的情況，事實上視網膜的各類細胞遠比上面要架構要複雜許多，上述的五大類細胞還可以再更細的分為不同功能的變種細胞，由此組成了極度複雜的視網膜層級系統如\cref{fig:RetinaStructure}。
 如此複雜的視網膜系統，其功能當然不只負責影像的感知與電位傳輸，事實上
-在2013年的\cite{annurev}，
+在2013年 H. Baier等人 \cite{annurev}
 就已經發現在感光細胞將光轉換為動作電位後會將電位傳輸到層級架構的 Inner Plexiform Layer (IPL)的不同變種雙極細胞，
 這些不同變種的雙極細胞對收到的影像資訊進行不同的平行處理，
 最終輸出影像中不同方面的要素到神經節細胞，例如: 紅藍綠不同色彩、明暗的變化、影像輪廓等等。
@@ -302,7 +302,7 @@ XAI從一開始的小眾領域在近些年開始蓬勃發展成活躍的研究�
 論其原因應該歸功於近年來人工智慧已被各行各業所應用於分類、物件偵測、資料分析等任務，
 隨著人工智慧的普及，在重要領域中XAI的地位和重要性也日益上升。
 
-根據 \cite{Nielsen_2022} 和 \cite{LONGO2024102301} 的研究，
+根據 I. E. Nielsen 等人\cite{Nielsen_2022} 和 L. Longo等人\cite{LONGO2024102301} 的研究，
 我們將可解釋性人工智慧的研究分為 Ante-hoc 和 Post-hoc 兩大類，
 然而這兩類方法均有各自的優缺點，
 值得注意的是，在\cite{LONGO2024102301}有介紹到最近有些研究展現出具有解決這兩類缺點的潛力，
@@ -312,7 +312,7 @@ XAI從一開始的小眾領域在近些年開始蓬勃發展成活躍的研究�
 \fig[1][fig:][H]{XAI.png}[可解人工智慧的分類(修改自\cite{YangCNNInterpretable})][可解釋人工智慧的分類]
 
 \subsection{對於 Ante-hoc Explainable Model之研究}
-Ante-hoc Explainable Model(\cite{Nielsen_2022}稱為 Interently Interpretable Models)，
+Ante-hoc Explainable Model(I. E. Nielsen 等人\cite{Nielsen_2022}稱為 Interently Interpretable Models)，
 不同於 Black Box 模型，在模型設計時就會考量可解釋性的需求，
 使得模型本身便具備產生解釋性的能力，
 其最終目標便是產生一個既準確又可以讓人理解決策過程的深度學習模型。
@@ -343,7 +343,7 @@ Post-hoc Explainable Method 與 Ante-hoc Explainable Model最大的差異是，
 此種研究所做的並不是開發與"black-box"模型(黑盒模型)相對具可解釋性的"white-box"模型，
 而是著重於在一個模型完成預測之後，對其結果進行解釋。
 
-根據\cite{Nielsen_2022}所述，在Post-hoc explainable之下可以分成兩類，Local 和 Global，
+根據 I. E. Nielsen等人\cite{Nielsen_2022} 所述，在Post-hoc explainable之下可以分成兩類，Local 和 Global，
 這兩類的差別在於Local的特點是針對單一筆預測進行解釋，通常採用的辦法是找出關鍵特徵並且解釋該特徵是如何影響到預測，Local之下針對方法又可以分成，以梯度為基礎的方法(Gradient-based)和以局部干擾為基礎的方法(Perturbation-based)，
 Gradient-based最具代表性的便是Layer-wise Relevance Propagation(LRP)\cite{10.1007/978-3-319-44781-0_8}，
 而Perturbation-based最具代表性則是Local Interpretable Model-agnostic Explanations(LIME)\cite{10.1145/2939672.2939778}。
@@ -362,7 +362,7 @@ S. M. Lundberg 等人在2017年提出了SHAP這個演算法\cite{NIPS2017_8a20a8
 但是仍需要人類來解釋其背後所代表的意義，並且也無法解釋特徵是如何影響到類別。
 
 \subsection{近年可解釋性模型趨勢之研究}
-\cite{LONGO2024102301}中有寫到近年來也有一些論文展現出解決上面兩種方法缺點的潛力，
+L. Longo等人\cite{LONGO2024102301}也提到近年來也有一些論文展現出解決上面兩種方法缺點的潛力，
 其中一個是將注意力的解釋整合到神經網路中，
 透過順序注意力機制(Sequential Attention Mechanism)生成每個特徵在過程中的重要性分數來決定每個步驟中最重要的特徵，
 以提高表格類資料的可解釋性的模型\cite{Arik_Pfister_2021}。
