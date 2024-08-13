@@ -7,6 +7,70 @@ import os
 import torch
 import math
 import torch.nn.functional as F
+from config import *
+from utils import *
+from models.SFMCNN import SFMCNN
+from models.RGB_SFMCNN import RGB_SFMCNN
+from dataloader import get_dataloader
+from collections import defaultdict
+
+'''
+    將 image 按照 kernel size 進行切割
+'''
+def show_Image_split(test_img, save_path = ""):
+    segments = split(test_img.unsqueeze(0), kernel_size=arch['args']['Conv2d_kernel'][0], stride = (arch['args']['strides'][0], arch['args']['strides'][0]))[0]
+    plot_map(segments.permute(1,2,3,4,0), vmax=1, vmin=0, path='origin_split_0.png', cmap='gray')
+
+    segments = segments.permute(1,2,3,4,0)
+    print(segments.shape)
+    segments = segments.reshape(segments.shape[0]//2, 2, segments.shape[1]//2, 2, 5, 5, 1)
+    segments = segments.permute(0,2,1,4,3,5,6).reshape(segments.shape[0], segments.shape[2], 10, 10, 1)
+    if save_path == "":
+        plot_map(segments, vmax=1, vmin=0, path=save_path)
+    else:
+        plot_map(segments, vmax=1, vmin=0)
+
+'''
+    讀取圖片
+'''
+def read_Image(path = 'D:/Project/paper/RGB_SFM/showout/Colored_MNIST_0610_RGB_SFMCNN_best_t1np8eon_LAB/example/0/example_240/origin_240.png'):
+    test_img = torchvision.io.read_image(path)
+    test_img = test_img.to(torch.float32)
+    test_img /= 255
+    test_img = test_img[:3, :, :]
+    return test_img
+
+'''
+    讀取 model
+'''
+def load_model(checkpoint_filename = 'RGB_SFMCNN_best_t1np8eon'):
+        with torch.no_grad():
+                # Load Dataset
+                train_dataloader, test_dataloader = get_dataloader(dataset=config['dataset'], root=config['root'] + '/data/', batch_size=config['batch_size'], input_size=config['input_shape'])
+                images, labels = torch.tensor([]), torch.tensor([])
+                for batch in test_dataloader:
+                        imgs, lbls = batch
+                        images = torch.cat((images, imgs))
+                        labels = torch.cat((labels, lbls))
+                print(images.shape, labels.shape)
+
+                # Load Model
+                models = {'SFMCNN': SFMCNN, 'RGB_SFMCNN':RGB_SFMCNN}
+                checkpoint = torch.load(f'./pth/{config["dataset"]}_pth/{checkpoint_filename}.pth')
+                model = models[arch['name']](**dict(config['model']['args']))
+                model.load_state_dict(checkpoint['model_weights'])
+                model.cpu()
+                model.eval()
+                summary(model, input_size = (config['model']['args']['in_channels'], *config['input_shape']), device='cpu')
+                print(model)
+
+                # Test Model
+                batch_num = 1000
+                pred = model(images[:batch_num])
+                y = labels[:batch_num]
+                correct = (pred.argmax(1) == y.argmax(1)).type(torch.float).sum().item()
+                print("Test Accuracy: " + str(correct/len(pred)))
+        return model
 
 def increment_path(path, exist_ok=True, sep=''):
     # Increment path, i.e. runs/exp --> runs/exp{sep}0, runs/exp{sep}1 etc.
@@ -40,6 +104,12 @@ def plot_map(rm, grid_size=None, rowspan=None, colspan = None, path=None, **kwar
     else:
         plt.show()
         plt.close()
+
+def get_FM(layer, output_shape):
+    return layer.weight.reshape(*output_shape)
+
+def get_color_convolution_FM(layer, output_shape):
+    
 
 def split(input, kernel_size = (5, 5), stride = (5,5)):
     batch, channel, h, w = input.shape
@@ -76,6 +146,14 @@ def get_ci(input, layer, kernel_size = (5,5), stride= (5,5), sfm_filter = (1,1))
     print(f"CI shape: {CI.shape}")
     return CI, CI_idx, CI_values
 
+'''
+    使用於讀取cifar10
+'''
+def unpickle(file):
+    import pickle
+    with open(file, 'rb') as fo:
+        dict = pickle.load(fo, encoding='bytes')
+    return dict
 
     
 
