@@ -104,13 +104,7 @@ def plot_map(rm, grid_size=None, rowspan=None, colspan = None, path=None, **kwar
     else:
         plt.show()
         plt.close()
-
-def get_FM(layer, output_shape):
-    return layer.weight.reshape(*output_shape)
-
-def get_color_convolution_FM(layer, output_shape):
     
-
 def split(input, kernel_size = (5, 5), stride = (5,5)):
     batch, channel, h, w = input.shape
     output_height = math.floor((h  - (kernel_size[0] - 1) - 1) / stride[0] + 1)
