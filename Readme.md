@@ -5,6 +5,6 @@ Implementation of paper - https://etd.lib.nycu.edu.tw/cgi-bin/gs32/ncugsweb.cgi/
 ```
 1. conda create --name SFM python=3.9
 2. conda activate SFM
-3. Install pytorch==2.0. && torchvision.__version__
+3. Install pytorch==2.0. && torchvision==0.15.2
 4. conda install requirements.txt
 ```
