@@ -16,6 +16,10 @@ from dataloader import get_dataloader
 import matplotlib
 matplotlib.use('Agg')
 
+'''
+	對某個資料集產生RM，RM-CI
+'''
+
 with torch.no_grad():
 	# Load Dataset
 	train_dataloader, test_dataloader = get_dataloader(dataset=config['dataset'], root=config['root'] + '/data/', batch_size=config['batch_size'], input_size=config['input_shape'])
@@ -136,13 +140,14 @@ elif config['dataset'] == 'AnotherColored_MNIST' or config['dataset'] == 'Anothe
 	        i+=1
 	idx_to_label = {value: key for key, value in label_to_idx.items()}
 
+example_num = 450  
 
-for test_id in range(450):
+for test_id in range(example_num):
 	print(test_id)
 	test_img = images[test_id]
 	
-	# save_path = f'./detect/{config["dataset"]}_{checkpoint_filename}/example/{idx_to_label[labels[test_id].argmax().item()]}/example_{test_id}/'
-	save_path = f'./detect/{config["dataset"]}_{checkpoint_filename}/example/{labels[test_id].argmax().item()}/example_{test_id}/'
+	save_path = f'./detect/{config["dataset"]}_{checkpoint_filename}/example/{idx_to_label[labels[test_id].argmax().item()]}/example_{test_id}/'
+	# save_path = f'./detect/{config["dataset"]}_{checkpoint_filename}/example/{labels[test_id].argmax().item()}/example_{test_id}/'
 	RM_save_path = f'{save_path}/RMs/'
 	RM_CI_save_path = f'{save_path}/RM_CIs/'
 	os.makedirs(RM_save_path, exist_ok=True)
@@ -228,10 +233,12 @@ for test_id in range(450):
 		RM = layers[layer_num](test_img.unsqueeze(0))[0]
 		plot_shape = (int(RM.shape[0] ** 0.5),int(RM.shape[0] ** 0.5))
 		print(f"Layer{layer_num}_RM: {RM.shape}")
+		# 存RM_FM、RM_CI
 		RM_H, RM_W = RM.shape[1], RM.shape[2]
 		CI_H, CI_W = CIs[layer_num].shape[2], CIs[layer_num].shape[3]
 		RM_CI = CIs[layer_num][torch.topk(RM, k=1, dim=0, largest=True).indices.flatten()].reshape(RM_H,RM_W,CI_H,CI_W,arch['args']['in_channels'])
 		plot_map(RM_CI, path=RM_CI_save_path + f'{layer_num}_RM_CI_origin')
+		# 將RM_CI取每個小圖的代表色塊後合併成為新的RM_CI
 		RM_CI = RM_CI.reshape(RM_H,RM_W, CI_H//RM_CIs['RGB_convs_0'].shape[2], RM_CIs['RGB_convs_0'].shape[2], CI_W//RM_CIs['RGB_convs_0'].shape[3], RM_CIs['RGB_convs_0'].shape[3], arch['args']['in_channels'])
 		RM_CI = RM_CI.permute(0, 2, 1, 4, 3, 5, 6)
 		RM_CI = RM_CI.reshape(RM_CIs['RGB_convs_0'].shape)
@@ -247,10 +254,12 @@ for test_id in range(450):
 		RM = layers[layer_num](test_img.unsqueeze(0))[0]
 		plot_shape = (int(RM.shape[0] ** 0.5),int(RM.shape[0] ** 0.5))
 		print(f"Layer{layer_num}_RM: {RM.shape}")
+		# 存RM_FM、RM_CI
 		RM_H, RM_W = RM.shape[1], RM.shape[2]
 		CI_H, CI_W = CIs[layer_num].shape[2], CIs[layer_num].shape[3]
 		RM_CI = CIs[layer_num][torch.topk(RM, k=1, dim=0, largest=True).indices.flatten()].reshape(RM_H,RM_W,CI_H,CI_W,arch['args']['in_channels'])
 		plot_map(RM_CI, path=RM_CI_save_path + f'{layer_num}_RM_CI_origin')
+		# 將RM_CI取每個小圖的代表色塊後合併成為新的RM_CI
 		RM_CI = RM_CI.reshape(RM_H,RM_W, CI_H//RM_CIs['RGB_convs_0'].shape[2], RM_CIs['RGB_convs_0'].shape[2], CI_W//RM_CIs['RGB_convs_0'].shape[3], RM_CIs['RGB_convs_0'].shape[3], arch['args']['in_channels'])
 		RM_CI = RM_CI.permute(0, 2, 1, 4, 3, 5, 6)
 		RM_CI = RM_CI.reshape(RM_CIs['RGB_convs_0'].shape)
@@ -265,10 +274,9 @@ for test_id in range(450):
 		# Gray_convs_0
 		layer_num = 'Gray_convs_0'
 		plot_shape = (7,10)
-		print(model.gray_transform)
-		print(model.gray_transform(test_img.unsqueeze(0)).shape)
 		RM = layers[layer_num](model.gray_transform(test_img.unsqueeze(0)))[0]
 		print(f"{layer_num}_RM: {RM.shape}")
+		# 存RM_FM、RM_CI
 		RM_H, RM_W = RM.shape[1], RM.shape[2]
 		CI_H, CI_W = CIs[layer_num].shape[2], CIs[layer_num].shape[3]
 		RM_CI = CIs[layer_num][torch.topk(RM, k=1, dim=0, largest=True).indices.flatten()].reshape(RM_H,RM_W,CI_H,CI_W,1)
@@ -282,6 +290,7 @@ for test_id in range(450):
 		RM = layers[layer_num](model.gray_transform(test_img.unsqueeze(0)))[0]
 		plot_shape = (int(RM.shape[0] ** 0.5),int(RM.shape[0] ** 0.5))
 		print(f"Layer{layer_num}_RM: {RM.shape}")
+		# 存RM_FM、RM_CI
 		RM_H, RM_W = RM.shape[1], RM.shape[2]
 		CI_H, CI_W = CIs[layer_num].shape[2], CIs[layer_num].shape[3]
 		RM_CI = CIs[layer_num][torch.topk(RM, k=1, dim=0, largest=True).indices.flatten()].reshape(RM_H,RM_W,CI_H,CI_W,1)
@@ -294,6 +303,7 @@ for test_id in range(450):
 		RM = layers[layer_num](model.gray_transform(test_img.unsqueeze(0)))[0]
 		plot_shape = (int(RM.shape[0] ** 0.5),int(RM.shape[0] ** 0.5))
 		print(f"Layer{layer_num}_RM: {RM.shape}")
+		# 存RM_FM、RM_CI
 		RM_H, RM_W = RM.shape[1], RM.shape[2]
 		CI_H, CI_W = CIs[layer_num].shape[2], CIs[layer_num].shape[3]
 		RM_CI = CIs[layer_num][torch.topk(RM, k=1, dim=0, largest=True).indices.flatten()].reshape(RM_H,RM_W,CI_H,CI_W,1)

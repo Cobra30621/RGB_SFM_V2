@@ -11,6 +11,10 @@ from models.SFMCNN import SFMCNN
 from models.RGB_SFMCNN import RGB_SFMCNN
 from dataloader import get_dataloader
 
+'''
+	產生FM、CI的可解釋性圖片
+'''
+
 images = []
 image_paths = []
 labels = []
@@ -145,6 +149,7 @@ else:
 	# origin CI代表為原始的CI、沒有origin的CI指的是將CI取平均代表色形成色塊
 	plot_map(CIs['RGB_convs_1'].reshape(15, 15, *CIs['RGB_convs_1'].shape[2:]).detach().numpy(), path=CIs_save_path+'/CIs_RGB_convs_1_origin')
 	CI = CIs['RGB_convs_1'].detach()
+	# 將RM_CI取每個小圖的代表色塊後合併成為新的RM_CI
 	CI = CI.reshape(*CI.shape[:2], CI.shape[2] // 5, 5, CI.shape[3]//5, 5, 3)
 	CI = CI.permute(0,1,2,4,3,5,6)
 	origin_CI_shape = CI.shape
@@ -171,29 +176,4 @@ else:
 	plot_map(CIs['Gray_convs_2'].reshape(int(CIs['Gray_convs_2'].shape[0]**0.5), int(CIs['Gray_convs_2'].shape[0]**0.5), *CIs['Gray_convs_2'].shape[2:]).detach().numpy(), path=CIs_save_path+'/CIs_Gray_convs_2', cmap='gray')
 
 print('CI saved')
-
-# fig, ax = plt.subplots()
-# ax.imshow(CIs['RGB_convs_1'][105,0,:,:,:])
-# ax.set_axis_off()
-# fig.savefig('CI_origin.png', bbox_inches='tight', pad_inches=0)
-
-# CI = CIs['RGB_convs_1'].detach()
-# CI = CI.reshape(*CI.shape[:2], CI.shape[2] // 5, 5, CI.shape[3]//5, 5, 3)
-# CI = CI.permute(0,1,2,4,3,5,6)
-# origin_CI_shape = CI.shape
-# plot_map(CI[105,0], path='CI_split')
-
-# CI = CI.reshape(*CI.shape[:4], -1, 3).mean(dim=-2).unsqueeze(-2).repeat(1,1,1,1,25,1)
-# CI = CI.reshape(*origin_CI_shape[:4], 5, 5, 3)
-
-# plot_map(CI[105,0], path='CI_split_color')
-
-# CI = CI.permute(0,1,2,4,3,5,6)
-# CI = CI.reshape(*CIs['RGB_convs_1'].shape)
-# fig, ax = plt.subplots()
-# ax.imshow(CI[105,0].detach().numpy())
-# ax.set_axis_off()
-# fig.savefig('CI_final.png', bbox_inches='tight', pad_inches=0)
-
-
 

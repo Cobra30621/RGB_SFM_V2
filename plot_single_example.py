@@ -16,6 +16,10 @@ from dataloader import get_dataloader
 import matplotlib
 # matplotlib.use('Agg')
 
+'''
+	對單一影像產生RM-CI
+'''
+
 with torch.no_grad():
 	# Load Dataset
 	train_dataloader, test_dataloader = get_dataloader(dataset=config['dataset'], root=config['root'] + '/data/', batch_size=config['batch_size'], input_size=config['input_shape'])
@@ -110,16 +114,6 @@ else:
 	CIs["Gray_convs_0"], CI_idx, CI_values = get_ci(model.gray_transform(images), layers['Gray_convs_0'], kernel_size, stride = stride)
 	CIs["Gray_convs_1"], CI_idx, CI_values = get_ci(model.gray_transform(images), layers["Gray_convs_1"], kernel_size=kernel_size, stride=stride, sfm_filter=torch.prod(torch.tensor(arch['args']['SFM_filters'][:1]), dim=0))
 	CIs["Gray_convs_2"], CI_idx, CI_values = get_ci(model.gray_transform(images), layers["Gray_convs_2"], kernel_size=kernel_size, stride=stride, sfm_filter=torch.prod(torch.tensor(arch['args']['SFM_filters'][:2]), dim=0))
-	
-
-# if arch['args']['in_channels'] == 3:
-# 	label_to_idx = {}
-# 	i = 0
-# 	for c in ['red', 'green', 'blue']:
-# 	    for n in range(10):
-# 	        label_to_idx[c+'_'+str(n)] = i
-# 	        i+=1
-# 	idx_to_label = {value: key for key, value in label_to_idx.items()}
 
 test_id = "240"
 test_img = torchvision.io.read_image(f'./test_images/origin_{test_id}.png')

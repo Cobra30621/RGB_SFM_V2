@@ -14,6 +14,9 @@ import math
 import matplotlib.pyplot as plt
 import numpy as np
 
+'''
+    前處理Part(自由取用)
+'''
 # 二值化
 class ThresholdTransform(object):
     def __call__(self,x):
@@ -42,7 +45,9 @@ class Sobel_Conv2d(object):
         result = torch.sqrt(edge_detect)
         return edge_detect
 
-
+'''
+    主模型Part
+'''
 class RGB_SFMCNN(nn.Module):
     def __init__(self, 
                  in_channels, 
@@ -58,6 +63,7 @@ class RGB_SFMCNN(nn.Module):
                  activate_params) -> None:
         super().__init__()
 
+        # 灰階前處理
         self.gray_transform = torchvision.transforms.Compose([
             torchvision.transforms.Grayscale(),
             # Sobel_Conv2d(),
@@ -66,6 +72,7 @@ class RGB_SFMCNN(nn.Module):
 
         is_weight_cdist = False
 
+        # 彩色卷積第一層
         self.RGB_conv2d = self._make_RGBBlock(
             3,
             channels[0][0], 
@@ -77,6 +84,7 @@ class RGB_SFMCNN(nn.Module):
             device=device,
             activate_param = activate_params[0][0])
 
+        # 輪廓卷積第一層
         self.GRAY_conv2d = self._make_GrayBlock(
             1,
             channels[1][0], 
@@ -89,6 +97,7 @@ class RGB_SFMCNN(nn.Module):
             activate_param = activate_params[1][0]
         )
 
+        #   彩色第二層以後的特徵傳遞區塊(色彩特徵傳遞區塊)
         rgb_basicBlocks = []
         for i in range(1, len(Conv2d_kernel)-1):
             is_weight_cdist = False
@@ -108,7 +117,7 @@ class RGB_SFMCNN(nn.Module):
                 activate_param = activate_params[0][i])
             rgb_basicBlocks.append(basicBlock)
 
-
+        # 整個彩色部分
         self.RGB_convs = nn.Sequential(
                 self.RGB_conv2d,
                 SFM(filter = SFM_filters[0], device = device),
@@ -125,6 +134,7 @@ class RGB_SFMCNN(nn.Module):
                     )
             )
 
+        #   灰階第二層以後的特徵傳遞區塊(輪廓特徵傳遞區塊)
         gray_basicBlocks = []
         for i in range(1, len(Conv2d_kernel)-1):
             is_weight_cdist = False
@@ -144,6 +154,8 @@ class RGB_SFMCNN(nn.Module):
                 activate_param = activate_params[1][i])
             gray_basicBlocks.append(basicBlock)
 
+
+        # 整個灰階部分
         self.Gray_convs = nn.Sequential(
                 self.GRAY_conv2d,
                 SFM(filter = SFM_filters[0], device = device),
@@ -173,6 +185,9 @@ class RGB_SFMCNN(nn.Module):
         output = self.fc1(output)
         return output
 
+    '''
+        第一層彩色卷積Block(不含空間合併)
+    '''
     def _make_RGBBlock(self,
                     in_channels:int, 
                     out_channels:int, 
@@ -208,7 +223,10 @@ class RGB_SFMCNN(nn.Module):
                 gauss(std=activate_param[0], device=device),
                 cReLU_percent(percent=activate_param[1]),
             )
-    
+
+    '''
+        第一層灰階卷積Block(不含空間合併)
+    '''
     def _make_GrayBlock(self,
                     in_channels, 
                     out_channels, 
@@ -466,6 +484,9 @@ class RGB_Conv2d(nn.Module):
         h = (h/6.0) % 1.0
         return h, s, v
     
+    '''
+        LAB Distance
+    '''
     def batched_LAB_distance(self, windows_RGBcolor, weights_RGBcolor):
         R_1,G_1,B_1 = windows_RGBcolor[:, :, :, 0] * 255, windows_RGBcolor[:, :, :, 1] * 255, windows_RGBcolor[:, :, :, 2] * 255
         R_2,G_2,B_2 = weights_RGBcolor[:, 0] * 255, weights_RGBcolor[:, 1] * 255, weights_RGBcolor[:, 2] * 255
@@ -475,6 +496,9 @@ class RGB_Conv2d(nn.Module):
         B = B_1 - B_2
         return torch.sqrt((2 + rmean/256) * (R**2) + 4*(G**2) + (2+(255-rmean)/256)*(B**2) + 1e-8)
     
+    '''
+        RGB歐式距離(失敗)
+    '''
     def weight_cdist(self, windows_RGBcolor, weights_RGBcolor):
         R_1,G_1,B_1 = windows_RGBcolor[:, :, :, 0], windows_RGBcolor[:, :, :, 1], windows_RGBcolor[:, :, :, 2]
         R_2,G_2,B_2 = weights_RGBcolor[:, 0], weights_RGBcolor[:, 1], weights_RGBcolor[:, 2]
@@ -529,8 +553,6 @@ class Gray_Conv2d(nn.Module):
         self.weight = nn.Parameter(self.weight)
     
     def forward(self, input: Tensor) -> Tensor:
-        # print(input[0, 0, :, :])
-        # print(f"RBF weights = {self.weight[0]}")
         output_width = math.floor((input.shape[-1] + self.padding * 2 - (self.kernel_size[0] - 1) - 1) / self.stride[0] + 1)
         output_height = math.floor((input.shape[-2] + self.padding * 2 - (self.kernel_size[1] - 1) - 1) / self.stride[1] + 1)
         
@@ -550,6 +572,7 @@ class Gray_Conv2d(nn.Module):
         # windows = (batch, output_width * output_height, C×∏(kernel_size))
         # weight = (out_channel, C×∏(kernel_size))
         # output = (batch, out_channel, output_width * output_height)
+
         if self.is_weight_cdist:
             result = self.weight_cdist(windows=windows, weights=self.weight)
         else:
@@ -568,6 +591,9 @@ class Gray_Conv2d(nn.Module):
     def extra_repr(self) -> str:
         return f"initial = {self.initial}, is_weight_cdist = {self.is_weight_cdist},weight shape = {(self.out_channels, self.in_channels, *self.kernel_size)}"
 
+    '''
+        加權歐基里德(失敗)
+    '''
     def weight_cdist(self, windows, weights):
         N, L, C, kernel_size, out_channels = windows.shape[0], windows.shape[1], self.in_channels, self.kernel_size, self.out_channels
         
@@ -695,6 +721,10 @@ class RBF_Conv2d(nn.Module):
 
         return distances
 
+
+'''
+    響應過濾模組(所有可能性)
+'''
 class triangle(nn.Module):
     def __init__(self, 
                  w: float, 
@@ -782,9 +812,7 @@ class triangle_cReLU(nn.Module):
             self.w = nn.Parameter(self.w, requires_grad = True)
 
     def forward(self, d):
-        # input()
         w_tmp = self.w
-        # print(f'd = {d[0]}')
 
         # 1. 取所有數字的對應percent值當作唯一threshold
         d_flatten = d.reshape(d.shape[0], -1)
