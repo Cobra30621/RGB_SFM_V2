@@ -8,3 +8,13 @@ Implementation of paper - https://etd.lib.nycu.edu.tw/cgi-bin/gs32/ncugsweb.cgi/
 3. Install pytorch==2.0. && torchvision==0.15.2
 4. conda install requirements.txt
 ```
+
+## Citation
+```
+@mastersthesis{TU2024InterpretableModel,
+  title={以卷積神經網路為基礎之新型可解釋性深度學習模型},
+  author={TU, CHIEN-MING and Su, Mu-Chun},
+  school={National Central University},
+  year={2024}
+}
+```
