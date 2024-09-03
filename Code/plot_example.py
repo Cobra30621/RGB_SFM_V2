@@ -32,8 +32,8 @@ with torch.no_grad():
 
 	# Load Model
 	models = {'SFMCNN': SFMCNN, 'RGB_SFMCNN':RGB_SFMCNN}
-	checkpoint_filename = '0717_RGB_SFMCNN_best_ur64scdt'
-	checkpoint = torch.load(f'./pth/{config["dataset"]}_pth/{checkpoint_filename}.pth')
+	checkpoint_filename = 'RGB_SFMCNN_best'
+	checkpoint = torch.load(f'../pth/{config["dataset"]}_pth/{checkpoint_filename}.pth', weights_only=True)
 	model = models[arch['name']](**dict(config['model']['args']))
 	model.load_state_dict(checkpoint['model_weights'])
 	model.cpu()

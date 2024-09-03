@@ -2,6 +2,7 @@ import os
 import numpy as np
 import torch
 import matplotlib.pyplot as plt
+from PIL import Image
 
 from torch.utils.data import Dataset
 from typing import Any, Callable, Optional, Tuple
@@ -38,8 +39,10 @@ class AnotherColored_MNIST(Dataset):
             for n in range(10):
                 self.label_to_idx[c+'_'+str(n)] = i
                 i+=1
-        
+
         self.data = np.load(f"{self.root}/AnotherColored_MNIST/{'Train' if self.train else 'Test'}_imgs.npy")
+        print(f"{self.root}/AnotherColored_MNIST/{'Train' if self.train else 'Test'}_imgs.npy")
+        print(len(self.data))
         self.data = self.data.astype(float)
 
         self.targets = np.load(f"{self.root}/AnotherColored_MNIST/{'Train' if self.train else 'Test'}_labels.npy")
@@ -47,6 +50,9 @@ class AnotherColored_MNIST(Dataset):
 
     def __getitem__(self, index: int) -> Tuple[Any, Any]:
         img, target = self.data[index], self.targets[index]
+
+        # to return a PIL Image
+        img = Image.fromarray(np.uint8(img))
 
         if self.transform is not None:
             img = self.transform(img)
