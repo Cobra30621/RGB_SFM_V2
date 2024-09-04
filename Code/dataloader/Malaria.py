@@ -63,7 +63,7 @@ class MalariaCellDataset(Dataset):
     def __getitem__(self, index: int) -> Tuple[Any, Any]:
 
         img, target = self.data[index], self.targets[index]
-        img = Image.fromarray(img)
+        img = Image.fromarray(np.uint8(img))
         
         if self.transform is not None:
             img = self.transform(img)

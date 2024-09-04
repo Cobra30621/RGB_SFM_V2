@@ -1,6 +1,7 @@
 import torch
 import os
 import numpy as np
+from PIL import Image
 
 from torch.utils.data import Dataset
 from torchvision.io import read_image, ImageReadMode
@@ -48,7 +49,8 @@ class MultiGrayShapesDataset(Dataset):
     def __getitem__(self, index: int) -> Tuple[Any, Any]:
 
         img, target = self.data[index], self.targets[index]
-        
+        img = Image.fromarray(np.uint8(img))
+
         if self.transform is not None:
             img = self.transform(img)
             threshold = torch.mean(img, dtype=float)
