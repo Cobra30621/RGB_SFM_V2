@@ -1,5 +1,4 @@
 import os
-import cv2
 import numpy as np
 import torch
 from torch.utils.data import Dataset
@@ -36,9 +35,8 @@ class HeartCalcificationDataset(Dataset):
         self.splited_label = []
 
         for img_path, label_path in zip(self.image_files, self.label_files):
-            img = cv2.imread(os.path.join(self.data_dir, img_path))
-            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-            height, width = img.shape[:2]
+            img = Image.open(os.path.join(self.data_dir, img_path)).convert('RGB')
+            width, height = img.size
 
             num_blocks_h = height // self.grid_size
             num_blocks_w = width // self.grid_size
@@ -61,7 +59,7 @@ class HeartCalcificationDataset(Dataset):
 
             for i in range(num_blocks_h):
                 for j in range(num_blocks_w):
-                    block_img = img[i*self.grid_size:(i+1)*self.grid_size, j*self.grid_size:(j+1)*self.grid_size]
+                    block_img = img.crop((j*self.grid_size, i*self.grid_size, (j+1)*self.grid_size, (i+1)*self.grid_size))
                     self.splited_images.append(block_img)
                     y_onehot = np.eye(2)[label[i, j]]
                     y_onehot = torch.from_numpy(y_onehot)
@@ -71,8 +69,6 @@ class HeartCalcificationDataset(Dataset):
     def __getitem__(self, idx: int) -> Tuple[Any, Any]:
         img = self.splited_images[idx]
         label = self.splited_label[idx]
-
-        img = Image.fromarray(np.uint8(img))
 
         if self.transform is not None:
             img = self.transform(img)
