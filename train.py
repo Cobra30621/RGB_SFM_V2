@@ -153,7 +153,17 @@ model = model.to(config['device'])
 print(model)
 summary(model, input_size = (config['model']['args']['in_channels'], *config['input_shape']))
 
-loss_fn = getattr(nn, config['loss_fn'])()
+if(config['use_weightsAdjust']):
+
+
+    # 計算每個類別的權重
+    weights = torch.tensor([weight for weight in config['loss_weights_rate']], dtype=torch.float32)
+
+    # 將權重傳給 CrossEntropyLoss
+    loss_fn = getattr(nn, config['loss_fn'])(weight=weights.to(device))
+else:
+    loss_fn = getattr(nn, config['loss_fn'])()
+
 optimizer = getattr(optim, config['optimizer']['name'])(model.parameters(), lr=config['lr'], **dict(config['optimizer']['args']))
 scheduler = getattr(optim.lr_scheduler, config['lr_scheduler']['name'])(optimizer, **dict(config['lr_scheduler']['args']))
 
