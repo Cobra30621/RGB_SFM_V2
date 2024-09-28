@@ -18,7 +18,7 @@ def train(train_dataloader: DataLoader, valid_dataloader: DataLoader, model: nn.
     # best_valid_loss = float('inf')
     best_valid_acc = 0
     count = 0
-    patience = 20
+    patience = config['patience']
     checkpoint = {}
     with torch.autograd.set_detect_anomaly(True):
         for e in range(epoch):
@@ -66,10 +66,11 @@ def train(train_dataloader: DataLoader, valid_dataloader: DataLoader, model: nn.
             wandb.log(metrics, step=e)
 
             #early stopping
-            if valid_acc < best_valid_acc:
-                count += 1
-                # if count >= patience:
-                #     break
+            if config['early_stop']:
+                if valid_acc < best_valid_acc:
+                    count += 1
+                    if count >= patience:
+                        break
             else:
                 count = 0
                 best_valid_loss = valid_loss

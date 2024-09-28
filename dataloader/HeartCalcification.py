@@ -5,6 +5,7 @@ from torch.utils.data import Dataset
 from typing import Any, Callable, Optional, Tuple
 from PIL import Image
 
+
 class HeartCalcificationDataset(Dataset):
     def __init__(
         self,
@@ -12,16 +13,16 @@ class HeartCalcificationDataset(Dataset):
         train: bool = True,
         augmentation: bool = False,
         transform: Optional[Callable] = None,
-        target_transform: Optional[Callable] = None
-        # grid_size: int = 15
+        target_transform: Optional[Callable] = None,
+        color_mode: str = 'RGB'  # 新增參數
     ) -> None:
         self.root = root
         self.transform = transform
         self.target_transform = target_transform
         self.train = train
         self.augmentation = augmentation
-        # self.grid_size = grid_size
-        self.grid_size = 15
+        self.grid_size = 45
+        self.color_mode = color_mode
         self._load_data()
 
     def _load_data(self):
@@ -35,7 +36,14 @@ class HeartCalcificationDataset(Dataset):
         self.splited_label = []
 
         for img_path, label_path in zip(self.image_files, self.label_files):
-            img = Image.open(os.path.join(self.data_dir, img_path)).convert('RGB')
+            img = Image.open(os.path.join(self.data_dir, img_path))
+            if self.color_mode == 'RGB':
+                img = img.convert('RGB')
+            elif self.color_mode == 'L':
+                img = img.convert('L')
+            else:
+                raise ValueError("color_mode 必須是 'RGB' 或 'L'")
+            
             width, height = img.size
 
             num_blocks_h = height // self.grid_size
@@ -73,7 +81,10 @@ class HeartCalcificationDataset(Dataset):
         if self.transform is not None:
             img = self.transform(img)
         else:
-            img = torch.from_numpy(np.array(img).transpose((2, 0, 1))).float() / 255.0
+            if self.color_mode == 'RGB':
+                img = torch.from_numpy(np.array(img).transpose((2, 0, 1))).float() / 255.0
+            else:
+                img = torch.from_numpy(np.array(img)[None, ...]).float() / 255.0
 
         if self.target_transform is not None:
             label = self.target_transform(label)
@@ -82,3 +93,12 @@ class HeartCalcificationDataset(Dataset):
 
     def __len__(self) -> int:
         return len(self.splited_images)
+
+
+class HeartCalcificationColor(HeartCalcificationDataset):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs, color_mode='RGB')
+
+class HeartCalcificationGray(HeartCalcificationDataset):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs, color_mode='L')
