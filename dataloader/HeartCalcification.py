@@ -14,15 +14,19 @@ class HeartCalcificationDataset(Dataset):
         augmentation: bool = False,
         transform: Optional[Callable] = None,
         target_transform: Optional[Callable] = None,
-        color_mode: str = 'RGB'  # 新增參數
+        color_mode: str = 'RGB',  # 新增參數
+        grid_size: int = 45
     ) -> None:
         self.root = root
         self.transform = transform
         self.target_transform = target_transform
         self.train = train
         self.augmentation = augmentation
-        self.grid_size = 45
+        self.grid_size = grid_size
         self.color_mode = color_mode
+
+        self.images = []
+        self.labels = []
         self._load_data()
 
     def _load_data(self):
@@ -73,6 +77,9 @@ class HeartCalcificationDataset(Dataset):
                     y_onehot = torch.from_numpy(y_onehot)
                     self.splited_label.append(y_onehot)
 
+            self.images.append(img)
+            self.labels.append(label)
+
 
     def __getitem__(self, idx: int) -> Tuple[Any, Any]:
         img = self.splited_images[idx]
@@ -102,3 +109,7 @@ class HeartCalcificationColor(HeartCalcificationDataset):
 class HeartCalcificationGray(HeartCalcificationDataset):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs, color_mode='L')
+
+class HeartCalcificationGray60(HeartCalcificationDataset):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs, color_mode='L', grid_size = 60)

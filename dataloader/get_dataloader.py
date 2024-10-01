@@ -2,7 +2,7 @@ import torch
 
 from torch.utils.data import DataLoader
 
-from .HeartCalcification import HeartCalcificationDataset, HeartCalcificationGray, HeartCalcificationColor
+from .HeartCalcification import *
 from .MNIST import MNISTDataset
 from .MultiColorShapes import MultiColorShapesDataset
 from .FaceDataset import FaceDataset
@@ -34,7 +34,8 @@ dataset_classes = {
     'Colorful_MNIST':Colorful_MNIST,
     'HeartCalcification' : HeartCalcificationDataset,
     'HeartCalcification_Color': HeartCalcificationColor,
-    'HeartCalcification_Gray': HeartCalcificationGray
+    'HeartCalcification_Gray': HeartCalcificationGray,
+    'HeartCalcificationGray60' : HeartCalcificationGray60
 }
 
 def get_dataloader(dataset, root: str = '.', batch_size=32, input_size: tuple = (28, 28)):
