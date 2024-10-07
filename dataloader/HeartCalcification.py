@@ -20,7 +20,8 @@ class HeartCalcificationDataset(Dataset):
         color_mode: str = 'RGB',  # 新增參數
         grid_size: int = 45,
         need_resize_height: bool = False,
-        resize_height : int = 900
+        resize_height : int = 900,
+            threshold: float = 1.0
     ) -> None:
         self.root = root
         self.transform = transform
@@ -33,7 +34,8 @@ class HeartCalcificationDataset(Dataset):
         self.data_dir = f"{self.root}/HeartCalcification/{'train' if self.train else 'test'}"
         self.data_processor = HeartCalcificationDataProcessor(
             grid_size=self.grid_size, data_dir=self.data_dir,
-            need_resize_height = need_resize_height, resize_height= resize_height)
+            need_resize_height = need_resize_height, resize_height= resize_height,
+            threshold=threshold)
 
         self.model_ready_data = self.data_processor.get_model_ready_data()
 
@@ -83,9 +85,10 @@ class HeartCalcificationGray(HeartCalcificationDataset):
         grid_size = config["heart_calcification"]["grid_size"]
         resize_height = config["heart_calcification"]["resize_height"]
         need_resize_height = config["heart_calcification"]["need_resize_height"]
+        threshold = config["heart_calcification"]["threshold"]
         super().__init__(*args, **kwargs, color_mode='L',
                          grid_size = grid_size, resize_height = resize_height,
-                         need_resize_height = need_resize_height)
+                         need_resize_height = need_resize_height, threshold=threshold)
 
 class HeartCalcificationGray60(HeartCalcificationDataset):
     def __init__(self, *args, **kwargs):

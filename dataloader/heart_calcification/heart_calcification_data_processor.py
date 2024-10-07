@@ -3,7 +3,6 @@ from typing import List, Dict, Tuple
 from PIL import Image
 import numpy as np
 
-from config import config
 from .image_split_data import ImageSplitData
 from shapely.geometry import Polygon
 
@@ -15,7 +14,7 @@ class HeartCalcificationDataProcessor:
     """
 
     def __init__(self, grid_size: int, data_dir: str,
-                 need_resize_height: bool, resize_height: int):
+                 need_resize_height: bool, resize_height: int, threshold:float):
         """
         初始化心脏钙化数据处理器。
 
@@ -32,7 +31,7 @@ class HeartCalcificationDataProcessor:
         self.image_files, self.yolo_files, self.mask_image_files = self.get_file_paths(data_dir)
 
         # 針對鈣化點框框，判斷是否為鈣化點，將框框縮小
-        self.threshold = config["heart_calcification"]["threshold"]
+        self.threshold = threshold
 
         self._generate_dataset(threshold=self.threshold)
 

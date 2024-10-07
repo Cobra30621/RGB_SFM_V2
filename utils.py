@@ -11,7 +11,6 @@ from config import *
 from utils import *
 from models.SFMCNN import SFMCNN
 from models.RGB_SFMCNN import RGB_SFMCNN
-from dataloader import get_dataloader
 from collections import defaultdict
 
 '''
@@ -39,38 +38,6 @@ def read_Image(path = 'D:/Project/paper/RGB_SFM/showout/Colored_MNIST_0610_RGB_S
     test_img /= 255
     test_img = test_img[:3, :, :]
     return test_img
-
-'''
-    讀取 model
-'''
-def load_model(checkpoint_filename = 'RGB_SFMCNN_best_t1np8eon'):
-        with torch.no_grad():
-                # Load Dataset
-                train_dataloader, test_dataloader = get_dataloader(dataset=config['dataset'], root=config['root'] + '/data/', batch_size=config['batch_size'], input_size=config['input_shape'])
-                images, labels = torch.tensor([]), torch.tensor([])
-                for batch in test_dataloader:
-                        imgs, lbls = batch
-                        images = torch.cat((images, imgs))
-                        labels = torch.cat((labels, lbls))
-                print(images.shape, labels.shape)
-
-                # Load Model
-                models = {'SFMCNN': SFMCNN, 'RGB_SFMCNN':RGB_SFMCNN}
-                checkpoint = torch.load(f'./pth/{config["dataset"]}_pth/{checkpoint_filename}.pth')
-                model = models[arch['name']](**dict(config['model']['args']))
-                model.load_state_dict(checkpoint['model_weights'])
-                model.cpu()
-                model.eval()
-                summary(model, input_size = (config['model']['args']['in_channels'], *config['input_shape']), device='cpu')
-                print(model)
-
-                # Test Model
-                batch_num = 1000
-                pred = model(images[:batch_num])
-                y = labels[:batch_num]
-                correct = (pred.argmax(1) == y.argmax(1)).type(torch.float).sum().item()
-                print("Test Accuracy: " + str(correct/len(pred)))
-        return model
 
 def increment_path(path, exist_ok=True, sep=''):
     # Increment path, i.e. runs/exp --> runs/exp{sep}0, runs/exp{sep}1 etc.

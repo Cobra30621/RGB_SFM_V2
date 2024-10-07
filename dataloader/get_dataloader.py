@@ -32,7 +32,6 @@ dataset_classes = {
     'AnotherColored_FashionMNIST':AnotherColored_FashionMNIST,
     'CIFAR10': CIFAR10,
     'Colorful_MNIST':Colorful_MNIST,
-    'HeartCalcification' : HeartCalcificationDataset,
     'HeartCalcification_Color': HeartCalcificationColor,
     'HeartCalcification_Gray': HeartCalcificationGray,
     'HeartCalcificationGray60' : HeartCalcificationGray60
