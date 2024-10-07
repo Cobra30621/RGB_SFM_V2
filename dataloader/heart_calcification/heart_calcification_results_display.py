@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import os
 import numpy as np
 
-class HeartCalcificationResultsProcessor:
+class HeartCalcificationResultsDisplay:
     """
     心臟鈣化結果處理器類別。
     用於處理和分析心臟鈣化相關的訓練和預測結果。

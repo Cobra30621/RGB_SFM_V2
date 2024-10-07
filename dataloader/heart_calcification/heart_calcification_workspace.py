@@ -2,8 +2,10 @@
 import os
 import numpy as np
 from PIL import Image
+
+from config import config
 from dataloader.heart_calcification.heart_calcification_data_processor import HeartCalcificationDataProcessor
-from dataloader.heart_calcification.heart_calcification_results_processor import HeartCalcificationResultsProcessor
+from dataloader.heart_calcification.heart_calcification_results_display import HeartCalcificationResultsDisplay
 
 
 ## 繪製資料集
@@ -11,16 +13,14 @@ from dataloader.heart_calcification.heart_calcification_results_processor import
 # 初始化数据处理器
 data_dir = "D://Paper/RGB_SFM/data/HeartCalcification/basic"  # 请替换为您的数据目录
 grid_size = 45  # 请根据您的实际情况调整
-data_processor = HeartCalcificationDataProcessor(grid_size, data_dir)
-
-# 生成数据集
-data_processor.generate_dataset()
+resize_height =  900
+data_processor = HeartCalcificationDataProcessor(grid_size, data_dir, resize_height)
 
 # 获取数据字典
 data_dict = data_processor.get_data_dict()
 
 # 初始化结果处理器
-results_processor = HeartCalcificationResultsProcessor()
+results_processor = HeartCalcificationResultsDisplay()
 
 # 准备图像和标签数据
 images = {}

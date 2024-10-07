@@ -156,8 +156,6 @@ print(model)
 summary(model, input_size = (config['model']['args']['in_channels'], *config['input_shape']))
 
 if(config['use_weightsAdjust']):
-
-
     # 計算每個類別的權重
     weights = torch.tensor([weight for weight in config['loss_weights_rate']], dtype=torch.float32)
 

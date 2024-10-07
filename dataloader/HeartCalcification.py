@@ -4,6 +4,8 @@ import torch
 from torch.utils.data import Dataset
 from typing import Any, Callable, Optional, Tuple
 from PIL import Image
+
+from config import config
 from .heart_calcification.heart_calcification_data_processor import HeartCalcificationDataProcessor
 
 
@@ -16,7 +18,9 @@ class HeartCalcificationDataset(Dataset):
         transform: Optional[Callable] = None,
         target_transform: Optional[Callable] = None,
         color_mode: str = 'RGB',  # 新增參數
-        grid_size: int = 45
+        grid_size: int = 45,
+        need_resize_height: bool = False,
+        resize_height : int = 900
     ) -> None:
         self.root = root
         self.transform = transform
@@ -27,10 +31,14 @@ class HeartCalcificationDataset(Dataset):
         self.color_mode = color_mode
 
         self.data_dir = f"{self.root}/HeartCalcification/{'train' if self.train else 'test'}"
-        self.data_processor = HeartCalcificationDataProcessor(grid_size=self.grid_size, data_dir=self.data_dir)
-        self.data_processor.generate_dataset()
+        self.data_processor = HeartCalcificationDataProcessor(
+            grid_size=self.grid_size, data_dir=self.data_dir,
+            need_resize_height = need_resize_height, resize_height= resize_height)
+
         self.model_ready_data = self.data_processor.get_model_ready_data()
+
         print(len(self.model_ready_data))
+        self.data_processor.display_label_counts()
 
     def __getitem__(self, idx: int) -> Tuple[Any, Any]:
         image_name, img, label = self.model_ready_data[idx]
@@ -72,7 +80,12 @@ class HeartCalcificationColor(HeartCalcificationDataset):
 
 class HeartCalcificationGray(HeartCalcificationDataset):
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs, color_mode='L')
+        grid_size = config["heart_calcification"]["grid_size"]
+        resize_height = config["heart_calcification"]["resize_height"]
+        need_resize_height = config["heart_calcification"]["need_resize_height"]
+        super().__init__(*args, **kwargs, color_mode='L',
+                         grid_size = grid_size, resize_height = resize_height,
+                         need_resize_height = need_resize_height)
 
 class HeartCalcificationGray60(HeartCalcificationDataset):
     def __init__(self, *args, **kwargs):
