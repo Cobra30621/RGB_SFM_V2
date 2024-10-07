@@ -2,35 +2,60 @@ import os
 from typing import List, Dict, Tuple
 from PIL import Image
 import numpy as np
-from image_split_data import ImageSplitData
+from .image_split_data import ImageSplitData
+from shapely.geometry import Polygon
+
 
 class HeartCalcificationDataProcessor:
+    """
+    心脏钙化数据处理器类。
+    用于处理心脏钙化相关的图像数据、标签和掩码。
+    """
+
     def __init__(self, grid_size: int, data_dir: str):
+        """
+        初始化心脏钙化数据处理器。
+
+        参数:
+        grid_size (int): 网格大小
+        data_dir (str): 数据目录路径
+        """
         self.grid_size = grid_size
         self.data_dir = data_dir
         self.data_dict: Dict[str, ImageSplitData] = {}
         self.image_files, self.yolo_files, self.mask_image_files = self.get_file_paths(data_dir)
+        self.threshold = 0.5 # 針對鈣化點框框，判斷是否為鈣化點，將框框縮小
 
     def get_file_paths(self, data_dir: str) -> Tuple[List[str], List[str], List[str]]:
-        image_files = [f for f in os.listdir(data_dir) if f.endswith('.png')]
-        yolo_files = [f.replace('.png', '.txt') for f in image_files]
-        mask_image_files = [os.path.join(data_dir, os.path.splitext(f)[0], '14_2-down_refind.png') for f in image_files]
-        return image_files, yolo_files, mask_image_files
+        """
+        获取数据目录中的文件路径。
+
+        参数:
+        data_dir (str): 数据目录路径
+
+        返回:
+        Tuple[List[str], List[str], List[str]]: 图像文件、YOLO文件和掩码文件的路径列表
+        """
+        mask_files = [f for f in os.listdir(data_dir) if f.endswith('_vessel.txt')]
+        image_files = [f.replace('_vessel.txt', '.png') for f in mask_files]
+        yolo_files = [f.replace('_vessel.txt', '.txt') for f in mask_files]
+        return image_files, yolo_files, mask_files
 
     def generate_dataset(self):
+        """
+        生成数据集。
+        处理图像、标签和掩码文件，创建ImageSplitData对象并存储在data_dict中。
+        """
         for img_path, yolo_path, mask_file in zip(self.image_files, self.yolo_files, self.mask_image_files):
             img = Image.open(os.path.join(self.data_dir, img_path))
             width, height = img.size
             num_blocks_h = height // self.grid_size
             num_blocks_w = width // self.grid_size
 
-            label = np.zeros((num_blocks_h, num_blocks_w), dtype=np.int8)
+            label = np.full((num_blocks_h, num_blocks_w), -1, dtype=np.int8)
             label = self.filter_vessel_mask(label, mask_file)
-            label = self.filter_heart_calcification_points(label, yolo_path)
+            label = self.filter_heart_calcification_points(label, yolo_path, self.threshold)
 
-            split_images = self.split_image(img)
-            
-            # 创建符合要求的 labels 字典
             labels = {
                 (i, j): int(label[i, j]) for i in range(num_blocks_h) for j in range(num_blocks_w)
             }
@@ -44,6 +69,15 @@ class HeartCalcificationDataProcessor:
             self.data_dict[img_path] = image_split_data
 
     def split_image(self, img: Image.Image) -> List[Image.Image]:
+        """
+        将图像分割成网格。
+
+        参数:
+        img (Image.Image): 输入图像
+
+        返回:
+        List[Image.Image]: 分割后的图像列表
+        """
         width, height = img.size
         split_images = []
         for i in range(0, height, self.grid_size):
@@ -53,17 +87,66 @@ class HeartCalcificationDataProcessor:
         return split_images
 
     def filter_vessel_mask(self, label: np.ndarray, mask_file: str) -> np.ndarray:
-        mask = Image.open(mask_file).convert('L')
-        mask_array = np.array(mask)
-        for i in range(label.shape[0]):
-            for j in range(label.shape[1]):
-                y_start, y_end = i * self.grid_size, (i + 1) * self.grid_size
-                x_start, x_end = j * self.grid_size, (j + 1) * self.grid_size
-                if np.any(mask_array[y_start:y_end, x_start:x_end] > 0):
-                    label[i, j] = 2
+        """
+        根据血管掩码过滤标签。
+
+        参数:
+        label (np.ndarray): 标签数组
+        mask_file (str): 掩码文件路径
+
+        返回:
+        np.ndarray: 过滤后的标签数组
+        """
+        img_height, img_width = label.shape[0] * self.grid_size, label.shape[1] * self.grid_size
+        
+        with open(os.path.join(self.data_dir, mask_file), 'r') as f:
+            lines = f.readlines()
+        
+        for line in lines:
+            class_id, *polygon = line.strip().split()
+            if class_id == '0':
+                polygon = [(float(polygon[i]) * img_width, float(polygon[i+1]) * img_height) for i in range(0, len(polygon), 2)]
+                
+                for i in range(label.shape[0]):
+                    for j in range(label.shape[1]):
+                        grid_box = [
+                            (j * self.grid_size, i * self.grid_size),
+                            ((j+1) * self.grid_size, i * self.grid_size),
+                            ((j+1) * self.grid_size, (i+1) * self.grid_size),
+                            (j * self.grid_size, (i+1) * self.grid_size)
+                        ]
+                        if self.polygon_intersects_grid(polygon, grid_box):
+                            label[i, j] = 0
+        
         return label
 
-    def filter_heart_calcification_points(self, label: np.ndarray, yolo_file: str) -> np.ndarray:
+    def polygon_intersects_grid(self, polygon, grid_box):
+        """
+        检查多边形是否与网格相交。
+
+        参数:
+        polygon: 多边形坐标列表
+        grid_box: 网格坐标列表
+
+        返回:
+        bool: 是否相交
+        """
+        poly = Polygon(polygon)
+        grid = Polygon(grid_box)
+        return poly.intersects(grid)
+
+    def filter_heart_calcification_points(self, label: np.ndarray, yolo_file: str, threshold: float) -> np.ndarray:
+        """
+        根据心脏钙化点过滤标签。
+
+        参数:
+        label (np.ndarray): 标签数组
+        yolo_file (str): YOLO格式的标注文件路径
+        threshold (float): 阈值
+
+        返回:
+        np.ndarray: 过滤后的标签数组
+        """
         with open(os.path.join(self.data_dir, yolo_file), 'r') as f:
             lines = f.readlines()
         
@@ -71,6 +154,8 @@ class HeartCalcificationDataProcessor:
         
         for line in lines:
             _, x_center, y_center, w, h = map(float, line.split())
+            w *= threshold  # 应用阈值
+            h *= threshold  # 应用阈值
             x_min = int((x_center - w/2) * img_width)
             y_min = int((y_center - h/2) * img_height)
             x_max = int((x_center + w/2) * img_width)
@@ -86,15 +171,28 @@ class HeartCalcificationDataProcessor:
         
         return label
 
-    def get_model_ready_data(self) -> List[Tuple[str, Image.Image, int]]:
+    def get_model_ready_data(self) -> List[Tuple[Tuple[str, int, int], Image.Image, int]]:
+        """
+        获取模型就绪的数据。
+
+        返回:
+        List[Tuple[Tuple[str, int, int], Image.Image, int]]: 包含图像名称、位置、分割图像和标签的列表
+        """
         model_ready_data = []
         for image_name, image_data in self.data_dict.items():
             img = Image.open(image_data.image_path)
             split_images = self.split_image(img)
             for (i, j), label in image_data.labels.items():
-                index = i * image_data.split_count[1] + j
-                model_ready_data.append((image_name, split_images[index], label))
+                if label != -1:
+                    index = i * image_data.split_count[1] + j
+                    model_ready_data.append(((image_name, i, j), split_images[index], label))
         return model_ready_data
 
     def get_data_dict(self) -> Dict[str, ImageSplitData]:
+        """
+        获取数据字典。
+
+        返回:
+        Dict[str, ImageSplitData]: 包含图像名称和对应ImageSplitData对象的字典
+        """
         return self.data_dict

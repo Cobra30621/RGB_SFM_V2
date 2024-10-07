@@ -2,7 +2,7 @@ from typing import List, Tuple, Any
 from heart_calcification_data_processor import HeartCalcificationDataProcessor
 
 class ModelPrediction:
-    def predict(self, model: Any, data_processor: HeartCalcificationDataProcessor) -> List[Tuple[str, int, int]]:
+    def predict(self, model: Any, data_processor: HeartCalcificationDataProcessor) -> List[Tuple[Tuple[str, int, int], int, int]]:
         """
         使用给定的模型对心脏钙化数据进行预测。
 
@@ -11,7 +11,7 @@ class ModelPrediction:
         data_processor: HeartCalcificationDataProcessor 实例,包含处理后的数据
 
         返回:
-        List[Tuple[str, int, int]]: 预测结果列表,每个元素为 (key, true_label, predicted_label)
+        List[Tuple[Tuple[str, int, int], int, int]]: 预测结果列表,每个元素为 (key, true_label, predicted_label)
         """
         results = []
         model_ready_data = data_processor.get_model_ready_data()

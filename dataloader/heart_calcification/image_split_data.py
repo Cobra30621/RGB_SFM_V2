@@ -1,5 +1,18 @@
 class ImageSplitData:
+    """
+    圖像分割數據類，用於存儲和管理分割後的圖像數據。
+    """
+
     def __init__(self, image_name: str, image_path: str, split_count: tuple, labels: dict):
+        """
+        初始化 ImageSplitData 對象。
+
+        參數:
+        image_name (str): 圖像名稱
+        image_path (str): 圖像路徑
+        split_count (tuple): 分割數量，格式為 (行數, 列數)
+        labels (dict): 標籤字典，鍵為 (行, 列) 元組，值為對應的標籤
+        """
         self.image_name = image_name
         self.image_path = image_path
         self.split_count = split_count
@@ -7,10 +20,25 @@ class ImageSplitData:
 
     @property
     def split_count(self):
+        """
+        獲取分割數量。
+
+        返回:
+        tuple: 分割數量 (行數, 列數)
+        """
         return self._split_count
 
     @split_count.setter
     def split_count(self, value):
+        """
+        設置分割數量。
+
+        參數:
+        value (tuple): 分割數量，格式為 (行數, 列數)
+
+        異常:
+        ValueError: 如果輸入的值不符合要求
+        """
         if not isinstance(value, tuple) or len(value) != 2:
             raise ValueError("split_count 必须是一个包含两个整数的元组 (m, n)")
         if not all(isinstance(x, int) and x > 0 for x in value):
@@ -19,10 +47,25 @@ class ImageSplitData:
 
     @property
     def labels(self):
+        """
+        獲取標籤字典。
+
+        返回:
+        dict: 標籤字典
+        """
         return self._labels
 
     @labels.setter
     def labels(self, value):
+        """
+        設置標籤字典。
+
+        參數:
+        value (dict): 標籤字典，鍵為 (行, 列) 元組，值為對應的標籤
+
+        異常:
+        ValueError: 如果輸入的值不符合要求
+        """
         if not isinstance(value, dict):
             raise ValueError("labels 必须是一个字典")
         if not all(isinstance(k, tuple) and len(k) == 2 and

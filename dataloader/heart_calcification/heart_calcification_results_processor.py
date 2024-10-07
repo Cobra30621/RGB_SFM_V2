@@ -4,19 +4,27 @@ import os
 import numpy as np
 
 class HeartCalcificationResultsProcessor:
+    """
+    心臟鈣化結果處理器類別。
+    用於處理和分析心臟鈣化相關的訓練和預測結果。
+    """
+
     def __init__(self):
-        self.field: Any = None  # 用于存储结果处理器特定的数据类型
+        """
+        初始化 HeartCalcificationResultsProcessor 類別。
+        """
+        self.field: Any = None  # 用於存儲結果處理器特定的數據類型
 
     def compile_training_results(self, list_of_image_names: List[str], data_dict: Dict[str, Any]) -> Dict[str, Any]:
         """
-        编译训练结果。
+        編譯訓練結果。
 
-        参数:
-        list_of_image_names: 图像名称列表
-        data_dict: 包含训练数据的字典
+        參數:
+        list_of_image_names: 圖像名稱列表
+        data_dict: 包含訓練數據的字典
 
         返回:
-        Dict[str, Any]: 图像名称及其相关数据的字典
+        Dict[str, Any]: 圖像名稱及其相關數據的字典
         """
         compiled_results = {}
         for image_name in list_of_image_names:
@@ -25,7 +33,7 @@ class HeartCalcificationResultsProcessor:
                 compiled_results[image_name] = {
                     'split_count': image_data.split_count,
                     'labels': image_data.labels,
-                    # 可以根据需要添加更多的训练相关数据
+                    # 可以根據需要添加更多的訓練相關數據
                 }
             else:
                 print(f"Warning: Image {image_name} not found in data_dict")
@@ -34,14 +42,14 @@ class HeartCalcificationResultsProcessor:
 
     def compile_prediction_results(self, list_of_image_names: List[str], prediction_results: List[Tuple[str, int, int]]) -> List[Dict[str, Any]]:
         """
-        编译预测结果。
+        編譯預測結果。
 
-        参数:
-        list_of_image_names: 图像名称列表
-        prediction_results: 预测结果列表,每个元素为 (key, true_label, predicted_label)
+        參數:
+        list_of_image_names: 圖像名稱列表
+        prediction_results: 預測結果列表,每個元素為 (key, true_label, predicted_label)
 
         返回:
-        List[Dict[str, Any]]: 包含图像名称和预测结果的字典列表
+        List[Dict[str, Any]]: 包含圖像名稱和預測結果的字典列表
         """
         compiled_results = []
         prediction_dict = {key: (true, pred) for key, true, pred in prediction_results}
@@ -50,7 +58,7 @@ class HeartCalcificationResultsProcessor:
             image_predictions = {}
             for key, (true_label, pred_label) in prediction_dict.items():
                 if key.startswith(image_name):
-                    # 假设 key 的格式为 "image_name_row_col"
+                    # 假設 key 的格式為 "image_name_row_col"
                     _, row, col = key.rsplit('_', 2)
                     image_predictions[(int(row), int(col))] = {
                         'true_label': true_label,
@@ -66,13 +74,13 @@ class HeartCalcificationResultsProcessor:
 
     def calculate_accuracy(self, compiled_results: List[Dict[str, Any]]) -> float:
         """
-        计算整体预测准确率。
+        計算整體預測準確率。
 
-        参数:
-        compiled_results: compile_prediction_results 方法的输出
+        參數:
+        compiled_results: compile_prediction_results 方法的輸出
 
         返回:
-        float: 预测准确率
+        float: 預測準確率
         """
         total_predictions = 0
         correct_predictions = 0
@@ -87,13 +95,13 @@ class HeartCalcificationResultsProcessor:
 
     def get_misclassified_images(self, compiled_results: List[Dict[str, Any]]) -> List[str]:
         """
-        获取被错误分类的图像列表。
+        獲取被錯誤分類的圖像列表。
 
-        参数:
-        compiled_results: compile_prediction_results 方法的输出
+        參數:
+        compiled_results: compile_prediction_results 方法的輸出
 
         返回:
-        List[str]: 被错误分类的图像名称列表
+        List[str]: 被錯誤分類的圖像名稱列表
         """
         misclassified_images = []
         
@@ -105,12 +113,12 @@ class HeartCalcificationResultsProcessor:
 
     def visualize_results(self, compiled_results: List[Dict[str, Any]], images: Dict[str, np.ndarray], save_dir: str):
         """
-        可视化预测结果并保存为图片。
+        可視化預測結果並保存為圖片。
 
-        参数:
-        compiled_results: compile_prediction_results 方法的输出
-        images: 字典,键为图像名称,值为图像数组
-        save_dir: 保存图片的目录
+        參數:
+        compiled_results: compile_prediction_results 方法的輸出
+        images: 字典,鍵為圖像名稱,值為圖像數組
+        save_dir: 保存圖片的目錄
         """
         if not os.path.exists(save_dir):
             os.makedirs(save_dir)
@@ -127,26 +135,34 @@ class HeartCalcificationResultsProcessor:
                 true_label[row, col] = pred['true_label']
                 pred_label[row, col] = pred['predicted_label']
 
-            # 保存真实标签图
+            # 保存真實標籤圖
             self._visualize_and_save_image(img, true_label, os.path.join(save_dir, f'{image_name}_true.png'))
 
-            # 保存预测标签图
+            # 保存預測標籤圖
             self._visualize_and_save_image(img, pred_label, os.path.join(save_dir, f'{image_name}_pred.png'))
 
     def _visualize_and_save_image(self, img: np.ndarray, label: np.ndarray, save_path: str):
+        """
+        可視化單個圖像並保存。
+
+        參數:
+        img: 圖像數組
+        label: 標籤數組
+        save_path: 保存路徑
+        """
         plt.figure(figsize=(10, 10))
         plt.imshow(img)
 
         height, width = img.shape[:2]
         num_blocks_h, num_blocks_w = label.shape
 
-        # 绘制网格线
+        # 繪製網格線
         for i in range(1, num_blocks_h):
             plt.axhline(y=i * height / num_blocks_h, color='w', linestyle='-', linewidth=1)
         for j in range(1, num_blocks_w):
             plt.axvline(x=j * width / num_blocks_w, color='w', linestyle='-', linewidth=1)
 
-        # 在标签为真的格子中绘制 'O'
+        # 在標籤為真的格子中繪製 'O'
         for i in range(num_blocks_h):
             for j in range(num_blocks_w):
                 if label[i, j] == 1:
@@ -159,16 +175,16 @@ class HeartCalcificationResultsProcessor:
         plt.savefig(save_path, bbox_inches='tight', pad_inches=0)
         plt.close()
 
-        print(f"图像已保存到: {save_path}")
+        print(f"圖像已保存到: {save_path}")
 
     def visualize_dataset(self, images: Dict[str, np.ndarray], labels: Dict[str, np.ndarray], save_dir: str):
         """
-        可视化数据集并保存为图片。
+        可視化數據集並保存為圖片。
 
-        参数:
-        images: 字典,键为图像名称,值为图像数组
-        labels: 字典,键为图像名称,值为标签数组
-        save_dir: 保存图片的目录
+        參數:
+        images: 字典,鍵為圖像名稱,值為圖像數組
+        labels: 字典,鍵為圖像名稱,值為標籤數組
+        save_dir: 保存圖片的目錄
         """
         if not os.path.exists(save_dir):
             os.makedirs(save_dir)
@@ -179,27 +195,35 @@ class HeartCalcificationResultsProcessor:
             self._visualize_and_save_dataset_image(img, label, save_path)
 
     def _visualize_and_save_dataset_image(self, img: np.ndarray, label: np.ndarray, save_path: str):
+        """
+        可視化單個數據集圖像並保存。
+
+        參數:
+        img: 圖像數組
+        label: 標籤數組
+        save_path: 保存路徑
+        """
         plt.figure(figsize=(10, 10))
         plt.imshow(img)
 
         height, width = img.shape[:2]
         num_blocks_h, num_blocks_w = label.shape
 
-        # 绘制网格线
+        # 繪製網格線
         for i in range(1, num_blocks_h):
             plt.axhline(y=i * height / num_blocks_h, color='w', linestyle='-', linewidth=1)
         for j in range(1, num_blocks_w):
             plt.axvline(x=j * width / num_blocks_w, color='w', linestyle='-', linewidth=1)
 
-        # 在标签为1或2的格子中绘制不同颜色的 'O'
+        # 在標籤為1或2的格子中繪製不同顏色的 'O'
         for i in range(num_blocks_h):
             for j in range(num_blocks_w):
                 if label[i, j] == 1:
-                    color = 'r'  # 红色
-                elif label[i, j] == 2:
-                    color = 'b'  # 蓝色
+                    color = 'r'  # 紅色
+                elif label[i, j] == 0:
+                    color = 'b'  # 藍色
                 else:
-                    continue  # 如果标签为0,不绘制任何内容
+                    continue  # 如果標籤為0,不繪製任何內容
 
                 plt.text(j * width / num_blocks_w + width / (2 * num_blocks_w),
                          i * height / num_blocks_h + height / (2 * num_blocks_h), 'O',
@@ -210,4 +234,4 @@ class HeartCalcificationResultsProcessor:
         plt.savefig(save_path, bbox_inches='tight', pad_inches=0)
         plt.close()
 
-        print(f"数据集图像已保存到: {save_path}")
+        print(f"數據集圖像已保存到: {save_path}")

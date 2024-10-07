@@ -25,11 +25,25 @@ results_processor = HeartCalcificationResultsProcessor()
 # 准备图像和标签数据
 images = {}
 labels = {}
+# 修改这部分代码
 for image_name, image_data in data_dict.items():
     # 读取原始图像
     img = Image.open(image_data.image_path)
     img_array = np.array(img)
-    
+
+    # 确保图像是 3 通道 RGB
+    if len(img_array.shape) == 2:  # 如果是灰度图
+        img_array = np.stack((img_array,) * 3, axis=-1)
+    elif img_array.shape[2] == 4:  # 如果是 RGBA
+        img_array = img_array[:, :, :3]
+
+    # 确保数据类型是 uint8，范围在 0-255
+    if img_array.dtype != np.uint8:
+        if img_array.max() <= 1.0:
+            img_array = (img_array * 255).astype(np.uint8)
+        else:
+            img_array = img_array.astype(np.uint8)
+
     # 创建标签数组
     label_array = np.zeros(image_data.split_count, dtype=int)
     for (i, j), label in image_data.labels.items():
@@ -38,6 +52,7 @@ for image_name, image_data in data_dict.items():
     images[image_name] = img_array
     labels[image_name] = label_array
 
+
 # 可视化数据集
-save_dir = 'D://Paper/RGB_SFM/data/HeartCalcification/visual_data'  # 请替换为您想保存可视化结果的目录
+save_dir = 'D://Paper/RGB_SFM/data/HeartCalcification/visual_data_45'  # 请替换为您想保存可视化结果的目录
 results_processor.visualize_dataset(images, labels, save_dir)

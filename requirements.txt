@@ -3,3 +3,4 @@ numpy
 torchsummary
 mlxtend
 typing
+shapely
