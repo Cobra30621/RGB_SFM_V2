@@ -52,8 +52,8 @@ class HeartCalcificationDataProcessor:
 
     def _generate_dataset(self, threshold: float = 1.0):
         """
-        生成数据集。
-        处理图像、标签和掩码文件，创建ImageSplitData对象并存储在data_dict中。
+        生成數據集。
+        處理圖像、標籤和掩碼文件，創建 ImageSplitData 對象並存儲在 data_dict 中。
         """
         for img_path, yolo_path, mask_file in zip(self.image_files, self.yolo_files, self.mask_image_files):
             img = Image.open(os.path.join(self.data_dir, img_path))
@@ -80,7 +80,8 @@ class HeartCalcificationDataProcessor:
                 image_name=img_path,
                 image_path=os.path.join(self.data_dir, img_path),
                 split_count=(num_blocks_h, num_blocks_w),
-                labels=labels
+                labels=labels,
+                split_images =split_images  # 将切割后的图像存储到 img 属性中
             )
             self.data_dict[img_path] = image_split_data
 
@@ -108,9 +109,12 @@ class HeartCalcificationDataProcessor:
         """
         width, height = img.size
         split_images = []
-        for i in range(0, height, self.grid_size):
-            for j in range(0, width, self.grid_size):
-                box = (j, i, j + self.grid_size, i + self.grid_size)
+        num_blocks_h = height // self.grid_size
+        num_blocks_w = width // self.grid_size
+
+        for i in range(num_blocks_h):
+            for j in range(num_blocks_w):
+                box = (j * self.grid_size, i * self.grid_size, (j + 1) * self.grid_size, (i + 1) * self.grid_size)
                 split_images.append(img.crop(box))
         return split_images
 
@@ -210,15 +214,15 @@ class HeartCalcificationDataProcessor:
         """
         model_ready_data = []
         for image_name, image_data in self.data_dict.items():
-            img = Image.open(image_data.image_path)
-            
-            # 调用 resize_image 方法
-            img = self.resize_image(img)
-            
-            split_images = self.split_image(img)
+            # 直接使用 image_data 的 img 属性
+            split_images = image_data.split_images
+            # print(f"{image_name}, {image_data.split_count}, {len(split_images)}")
+
             for (i, j), label in image_data.labels.items():
                 if label != -1:
                     index = i * image_data.split_count[1] + j
+                    # print(f"{i}, {j}, {index}")
+
                     model_ready_data.append(((image_name, i, j), split_images[index], label))
         return model_ready_data
 

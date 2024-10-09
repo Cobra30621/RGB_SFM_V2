@@ -32,8 +32,8 @@ with torch.no_grad():
 
 	# Load Model
 	models = {'SFMCNN': SFMCNN, 'RGB_SFMCNN':RGB_SFMCNN}
-	checkpoint_filename = 'RGB_SFMCNN_best'
-	checkpoint = torch.load(f'../pth/{config["dataset"]}_pth/{checkpoint_filename}.pth', weights_only=True)
+	checkpoint_filename = 'SFMCNN_best'
+	checkpoint = torch.load(f'./pth/{config["dataset"]}_pth/{checkpoint_filename}.pth', weights_only=True)
 	model = models[arch['name']](**dict(config['model']['args']))
 	model.load_state_dict(checkpoint['model_weights'])
 	model.cpu()
@@ -146,8 +146,8 @@ for test_id in range(example_num):
 	print(test_id)
 	test_img = images[test_id]
 	
-	save_path = f'./detect/{config["dataset"]}_{checkpoint_filename}/example/{idx_to_label[labels[test_id].argmax().item()]}/example_{test_id}/'
-	# save_path = f'./detect/{config["dataset"]}_{checkpoint_filename}/example/{labels[test_id].argmax().item()}/example_{test_id}/'
+	# save_path = f'./detect/{config["dataset"]}_{checkpoint_filename}/example/{idx_to_label[labels[test_id].argmax().item()]}/example_{test_id}/'
+	save_path = f'./detect/{config["dataset"]}_{checkpoint_filename}/example/{labels[test_id].argmax().item()}/example_{test_id}/'
 	RM_save_path = f'{save_path}/RMs/'
 	RM_CI_save_path = f'{save_path}/RM_CIs/'
 	os.makedirs(RM_save_path, exist_ok=True)

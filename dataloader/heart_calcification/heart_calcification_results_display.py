@@ -221,7 +221,7 @@ class HeartCalcificationResultsDisplay:
                 if label[i, j] == 1:
                     color = 'r'  # 紅色
                 elif label[i, j] == 0:
-                    color = 'b'  # 藍色
+                    color = 'lightblue'  # 淡藍色
                 else:
                     continue  # 如果標籤為0,不繪製任何內容
 

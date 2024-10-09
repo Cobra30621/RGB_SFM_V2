@@ -1,9 +1,12 @@
+from typing import List, Tuple, Dict
+from PIL import Image
+
 class ImageSplitData:
     """
     圖像分割數據類，用於存儲和管理分割後的圖像數據。
     """
 
-    def __init__(self, image_name: str, image_path: str, split_count: tuple, labels: dict):
+    def __init__(self, image_name: str, image_path: str, split_count: tuple, labels: dict, split_images: List[Image.Image]):
         """
         初始化 ImageSplitData 對象。
 
@@ -12,11 +15,13 @@ class ImageSplitData:
         image_path (str): 圖像路徑
         split_count (tuple): 分割數量，格式為 (行數, 列數)
         labels (dict): 標籤字典，鍵為 (行, 列) 元組，值為對應的標籤
+        img (List[Image.Image]): 切割後的圖像列表
         """
         self.image_name = image_name
         self.image_path = image_path
         self.split_count = split_count
         self.labels = labels
+        self.split_images = split_images  # 新增 img 屬性
 
     @property
     def split_count(self):

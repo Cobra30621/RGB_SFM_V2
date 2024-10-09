@@ -43,7 +43,7 @@ class HeartCalcificationDataset(Dataset):
         self.data_processor.display_label_counts()
 
     def __getitem__(self, idx: int) -> Tuple[Any, Any]:
-        image_name, img, label = self.model_ready_data[idx]
+        key, img, label = self.model_ready_data[idx]
 
         if self.color_mode == 'RGB':
             img = img.convert('RGB')
