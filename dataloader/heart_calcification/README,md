@@ -1,0 +1,13 @@
+# 心臟血管鈣化偵測
+
+
+## 血管遮罩標記
+
+-https://app.roboflow.com/cobra-elfl2/heart_vessel/3/images
+
+
+## 鈣化點偵測
+
+
+- https://app.roboflow.com/cobra-elfl2/heart_vessel_detection/annotate/job/ahpNJhFyidVhUOtcu8er
+

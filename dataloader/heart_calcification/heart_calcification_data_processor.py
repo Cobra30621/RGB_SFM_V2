@@ -7,6 +7,8 @@ from .image_enhance import ENHANCE_FUNCTIONS, pil_to_numpy, numpy_to_pil
 from .image_split_data import ImageSplitData
 from shapely.geometry import Polygon
 
+from .mask_processor import create_polygon, mask_image_with_polygon
+
 
 class HeartCalcificationDataProcessor:
     """
@@ -63,20 +65,24 @@ class HeartCalcificationDataProcessor:
         處理圖像、標籤和掩碼文件，創建 ImageSplitData 對象並存儲在 data_dict 中。
         """
         for img_path, calcification_mask_path, vessel_mask_file in zip(self.image_files, self.calcification_mask_files, self.vessel_mask_files):
-            img = Image.open(os.path.join(self.data_dir, img_path))
-            
+            img = Image.open(os.path.join(self.data_dir, img_path)).convert('L')  # 将图像转换为灰阶
+            img = np.array(img)
             # 调用 resize_image 方法
             img = self.resize_image(img)
-            
-            width, height = img.size
+
+            width, height = img.shape[1], img.shape[0]  # 注意：np.ndarray 的 shape 是 (高度, 宽度, 通道数)
             num_blocks_h = height // self.grid_size
             num_blocks_w = width // self.grid_size
 
             label = np.full((num_blocks_h, num_blocks_w), -1, dtype=np.int8)
-            label = self.filter_with_mask(label, vessel_mask_file, 0,1) # 根據血管給 0
-            label = self.filter_with_mask(label, calcification_mask_path, 1, 0.75) # 根據鈣化點給 1
-            # label = self.filter_heart_calcification_points(label, yolo_path, threshold)
+            label = self.filter_with_mask(label, vessel_mask_file, 0    , 1)  # 根據血管給 0
+            label = self.filter_with_mask(label, calcification_mask_path, 1, 0.75)  # 根據鈣化點給 1
 
+            # 將圖片用血管做遮罩
+            vessel_mask_path = os.path.join(self.data_dir, vessel_mask_file)
+            img = mask_image_with_polygon(img, vessel_mask_path)
+
+            # 切割圖片
             split_images = self.split_image(img)
             
             # 创建符合要求的 labels 字典
@@ -89,26 +95,24 @@ class HeartCalcificationDataProcessor:
                 image_path=os.path.join(self.data_dir, img_path),
                 split_count=(num_blocks_h, num_blocks_w),
                 labels=labels,
-                split_images =split_images  # 将切割后的图像存储到 img 属性中
+                split_images=split_images,  # 将切割后的图像存储到 img 属性中
+                vessel_mask_file=vessel_mask_file  # 新增 vessel_mask_file
             )
             self.data_dict[img_path] = image_split_data
 
-        self.enhance_all_split_images()
-
-    def enhance_image(self, img: Image.Image) -> Image.Image:
+    def enhance_image(self, img: np.ndarray) -> np.ndarray:
         """
         使用指定的增强方法增强图像。
 
         参数:
-        img (Image.Image): 输入图像
+        img (np.ndarray): 输入图像
 
         返回:
-        Image.Image: 增强后的图像
+        np.ndarray: 增强后的图像
         """
-        np_img = pil_to_numpy(img)  # 将 PIL.Image 转换为 NumPy 数组
         enhance_func = ENHANCE_FUNCTIONS.get(self.enhance_method)  # 获取增强函数
-        enhanced_np_img = enhance_func(np_img)  # 使用增强函数
-        return numpy_to_pil(enhanced_np_img)  # 将增强后的 NumPy 数组转换回 PIL.Image
+        enhanced_np_img = enhance_func(img)  # 使用增强函数
+        return enhanced_np_img  # 返回增强后的 NumPy 数组
 
     def enhance_all_split_images(self):
         """
@@ -118,29 +122,30 @@ class HeartCalcificationDataProcessor:
             for i in range(len(image_data.split_images)):
                 image_data.split_images[i] = self.enhance_image(image_data.split_images[i])
 
-    def resize_image(self, img: Image.Image) -> Image.Image:
+    def resize_image(self, img: np.ndarray) -> np.ndarray:
         if not self.need_resize_height:
             return img
 
         """根据 self.resize_height 缩放图像"""
-        original_width, original_height = img.size
+        original_height, original_width = img.shape[:2]
         scale_factor = self.resize_height / original_height
         new_width = int(original_width * scale_factor)
         
         # 缩放图像
-        return img.resize((new_width, self.resize_height), Image.LANCZOS)
+        img = Image.fromarray(img)  # 将 np.ndarray 转换为 PIL.Image
+        return np.array(img.resize((new_width, self.resize_height), Image.LANCZOS))  # 返回 np.ndarray
 
-    def split_image(self, img: Image.Image) -> List[Image.Image]:
+    def split_image(self, img: np.ndarray) -> List[np.ndarray]:
         """
         将图像分割成网格。
 
         参数:
-        img (Image.Image): 输入图像
+        img (np.ndarray): 输入图像
 
         返回:
-        List[Image.Image]: 分割后的图像列表
+         List[np.ndarray]: 分割后的图像数组
         """
-        width, height = img.size
+        height, width = img.shape[:2]
         split_images = []
         num_blocks_h = height // self.grid_size
         num_blocks_w = width // self.grid_size
@@ -148,7 +153,7 @@ class HeartCalcificationDataProcessor:
         for i in range(num_blocks_h):
             for j in range(num_blocks_w):
                 box = (j * self.grid_size, i * self.grid_size, (j + 1) * self.grid_size, (i + 1) * self.grid_size)
-                split_images.append(img.crop(box))
+                split_images.append(img[i * self.grid_size:(i + 1) * self.grid_size, j * self.grid_size:(j + 1) * self.grid_size])
         return split_images
 
     def filter_with_mask(self, label: np.ndarray, mask_file: str, value: int = 0, scale: float = 1.0) -> np.ndarray:
@@ -159,7 +164,7 @@ class HeartCalcificationDataProcessor:
         label (np.ndarray): 标签数组
         mask_file (str): 掩码文件路径
         value (int): 要赋予标签的值，默认为 0
-        scale (float): 多边形缩放比例，默认为 1.0（无缩放）
+        scale (float): 多边形缩放比，默认为 1.0（无缩放）
 
         返回:
         np.ndarray: 过滤后的标签数组
@@ -173,21 +178,8 @@ class HeartCalcificationDataProcessor:
             class_id, *polygon = line.strip().split()
             if class_id == '0':
                 # 将字符串转换为浮点数
-                polygon = [(float(polygon[i]) * img_width, float(polygon[i+1]) * img_height)
-                           for i in range(0, len(polygon), 2)]
-                
-                # 计算多边形的中心
-                center_x = sum(p[0] for p in polygon) / len(polygon)
-                center_y = sum(p[1] for p in polygon) / len(polygon)
-
-                # 根据中心缩放多边形
-                polygon = [
-                    (center_x + (p[0] - center_x) * scale, center_y + (p[1] - center_y) * scale)
-                    for p in polygon
-                ]
-
-                polygon.append(polygon[0])
-
+                polygon = create_polygon(polygon, img_width, img_height, scale)
+        
                 for i in range(label.shape[0]):
                     for j in range(label.shape[1]):
                         grid_box = [
@@ -200,6 +192,7 @@ class HeartCalcificationDataProcessor:
                             label[i, j] = value  # 使用指定的值更新标签
         
         return label
+    
 
     def polygon_intersects_grid(self, polygon, grid_box):
         """
@@ -253,7 +246,7 @@ class HeartCalcificationDataProcessor:
         
         return label
 
-    def get_model_ready_data(self) -> List[Tuple[Tuple[str, int, int], Image.Image, int]]:
+    def get_model_ready_data(self) -> List[Tuple[Tuple[str, int, int], np.ndarray, int]]:
         """
         获取模型就绪的数据。
 
@@ -263,7 +256,7 @@ class HeartCalcificationDataProcessor:
         model_ready_data = []
         for image_name, image_data in self.data_dict.items():
             # 直接使用 image_data 的 img 属性
-            split_images = image_data.split_images
+            split_images = image_data.split_images  # 直接使用 np.ndarray
             # print(f"{image_name}, {image_data.split_count}, {len(split_images)}")
 
             for (i, j), label in image_data.labels.items():
@@ -294,6 +287,5 @@ class HeartCalcificationDataProcessor:
         Dict[str, ImageSplitData]: 包含图像名称和对应ImageSplitData对象的字典
         """
         return self.data_dict
-
 
 

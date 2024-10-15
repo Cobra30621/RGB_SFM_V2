@@ -7,6 +7,7 @@ from PIL import ImageEnhance
 
 from dataloader.heart_calcification.image_enhance import normalize_image, \
     enhance_image_with_contrast, ENHANCE_FUNCTIONS
+from dataloader.heart_calcification.mask_processor import mask_image_with_polygon
 
 
 class HeartCalcificationResultsDisplay:
@@ -183,7 +184,9 @@ class HeartCalcificationResultsDisplay:
 
         print(f"圖像已保存到: {save_path}")
 
-    def visualize_dataset(self, images: Dict[str, np.ndarray], labels: Dict[str, np.ndarray], save_dir: str, enhance_method: str):
+    def visualize_dataset(self, images: Dict[str, np.ndarray], labels: Dict[str, np.ndarray],
+                          vessel_masks: Dict[str, str],
+                          save_dir: str, enhance_method: str):
         """
         可視化數據集並保存為圖片。
 
@@ -198,8 +201,11 @@ class HeartCalcificationResultsDisplay:
 
         for image_name, img in images.items():
             label = labels[image_name]
+            vessel_mask = vessel_masks[image_name]
             save_path = os.path.join(save_dir, f'{image_name}_dataset.png')
-            
+
+            img = mask_image_with_polygon(img, vessel_mask)
+
             # 根据增强方法对图像进行增强
             enhance_func = ENHANCE_FUNCTIONS.get(enhance_method)
             if enhance_func:
