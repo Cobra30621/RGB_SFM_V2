@@ -2,6 +2,12 @@ from typing import List, Dict, Any, Tuple
 import matplotlib.pyplot as plt
 import os
 import numpy as np
+from PIL import Image
+from PIL import ImageEnhance
+
+from dataloader.heart_calcification.image_enhance import normalize_image, \
+    enhance_image_with_contrast, ENHANCE_FUNCTIONS
+
 
 class HeartCalcificationResultsDisplay:
     """
@@ -177,7 +183,7 @@ class HeartCalcificationResultsDisplay:
 
         print(f"圖像已保存到: {save_path}")
 
-    def visualize_dataset(self, images: Dict[str, np.ndarray], labels: Dict[str, np.ndarray], save_dir: str):
+    def visualize_dataset(self, images: Dict[str, np.ndarray], labels: Dict[str, np.ndarray], save_dir: str, enhance_method: str):
         """
         可視化數據集並保存為圖片。
 
@@ -185,6 +191,7 @@ class HeartCalcificationResultsDisplay:
         images: 字典,鍵為圖像名稱,值為圖像數組
         labels: 字典,鍵為圖像名稱,值為標籤數組
         save_dir: 保存圖片的目錄
+        enhance_method: 增强方法的名称
         """
         if not os.path.exists(save_dir):
             os.makedirs(save_dir)
@@ -192,6 +199,14 @@ class HeartCalcificationResultsDisplay:
         for image_name, img in images.items():
             label = labels[image_name]
             save_path = os.path.join(save_dir, f'{image_name}_dataset.png')
+            
+            # 根据增强方法对图像进行增强
+            enhance_func = ENHANCE_FUNCTIONS.get(enhance_method)
+            if enhance_func:
+                img = enhance_func(img)
+            else:
+                print(f"未知的增强方法: {enhance_method}")
+            
             self._visualize_and_save_dataset_image(img, label, save_path)
 
     def _visualize_and_save_dataset_image(self, img: np.ndarray, label: np.ndarray, save_path: str):
@@ -203,6 +218,8 @@ class HeartCalcificationResultsDisplay:
         label: 標籤數組
         save_path: 保存路徑
         """
+         # 将 PIL 图像转换为 NumPy 数组
+        img = np.array(img)
         plt.figure(figsize=(10, 10))
         plt.imshow(img)
 
@@ -221,7 +238,7 @@ class HeartCalcificationResultsDisplay:
                 if label[i, j] == 1:
                     color = 'r'  # 紅色
                 elif label[i, j] == 0:
-                    color = 'lightblue'  # 淡藍色
+                    color = 'b'  # 藍色
                 else:
                     continue  # 如果標籤為0,不繪製任何內容
 
@@ -233,5 +250,4 @@ class HeartCalcificationResultsDisplay:
         plt.tight_layout()
         plt.savefig(save_path, bbox_inches='tight', pad_inches=0)
         plt.close()
-
         print(f"數據集圖像已保存到: {save_path}")

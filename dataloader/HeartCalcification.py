@@ -21,7 +21,9 @@ class HeartCalcificationDataset(Dataset):
         grid_size: int = 45,
         need_resize_height: bool = False,
         resize_height : int = 900,
-            threshold: float = 1.0
+        threshold: float = 1.0,
+        contrast_factor : float = 1.0,
+        enhance_method: str = 'none',
     ) -> None:
         self.root = root
         self.transform = transform
@@ -35,7 +37,7 @@ class HeartCalcificationDataset(Dataset):
         self.data_processor = HeartCalcificationDataProcessor(
             grid_size=self.grid_size, data_dir=self.data_dir,
             need_resize_height = need_resize_height, resize_height= resize_height,
-            threshold=threshold)
+            threshold=threshold, contrast_factor = contrast_factor, enhance_method=enhance_method)
 
         self.model_ready_data = self.data_processor.get_model_ready_data()
 
@@ -86,9 +88,12 @@ class HeartCalcificationGray(HeartCalcificationDataset):
         resize_height = config["heart_calcification"]["resize_height"]
         need_resize_height = config["heart_calcification"]["need_resize_height"]
         threshold = config["heart_calcification"]["threshold"]
+        contrast_factor = config["heart_calcification"]["contrast_factor"]
+        enhance_method = config["heart_calcification"]["enhance_method"]
         super().__init__(*args, **kwargs, color_mode='L',
                          grid_size = grid_size, resize_height = resize_height,
-                         need_resize_height = need_resize_height, threshold=threshold)
+                         need_resize_height = need_resize_height, threshold=threshold,
+                         contrast_factor = contrast_factor, enhance_method=enhance_method)
 
 class HeartCalcificationGray60(HeartCalcificationDataset):
     def __init__(self, *args, **kwargs):

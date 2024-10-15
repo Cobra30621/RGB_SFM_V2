@@ -1,8 +1,9 @@
 import os
 from typing import List, Dict, Tuple
-from PIL import Image
+from PIL import Image, ImageEnhance
 import numpy as np
 
+from .image_enhance import ENHANCE_FUNCTIONS, pil_to_numpy, numpy_to_pil
 from .image_split_data import ImageSplitData
 from shapely.geometry import Polygon
 
@@ -14,7 +15,8 @@ class HeartCalcificationDataProcessor:
     """
 
     def __init__(self, grid_size: int, data_dir: str,
-                 need_resize_height: bool, resize_height: int, threshold:float):
+                 need_resize_height: bool, resize_height: int, threshold:float,
+                 contrast_factor: float = 1.0, enhance_method: str = 'none'):
         """
         初始化心脏钙化数据处理器。
 
@@ -22,16 +24,20 @@ class HeartCalcificationDataProcessor:
         grid_size (int): 网格大小
         data_dir (str): 数据目录路径
         resize_height (int): 图像缩放后的高度
+        contrast_factor (float): 对比度因子，默认为 1.0（无变化）
+        enhance_method (str): 增强方法的名称
         """
         self.grid_size = grid_size
         self.data_dir = data_dir
         self.need_resize_height = need_resize_height
         self.resize_height = resize_height
         self.data_dict: Dict[str, ImageSplitData] = {}
-        self.image_files, self.yolo_files, self.mask_image_files = self.get_file_paths(data_dir)
+        self.image_files, self.calcification_mask_files, self.vessel_mask_files = self.get_file_paths(data_dir)
 
         # 針對鈣化點框框，判斷是否為鈣化點，將框框縮小
         self.threshold = threshold
+        self.contrast_factor = contrast_factor  # 存储对比度因子
+        self.enhance_method = enhance_method  # 存储增强方法名称
 
         self._generate_dataset(threshold=self.threshold)
 
@@ -45,17 +51,18 @@ class HeartCalcificationDataProcessor:
         返回:
         Tuple[List[str], List[str], List[str]]: 图像文件、YOLO文件和掩码文件的路径列表
         """
-        mask_files = [f for f in os.listdir(data_dir) if f.endswith('_vessel.txt')]
-        image_files = [f.replace('_vessel.txt', '.png') for f in mask_files]
-        yolo_files = [f.replace('_vessel.txt', '.txt') for f in mask_files]
-        return image_files, yolo_files, mask_files
+        calcification_mask_files = [f for f in os.listdir(data_dir) if f.endswith('_calcification.txt')]
+        print(len(calcification_mask_files))
+        vessel_mask_files = [f.replace('_calcification.txt', '_vessel.txt') for f in calcification_mask_files]
+        image_files = [f.replace('_calcification.txt', '.png') for f in calcification_mask_files]
+        return image_files, calcification_mask_files, vessel_mask_files
 
     def _generate_dataset(self, threshold: float = 1.0):
         """
         生成數據集。
         處理圖像、標籤和掩碼文件，創建 ImageSplitData 對象並存儲在 data_dict 中。
         """
-        for img_path, yolo_path, mask_file in zip(self.image_files, self.yolo_files, self.mask_image_files):
+        for img_path, calcification_mask_path, vessel_mask_file in zip(self.image_files, self.calcification_mask_files, self.vessel_mask_files):
             img = Image.open(os.path.join(self.data_dir, img_path))
             
             # 调用 resize_image 方法
@@ -66,8 +73,9 @@ class HeartCalcificationDataProcessor:
             num_blocks_w = width // self.grid_size
 
             label = np.full((num_blocks_h, num_blocks_w), -1, dtype=np.int8)
-            label = self.filter_vessel_mask(label, mask_file)
-            label = self.filter_heart_calcification_points(label, yolo_path, threshold)
+            label = self.filter_with_mask(label, vessel_mask_file, 0,1) # 根據血管給 0
+            label = self.filter_with_mask(label, calcification_mask_path, 1, 0.75) # 根據鈣化點給 1
+            # label = self.filter_heart_calcification_points(label, yolo_path, threshold)
 
             split_images = self.split_image(img)
             
@@ -84,6 +92,31 @@ class HeartCalcificationDataProcessor:
                 split_images =split_images  # 将切割后的图像存储到 img 属性中
             )
             self.data_dict[img_path] = image_split_data
+
+        self.enhance_all_split_images()
+
+    def enhance_image(self, img: Image.Image) -> Image.Image:
+        """
+        使用指定的增强方法增强图像。
+
+        参数:
+        img (Image.Image): 输入图像
+
+        返回:
+        Image.Image: 增强后的图像
+        """
+        np_img = pil_to_numpy(img)  # 将 PIL.Image 转换为 NumPy 数组
+        enhance_func = ENHANCE_FUNCTIONS.get(self.enhance_method)  # 获取增强函数
+        enhanced_np_img = enhance_func(np_img)  # 使用增强函数
+        return numpy_to_pil(enhanced_np_img)  # 将增强后的 NumPy 数组转换回 PIL.Image
+
+    def enhance_all_split_images(self):
+        """
+        对所有的分割图像执行增强。
+        """
+        for image_data in self.data_dict.values():
+            for i in range(len(image_data.split_images)):
+                image_data.split_images[i] = self.enhance_image(image_data.split_images[i])
 
     def resize_image(self, img: Image.Image) -> Image.Image:
         if not self.need_resize_height:
@@ -118,14 +151,15 @@ class HeartCalcificationDataProcessor:
                 split_images.append(img.crop(box))
         return split_images
 
-    def filter_vessel_mask(self, label: np.ndarray, mask_file: str) -> np.ndarray:
+    def filter_with_mask(self, label: np.ndarray, mask_file: str, value: int = 0, scale: float = 1.0) -> np.ndarray:
         """
-        根据血管掩码过滤标签。
+        根据遮罩过滤标签。
 
         参数:
         label (np.ndarray): 标签数组
         mask_file (str): 掩码文件路径
-        scale_factor (float): 缩放因子
+        value (int): 要赋予标签的值，默认为 0
+        scale (float): 多边形缩放比例，默认为 1.0（无缩放）
 
         返回:
         np.ndarray: 过滤后的标签数组
@@ -138,8 +172,22 @@ class HeartCalcificationDataProcessor:
         for line in lines:
             class_id, *polygon = line.strip().split()
             if class_id == '0':
-                polygon = [(float(polygon[i]) * img_width, float(polygon[i+1]) * img_height ) for i in range(0, len(polygon), 2)]
+                # 将字符串转换为浮点数
+                polygon = [(float(polygon[i]) * img_width, float(polygon[i+1]) * img_height)
+                           for i in range(0, len(polygon), 2)]
                 
+                # 计算多边形的中心
+                center_x = sum(p[0] for p in polygon) / len(polygon)
+                center_y = sum(p[1] for p in polygon) / len(polygon)
+
+                # 根据中心缩放多边形
+                polygon = [
+                    (center_x + (p[0] - center_x) * scale, center_y + (p[1] - center_y) * scale)
+                    for p in polygon
+                ]
+
+                polygon.append(polygon[0])
+
                 for i in range(label.shape[0]):
                     for j in range(label.shape[1]):
                         grid_box = [
@@ -149,7 +197,7 @@ class HeartCalcificationDataProcessor:
                             (j * self.grid_size, (i+1) * self.grid_size)
                         ]
                         if self.polygon_intersects_grid(polygon, grid_box):
-                            label[i, j] = 0
+                            label[i, j] = value  # 使用指定的值更新标签
         
         return label
 
@@ -170,7 +218,7 @@ class HeartCalcificationDataProcessor:
 
     def filter_heart_calcification_points(self, label: np.ndarray, yolo_file: str, threshold: float) -> np.ndarray:
         """
-        根据心脏钙化点过滤标签。
+        根据 Yolo 方框过滤标签。
 
         参数:
         label (np.ndarray): 标签数组
@@ -246,3 +294,6 @@ class HeartCalcificationDataProcessor:
         Dict[str, ImageSplitData]: 包含图像名称和对应ImageSplitData对象的字典
         """
         return self.data_dict
+
+
+
