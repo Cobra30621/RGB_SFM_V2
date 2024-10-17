@@ -3,7 +3,7 @@ from typing import List, Dict, Tuple
 from PIL import Image, ImageEnhance
 import numpy as np
 
-from .image_enhance import ENHANCE_FUNCTIONS, pil_to_numpy, numpy_to_pil
+from .image_enhance import ENHANCE_FUNCTIONS
 from .image_split_data import ImageSplitData
 from shapely.geometry import Polygon
 
@@ -246,25 +246,50 @@ class HeartCalcificationDataProcessor:
         
         return label
 
-    def get_model_ready_data(self) -> List[Tuple[Tuple[str, int, int], np.ndarray, int]]:
+    def get_model_ready_data(self, use_min_count: bool = True) -> List[Tuple[Tuple[str, int, int], np.ndarray, int]]:
         """
         获取模型就绪的数据。
+
+        参数:
+        use_min_count (bool): 是否使用最小数量进行筛选，默认为 True
 
         返回:
         List[Tuple[Tuple[str, int, int], Image.Image, int]]: 包含图像名称、位置、分割图像和标签的列表
         """
         model_ready_data = []
+        label_counts = {}  # 记录每个标签的计数
+
+        # 统计每个标签的数量
         for image_name, image_data in self.data_dict.items():
-            # 直接使用 image_data 的 img 属性
-            split_images = image_data.split_images  # 直接使用 np.ndarray
-            # print(f"{image_name}, {image_data.split_count}, {len(split_images)}")
+            for label in image_data.labels.values():
+                if label not in label_counts:
+                    label_counts[label] = 0
+                label_counts[label] += 1
+
+        # 计算每个标签的最小数量
+        min_count = min(label_counts.values()) if use_min_count else float('inf')
+
+        # 创建一个字典来存储每个标签的随机选择的索引
+        selected_indices = {label: [] for label in label_counts.keys()}
+
+        for image_name, image_data in self.data_dict.items():
+            split_images = image_data.split_images
 
             for (i, j), label in image_data.labels.items():
                 if label != -1:
                     index = i * image_data.split_count[1] + j
-                    # print(f"{i}, {j}, {index}")
 
-                    model_ready_data.append(((image_name, i, j), split_images[index], label))
+                    # 随机选择标签
+                    if len(selected_indices[label]) < min_count:
+                        if index < len(split_images):  # 检查 index 是否在范围内
+                            selected_indices[label].append((image_name, index, label))  # 存储 image_name 和 index
+
+        # 将随机选择的图像添加到 model_ready_data
+        for label, indices in selected_indices.items():
+            for image_name, index, label in indices:
+                if index < len(self.data_dict[image_name].split_images):  # 确保使用当前 image_data 的 split_images
+                    model_ready_data.append(((image_name, i, j), self.data_dict[image_name].split_images[index], label))
+
         return model_ready_data
 
 
@@ -287,5 +312,9 @@ class HeartCalcificationDataProcessor:
         Dict[str, ImageSplitData]: 包含图像名称和对应ImageSplitData对象的字典
         """
         return self.data_dict
+
+
+
+
 
 

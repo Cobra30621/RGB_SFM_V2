@@ -17,7 +17,7 @@ class HeartCalcificationDataset(Dataset):
         augmentation: bool = False,
         transform: Optional[Callable] = None,
         target_transform: Optional[Callable] = None,
-        color_mode: str = 'RGB',  # 新增參數
+        color_mode: str = 'L',  # 新增參數
         grid_size: int = 45,
         need_resize_height: bool = False,
         resize_height : int = 900,
@@ -47,21 +47,8 @@ class HeartCalcificationDataset(Dataset):
     def __getitem__(self, idx: int) -> Tuple[Any, Any]:
         key, img, label = self.model_ready_data[idx]
 
-        # 確保 img 是 np.ndarray 而不是 Image.Image
-        if isinstance(img, Image.Image):
-            img = np.array(img)  # 將 Image.Image 轉換為 np.ndarray
-
-        if self.color_mode == 'RGB':
-            img = img.transpose((2, 0, 1))  # 轉換為 (C, H, W) 格式
-        elif self.color_mode == 'L':
-            img = img[None, ...]  # 增加一個維度以符合 (C, H, W) 格式
-        else:
-            raise ValueError("color_mode 必須是 'RGB' 或 'L'")
-
         img = torch.from_numpy(img).float() / 255.0  # 將 np.ndarray 轉換為張量
-
-        # 将标签转换为长整型张量
-        # label = torch.tensor(label, dtype=torch.long)
+        print(img.shape)
 
         y_onehot = np.eye(2)[label]
         y_onehot = torch.from_numpy(y_onehot)
