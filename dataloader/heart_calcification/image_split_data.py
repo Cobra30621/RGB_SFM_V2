@@ -7,7 +7,7 @@ class ImageSplitData:
     圖像分割數據類，用於存儲和管理分割後的圖像數據。
     """
 
-    def __init__(self, image_name: str, image_path: str, split_count: tuple, labels: dict, split_images: List[np.ndarray], vessel_mask_file: str):
+    def __init__(self, image_name: str, image_path: str, split_count: tuple, labels: dict, split_images: List[np.ndarray], vessel_mask_file: str, calcification_path: str):
         """
         初始化 ImageSplitData 對象。
 
@@ -18,6 +18,7 @@ class ImageSplitData:
         labels (dict): 標籤字典，鍵為 (行, 列) 元組，值為對應的標籤
         split_images (List[Image.Image]): 切割後的圖像列表
         vessel_mask_file (str): 血管掩碼文件的路徑
+        calcification_path (str): calcification_path 路徑
         """
         self.image_name = image_name
         self.image_path = image_path
@@ -25,6 +26,7 @@ class ImageSplitData:
         self.labels = labels
         self.split_images = split_images  # 新增 img 屬性
         self.vessel_mask_file = vessel_mask_file  # 新增 vessel_mask_file 屬性
+        self.calcification_path = calcification_path  # 新增 calcification_path 屬性
 
     @property
     def split_count(self):

@@ -39,7 +39,7 @@ class HeartCalcificationDataset(Dataset):
             need_resize_height = need_resize_height, resize_height= resize_height,
             threshold=threshold, contrast_factor = contrast_factor, enhance_method=enhance_method)
 
-        self.model_ready_data = self.data_processor.get_model_ready_data()
+        self.model_ready_data = self.data_processor.get_model_ready_data(True)
 
         print(len(self.model_ready_data))
         self.data_processor.display_label_counts()
@@ -47,8 +47,10 @@ class HeartCalcificationDataset(Dataset):
     def __getitem__(self, idx: int) -> Tuple[Any, Any]:
         key, img, label = self.model_ready_data[idx]
 
-        img = torch.from_numpy(img).float() / 255.0  # 將 np.ndarray 轉換為張量
-        print(img.shape)
+        img = torch.from_numpy(img).float() / 255.0  # 将 np.ndarray 转换为张量
+        img = img.squeeze(-1)  # 去掉最后一个维度
+        img = img.unsqueeze(0)  # 增加一个维度，变为 (1, 45, 45)
+        # print(img.shape)
 
         y_onehot = np.eye(2)[label]
         y_onehot = torch.from_numpy(y_onehot)
