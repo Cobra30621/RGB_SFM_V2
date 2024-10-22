@@ -41,7 +41,7 @@ class HeartCalcificationDataset(Dataset):
 
         self.model_ready_data = self.data_processor.get_model_ready_data(True)
 
-        print(len(self.model_ready_data))
+        print("model data count : ",  len(self.model_ready_data))
         self.data_processor.display_label_counts()
 
     def __getitem__(self, idx: int) -> Tuple[Any, Any]:
