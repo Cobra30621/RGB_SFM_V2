@@ -13,6 +13,21 @@ from .image_split_data import ImageSplitData
 from .image_tool import resize_image
 
 
+
+def visualize_predict(result:List[Tuple[ImageSplitData, Dict[tuple, int], Dict[tuple, int]]],
+                      save_dir: str, grid_size: int, resize_height: int):
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir)
+
+    for image_data, true_labels, predicted_labels in result:
+        save_path = os.path.join(save_dir, f'{image_data.image_name}_dataset.png')
+
+        # 读取图像
+        img = load_image(image_data.image_path, resize_height)
+
+        _visualize_and_save_dataset_image(img, predicted_labels, image_data.split_count, grid_size, save_path)
+
+
 def visualize_dataset(data_dict: Dict[str, ImageSplitData], save_dir: str, data_dir : str,
                     enhance_method: str, grid_size: int, resize_height: int,
                       draw_calcification: bool = False, mask_with_vessel: bool = False):
@@ -32,29 +47,15 @@ def visualize_dataset(data_dict: Dict[str, ImageSplitData], save_dir: str, data_
         os.makedirs(save_dir)
 
     for image_name, image_data in data_dict.items():
-        # 處理 Label
-        label_array = np.zeros(image_data.split_count, dtype=int)
-        for (i, j), labels in image_data.labels.items():
-            label_array[i, j] = labels
-        labels = label_array
 
         # 處理路徑
         vessel_mask = os.path.join(data_dir, image_data.vessel_mask_file)
         calcification_path = os.path.join(data_dir, image_data.calcification_path)
         save_path = os.path.join(save_dir, f'{image_name}_dataset.png')
 
-        # 读取原始图像
-        img = Image.open(image_data.image_path)
-        img_array = np.array(img)
-        # 确保图像是 3 通道 RGB
-        if len(img_array.shape) == 2:  # 如果是灰度图
-            img_array = np.stack((img_array,) * 3, axis=-1)
-        elif img_array.shape[2] == 4:  # 如果是 RGBA
-            img_array = img_array[:, :, :3]
-        img = img_array
+        # 读取图像
+        img = load_image(image_data.image_path, resize_height)
 
-        # 根據 resize_height 等比例縮放圖像
-        img = resize_image(img, resize_height)
         # 劃出鈣化點
         if draw_calcification:
             # 畫出完整的框框
@@ -72,10 +73,12 @@ def visualize_dataset(data_dict: Dict[str, ImageSplitData], save_dir: str, data_
         else:
             print(f"未知的增强方法: {enhance_method}")
 
-        _visualize_and_save_dataset_image(img, labels, grid_size, save_path)
+        _visualize_and_save_dataset_image(img, image_data.labels, image_data.split_count, grid_size, save_path)
 
 
-def _visualize_and_save_dataset_image(img: np.ndarray, labels: np.ndarray, grid_size:int, save_path: str):
+
+def _visualize_and_save_dataset_image(img: np.ndarray, labels: Dict[tuple, int], split_count : tuple,
+                                      grid_size:int, save_path: str):
     """
     可視化單個數據集圖像並保存。
 
@@ -87,7 +90,7 @@ def _visualize_and_save_dataset_image(img: np.ndarray, labels: np.ndarray, grid_
     """
     plt.figure(figsize=(9, 9))
     plt.imshow(img)
-    num_blocks_h, num_blocks_w = labels.shape
+    num_blocks_h, num_blocks_w = split_count
 
     # 繪製網格線
     for i in range(1, num_blocks_h):
@@ -96,18 +99,31 @@ def _visualize_and_save_dataset_image(img: np.ndarray, labels: np.ndarray, grid_
         plt.axvline(x=j * grid_size, color='w', linestyle='-', linewidth=1)
 
     # 在標籤為1或0的格子中繪製不同顏色的 'O'
-    for i in range(num_blocks_h):
-        for j in range(num_blocks_w):
-            if labels[i, j] == 1:
-                color = 'r'  # 紅色
-            elif labels[i, j] == 0:
-                color = 'b'  # 藍色
-            else:
-                continue  # 如果標籤為0,不繪製任何內容
+    for key, label in labels.items():
+        i, j = key
+        if label == 1:
+            color = 'r'  # 紅色
+        elif label == 0:
+            color = 'b' # 藍色
+        else:
+            continue  # 如果標籤為0,不繪製任何內容
 
-            plt.text((j + 0.5) * grid_size ,
-                     (i + 0.5)* grid_size , 'O',
-                     color=color, fontsize=12, ha='center', va='center')
+        plt.text((j + 0.5) * grid_size ,
+                 (i + 0.5)* grid_size , 'O',
+                 color=color, fontsize=12, ha='center', va='center')
+
+    # for i in range(num_blocks_h):
+    #     for j in range(num_blocks_w):
+    #         if labels[i, j] == 1:
+    #             color = 'r'  # 紅色
+    #         elif labels[i, j] == 0:
+    #             color = 'b'  # 藍色
+    #         else:
+    #             continue  # 如果標籤為0,不繪製任何內容
+    #
+    #         plt.text((j + 0.5) * grid_size ,
+    #                  (i + 0.5)* grid_size , 'O',
+    #                  color=color, fontsize=12, ha='center', va='center')
 
     plt.axis('off')
     plt.tight_layout()
@@ -117,5 +133,21 @@ def _visualize_and_save_dataset_image(img: np.ndarray, labels: np.ndarray, grid_
     print(f"數據集圖像已保存到: {save_path}")
 
 
+
+def load_image(image_path: str, resize_height: int):
+    # 读取原始图像
+    img = Image.open(image_path)
+    img_array = np.array(img)
+    # 确保图像是 3 通道 RGB
+    if len(img_array.shape) == 2:  # 如果是灰度图
+        img_array = np.stack((img_array,) * 3, axis=-1)
+    elif img_array.shape[2] == 4:  # 如果是 RGBA
+        img_array = img_array[:, :, :3]
+    img = img_array
+
+    # 根據 resize_height 等比例縮放圖像
+    img = resize_image(img, resize_height)
+
+    return img
 
 

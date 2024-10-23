@@ -7,7 +7,8 @@ class ImageSplitData:
     圖像分割數據類，用於存儲和管理分割後的圖像數據。
     """
 
-    def __init__(self, image_name: str, image_path: str, split_count: tuple, labels: dict, split_images: List[np.ndarray], vessel_mask_file: str, calcification_path: str):
+    def __init__(self, image_name: str, image_path: str, split_count: tuple, labels: dict,
+                 split_images: List[np.ndarray], vessel_mask_file: str, calcification_path: str):
         """
         初始化 ImageSplitData 對象。
 
@@ -83,3 +84,28 @@ class ImageSplitData:
                    isinstance(v, int) for k, v in value.items()):
             raise ValueError("labels 字典的键必须是非负整数元组 (row, col)，值必须是整数")
         self._labels = value
+
+    def get_vessel_split_images(self) -> Dict[tuple, np.ndarray]:
+        """
+        獲取血管分割圖像的字典。
+
+        返回:
+        dict: 鍵為標籤，值為對應的分割圖像
+        """
+        vessel_images = {}
+        for (i, j), label in self.labels.items():
+            if label != -1:
+                index = i * self.split_count[1] + j
+                vessel_images[(i,j)] = self.split_images[index]
+        return vessel_images
+
+    
+    def get_vessel_labels(self) -> Dict[tuple, int]:
+        """
+        獲取非 -1 的標籤字典。
+
+        返回:
+        dict: 鍵為 (行, 列) 元組，值為對應的標籤
+        """
+        vessel_labels = {k: v for k, v in self.labels.items() if v != -1}
+        return vessel_labels

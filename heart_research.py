@@ -8,7 +8,6 @@ import numpy as np
 
 from config import config, arch
 from dataloader import get_dataloader
-from dataloader.HeartCalcificationWithoutSplit import HeartCalcificationWithoutSplit
 from models.SFMCNN import SFMCNN
 from models.RGB_SFMCNN import RGB_SFMCNN
 
