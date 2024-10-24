@@ -24,6 +24,7 @@ class HeartCalcificationDataset(Dataset):
         threshold: float = 1.0,
         contrast_factor : float = 1.0,
         enhance_method: str = 'none',
+        use_vessel_mask: bool = True,
     ) -> None:
         self.root = root
         self.transform = transform
@@ -37,7 +38,8 @@ class HeartCalcificationDataset(Dataset):
         self.data_processor = HeartCalcificationDataProcessor(
             grid_size=self.grid_size, data_dir=self.data_dir,
             need_resize_height = need_resize_height, resize_height= resize_height,
-            threshold=threshold, contrast_factor = contrast_factor, enhance_method=enhance_method)
+            threshold=threshold, contrast_factor = contrast_factor, enhance_method=enhance_method,
+            use_vessel_mask=use_vessel_mask)
 
         self.model_ready_data = self.data_processor.get_model_ready_data(True)
 
@@ -77,11 +79,8 @@ class HeartCalcificationGray(HeartCalcificationDataset):
         threshold = config["heart_calcification"]["threshold"]
         contrast_factor = config["heart_calcification"]["contrast_factor"]
         enhance_method = config["heart_calcification"]["enhance_method"]
+        use_vessel_mask = config["heart_calcification"]["use_vessel_mask"]
         super().__init__(*args, **kwargs, color_mode='L',
                          grid_size = grid_size, resize_height = resize_height,
                          need_resize_height = need_resize_height, threshold=threshold,
-                         contrast_factor = contrast_factor, enhance_method=enhance_method)
-
-class HeartCalcificationGray60(HeartCalcificationDataset):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs, color_mode='L', grid_size = 60)
+                         contrast_factor = contrast_factor, enhance_method=enhance_method, use_vessel_mask=use_vessel_mask)

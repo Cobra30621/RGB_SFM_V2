@@ -15,7 +15,7 @@ from .image_tool import resize_image
 
 
 def visualize_predict(result:List[Tuple[ImageSplitData, Dict[tuple, int], Dict[tuple, int]]],
-                      save_dir: str, grid_size: int, resize_height: int):
+                      data_dir: str, save_dir: str, grid_size: int, resize_height: int, mask_with_vessel: bool = False):
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
 
@@ -24,6 +24,11 @@ def visualize_predict(result:List[Tuple[ImageSplitData, Dict[tuple, int], Dict[t
 
         # 读取图像
         img = load_image(image_data.image_path, resize_height)
+
+        # 使用血管遮罩
+        if mask_with_vessel:
+            vessel_mask = os.path.join(data_dir, image_data.vessel_mask_file)
+            img = mask_image_with_polygon(img, vessel_mask)
 
         _visualize_and_save_dataset_image(img, predicted_labels, image_data.split_count, grid_size, save_path)
 
@@ -104,26 +109,13 @@ def _visualize_and_save_dataset_image(img: np.ndarray, labels: Dict[tuple, int],
         if label == 1:
             color = 'r'  # 紅色
         elif label == 0:
-            color = 'b' # 藍色
+            color = 'y' # 藍色
         else:
             continue  # 如果標籤為0,不繪製任何內容
 
         plt.text((j + 0.5) * grid_size ,
                  (i + 0.5)* grid_size , 'O',
-                 color=color, fontsize=12, ha='center', va='center')
-
-    # for i in range(num_blocks_h):
-    #     for j in range(num_blocks_w):
-    #         if labels[i, j] == 1:
-    #             color = 'r'  # 紅色
-    #         elif labels[i, j] == 0:
-    #             color = 'b'  # 藍色
-    #         else:
-    #             continue  # 如果標籤為0,不繪製任何內容
-    #
-    #         plt.text((j + 0.5) * grid_size ,
-    #                  (i + 0.5)* grid_size , 'O',
-    #                  color=color, fontsize=12, ha='center', va='center')
+                 color=color, fontsize=16, ha='center', va='center')
 
     plt.axis('off')
     plt.tight_layout()

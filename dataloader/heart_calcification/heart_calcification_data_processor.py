@@ -20,7 +20,8 @@ class HeartCalcificationDataProcessor:
 
     def __init__(self, grid_size: int, data_dir: str,
                  need_resize_height: bool, resize_height: int, threshold:float,
-                 contrast_factor: float = 1.0, enhance_method: str = 'none'):
+                 contrast_factor: float = 1.0, enhance_method: str = 'none',
+                 use_vessel_mask: bool = False):
         """
         初始化心脏钙化数据处理器。
 
@@ -30,6 +31,7 @@ class HeartCalcificationDataProcessor:
         resize_height (int): 图像缩放后的高度
         contrast_factor (float): 对比度因子，默认为 1.0（无变化）
         enhance_method (str): 增强方法的名称
+        use_vessel_mask (bool): 是否使用血管遮罩，默认为 False
         """
         self.grid_size = grid_size
         self.data_dir = data_dir
@@ -42,6 +44,7 @@ class HeartCalcificationDataProcessor:
         self.threshold = threshold
         self.contrast_factor = contrast_factor  # 存储对比度因子
         self.enhance_method = enhance_method  # 存储增强方法名称
+        self.use_vessel_mask = use_vessel_mask  # 存储 use_vessel_mask 参数
 
         self._generate_dataset(threshold=self.threshold)
 
@@ -82,8 +85,9 @@ class HeartCalcificationDataProcessor:
             label = self.filter_with_mask(label, calcification_mask_path, height, width,1, 0.5)  # 根據鈣化點給 1
 
             # 將圖片用血管做遮罩
-            # vessel_mask_path = os.path.join(self.data_dir, vessel_mask_file)
-            # img = mask_image_with_polygon(img, vessel_mask_path)
+            if self.use_vessel_mask:
+                vessel_mask_path = os.path.join(self.data_dir, vessel_mask_file)
+                img = mask_image_with_polygon(img, vessel_mask_path)
 
             # 切割圖片
             split_images = self.split_image(img)

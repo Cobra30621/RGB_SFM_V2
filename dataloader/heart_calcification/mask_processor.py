@@ -117,5 +117,12 @@ def mask_image_with_polygon(img: np.ndarray, mask_file: str) -> np.ndarray:
 
     # 将遮罩应用于图像
     mask = mask[:, :, np.newaxis]  # 增加一个维度，使 mask 变为 (567, 376, 1)
+    
+    # 检查 img 的维度
+    if img.ndim == 2:  # 如果是灰度图像
+        mask = mask.squeeze()  # 将 mask 转换为二维数组
+    else:  # 如果是彩色图像
+        mask = np.repeat(mask, img.shape[2], axis=2)  # 将 mask 扩展到与 img 相同的通道数
+
     masked_img = img * mask  # 确保 img 和 mask 的形状匹配
     return masked_img

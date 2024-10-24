@@ -63,7 +63,8 @@ def plot_map(rm, grid_size=None, rowspan=None, colspan = None, path=None, **kwar
     for row in range(rows):
         for col in range(cols):
             ax = plt.subplot2grid(grid_size, (row*rowspan, col*colspan), rowspan=rowspan, colspan=colspan)
-            im = ax.imshow(rm[row][col], **kwargs)
+            im = ax.imshow(rm[row][col],  **kwargs)
+            # im = ax.imshow(rm[row][col], cmap='gray', **kwargs) # 如果要畫灰色圖片
             ax.axis('off')
     
     if path:
