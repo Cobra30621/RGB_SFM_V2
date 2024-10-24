@@ -67,16 +67,16 @@ def visualize_dataset(data_dict: Dict[str, ImageSplitData], save_dir: str, data_
             img = draw_polygons_on_image(img, calcification_path)
             # 劃出縮放後的框框
             img = draw_polygons_on_image(img, calcification_path, (255, 0, 0), 0.5)
-        # 使用血管遮罩
-        if mask_with_vessel:
-            img = mask_image_with_polygon(img, vessel_mask)
-
         # 根据增强方法对图像进行增强
         enhance_func = ENHANCE_FUNCTIONS.get(enhance_method)
         if enhance_func:
             img = enhance_func(img)
         else:
             print(f"未知的增强方法: {enhance_method}")
+
+        # 使用血管遮罩
+        if mask_with_vessel:
+            img = mask_image_with_polygon(img, vessel_mask)
 
         _visualize_and_save_dataset_image(img, image_data.labels, image_data.split_count, grid_size, save_path)
 

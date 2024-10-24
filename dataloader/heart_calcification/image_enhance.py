@@ -77,7 +77,7 @@ def enhance_with_histogram_equalization(image: np.ndarray) -> np.ndarray:
     return equalized_image
 
 
-def enhance_with_scale_and_offset(image: np.ndarray, alpha: float = 1.4, beta: float = -100) -> np.ndarray:
+def enhance_with_scale_and_offset(image: np.ndarray, alpha: float = 2, beta: float = -255) -> np.ndarray:
     """
     使用缩放和偏移提高图像对比度。
 

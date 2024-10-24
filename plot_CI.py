@@ -144,6 +144,11 @@ if arch['args']['in_channels'] == 1:
 	plot_map(CIs[1].reshape(int(CIs[1].shape[0]**0.5), int(CIs[1].shape[0]**0.5), *CIs[1].shape[2:]).detach().numpy(), vmax=1, vmin=0, path=CIs_save_path+'/CIs_1')
 	plot_map(CIs[2].reshape(int(CIs[2].shape[0]**0.5), int(CIs[2].shape[0]**0.5), *CIs[2].shape[2:]).detach().numpy(), vmax=1, vmin=0, path=CIs_save_path+'/CIs_2')
 	plot_map(CIs[3].reshape(int(CIs[3].shape[0]**0.5), int(CIs[3].shape[0]**0.5), *CIs[3].shape[2:]).detach().numpy(), vmax=1, vmin=0, path=CIs_save_path+'/CIs_3')
+	# 畫純灰階的
+	plot_map(CIs[0].reshape(int(CIs[0].shape[0] ** 0.5), int(CIs[0].shape[0] ** 0.5), *CIs[0].shape[2:]).detach().numpy(), vmax=1, vmin=0, path=CIs_save_path + '/CIs_0_gray', cmap='gray')
+	plot_map(CIs[1].reshape(int(CIs[1].shape[0] ** 0.5), int(CIs[1].shape[0] ** 0.5), *CIs[1].shape[2:]).detach().numpy(), vmax=1, vmin=0, path=CIs_save_path + '/CIs_1_gray', cmap='gray')
+	plot_map(CIs[2].reshape(int(CIs[2].shape[0] ** 0.5), int(CIs[2].shape[0] ** 0.5), *CIs[2].shape[2:]).detach().numpy(), vmax=1, vmin=0, path=CIs_save_path + '/CIs_2_gray', cmap='gray')
+	plot_map(CIs[3].reshape(int(CIs[3].shape[0] ** 0.5), int(CIs[3].shape[0] ** 0.5), *CIs[3].shape[2:]).detach().numpy(), vmax=1, vmin=0, path=CIs_save_path + '/CIs_3_gray', cmap='gray')
 else:
 	plot_map(CIs['RGB_convs_0'].reshape(5, 6, *CIs['RGB_convs_0'].shape[2:]).detach().numpy(), path=CIs_save_path+'/CIs_RGB_convs_0')
 

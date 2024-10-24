@@ -84,6 +84,13 @@ class HeartCalcificationDataProcessor:
             label = self.filter_with_mask(label, vessel_mask_file, height, width, 0    , 1)  # 根據血管給 0
             label = self.filter_with_mask(label, calcification_mask_path, height, width,1, 0.5)  # 根據鈣化點給 1
 
+            # 根据增强方法对图像进行增强
+            enhance_func = ENHANCE_FUNCTIONS.get(self.enhance_method)
+            if enhance_func:
+                img = enhance_func(img)
+            else:
+                print(f"未知的增强方法: {self.enhance_method}")
+
             # 將圖片用血管做遮罩
             if self.use_vessel_mask:
                 vessel_mask_path = os.path.join(self.data_dir, vessel_mask_file)
