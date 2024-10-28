@@ -9,6 +9,7 @@ from medmnist import INFO
 
 
 class CustomerMedMNIST(Dataset):
+
     """
     醫學分裂影像 : https://github.com/MedMNIST/MedMNIST/tree/main
     圖像皆為 28 * 28
@@ -20,14 +21,14 @@ class CustomerMedMNIST(Dataset):
             augmentation: bool = False,
             transform: Optional[Callable] = None,
             target_transform: Optional[Callable] = None,
-            data_flag : str = "pathmnist",
+            flag : str = "pathmnist",
     ) -> None:
         if train:
             split = "train"
         else:
             split = "test"
 
-        self.info = INFO[data_flag]
+        self.info = INFO[flag]
         self.n_classes = len(self.info['label'])
         DataClass = getattr(medmnist, self.info['python_class'])
         self.dataset = DataClass(transform = transform, download=True, split=split)
@@ -60,13 +61,17 @@ def get_data_class(data_flag):
 
 
 class CustomerPathMNIST(CustomerMedMNIST):
-    flag = "pathmnist"
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs, flag="pathmnist")
 
 class CustomerDermaMNIST(CustomerMedMNIST):
-    flag = "dermamnist"
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs, flag="dermamnist")
 
 class CustomerRetinaMNIST(CustomerMedMNIST):
-    flag = "retinamnist"
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs, flag="retinamnist")
 
 class CustomerBloodMNIST(CustomerMedMNIST):
-    flag = "bloodmnist"
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs, flag="bloodmnist")
