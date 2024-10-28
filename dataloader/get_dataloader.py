@@ -1,7 +1,10 @@
-import torch
+
+from medmnist import INFO, Evaluator, PathMNIST
 
 from torch.utils.data import DataLoader
 
+from .CustomerMedMNIST import CustomerMedMNIST, CustomerDermaMNIST, CustomerPathMNIST, CustomerRetinaMNIST, \
+    CustomerBloodMNIST
 from .HeartCalcification import *
 from .MNIST import MNISTDataset
 from .MNISTWeight import MNISTWeightDataset
@@ -35,9 +38,14 @@ dataset_classes = {
     'Colorful_MNIST':Colorful_MNIST,
     'HeartCalcification_Color': HeartCalcificationColor,
     'HeartCalcification_Gray': HeartCalcificationGray,
-    "MinstWeight" : MNISTWeightDataset
-
+    "MinstWeight" : MNISTWeightDataset,
+    "PathMNIST" :  CustomerPathMNIST,
+    "DermaMNIST" : CustomerDermaMNIST,
+    "RetinaMNIST" : CustomerRetinaMNIST,
+    "BloodMNIST" :  CustomerBloodMNIST
 }
+
+
 
 def get_dataloader(dataset, root: str = '.', batch_size=32, input_size: tuple = (28, 28)):
     if dataset in dataset_classes:
