@@ -27,8 +27,9 @@ class CustomerMedMNIST(Dataset):
         else:
             split = "test"
 
-        info = INFO[data_flag]
-        DataClass = getattr(medmnist, info['python_class'])
+        self.info = INFO[data_flag]
+        self.n_classes = len(self.info['label'])
+        DataClass = getattr(medmnist, self.info['python_class'])
         self.dataset = DataClass(transform = transform, download=True, split=split)
 
 
@@ -37,12 +38,11 @@ class CustomerMedMNIST(Dataset):
         img, label = self.dataset.__getitem__(index)
         #
         # 将 one-hot 编码转换为类标签
-        y_onehot = np.eye(9)[label]  # 这行需要修改
+        y_onehot = np.eye(self.n_classes)[label]  # 这行需要修改
         y_onehot = torch.tensor(y_onehot, dtype=torch.float)  # 转换为张量
         y_onehot = y_onehot.squeeze(0)  # 去掉多余的维度
         return img, y_onehot  # 返回类标签
 
-        # return self.dataset.__getitem__(index)
 
 
 
