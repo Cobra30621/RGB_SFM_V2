@@ -51,10 +51,6 @@ class Colored_MNIST(Dataset):
         if self.target_transform is not None:
             target = self.target_transform(target)
 
-        print("img:" + str(img.shape))
-        print("label:" + str(target.shape))
-
-
         return img, target
 
     def __len__(self) -> int:

@@ -50,16 +50,6 @@ class CustomerMedMNIST(Dataset):
     def __len__(self) -> int:
         return self.dataset.__len__()
 
-
-def get_data_class(data_flag):
-    info = INFO[data_flag]
-    task = info['task']
-    n_channels = info['n_channels']
-    n_classes = len(info['label'])
-
-    DataClass = getattr(medmnist, info['python_class'])
-
-
 class CustomerPathMNIST(CustomerMedMNIST):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs, flag="pathmnist")

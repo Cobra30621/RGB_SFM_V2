@@ -4,3 +4,4 @@ torchsummary
 mlxtend
 typing
 shapely
+medmnist
