@@ -33,4 +33,4 @@ def lab_distance(color1, color2):
         (2 + (255 - rmean) / 256) * (delta_B ** 2)
     )
 
-    return lab_distance
+    return lab_distance / 765

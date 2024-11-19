@@ -15,42 +15,47 @@ class ColorSimilarityApp:
         self.root = root
         self.root.title("顏色相似度實驗應用程式")
 
+        # 及時計算相似度，當更新顏色時
+        self.calculate_when_update_color = True
+
         # 初始 HSV 值
         self.hue = 0
         self.saturation = 1.0
         self.value = 1.0
 
         # 顏色清單1和清單2
-        self.color_list1 = [(185, 31, 87),
-                            (208, 47, 72),
-                            (221, 68, 59),
-                            (233, 91, 35),
-                            (230, 120, 0),
-                            (244, 157, 0),
-                            (241, 181, 0),
-                            (238, 201, 0),
-                            (210, 193, 0),
-                            (168, 187, 0),
-                            (88, 169, 29),
-                            (0, 161, 90),
-                            (0, 146, 110),
-                            (0, 133, 127),
-                            (0, 116, 136),
-                            (0, 112, 155),
-                            (0, 96, 156),
-                            (0, 91, 165),
-                            (26, 84, 165),
-                            (83, 74, 160),
-                            (112, 63, 150),
-                            (129, 55, 138),
-                            (143, 46, 124),
-                            (173, 46, 108),
-                            (255, 0, 0),
-                            (0, 255, 0),
-                            (0, 0, 255),
-                            (0, 0, 0),
-                            (128, 128, 128),
-                            (255, 255, 255)]
+        # self.color_list1 = [(185, 31, 87),
+        #                     (208, 47, 72),
+        #                     (221, 68, 59),
+        #                     (233, 91, 35),
+        #                     (230, 120, 0),
+        #                     (244, 157, 0),
+        #                     (241, 181, 0),
+        #                     (238, 201, 0),
+        #                     (210, 193, 0),
+        #                     (168, 187, 0),
+        #                     (88, 169, 29),
+        #                     (0, 161, 90),
+        #                     (0, 146, 110),
+        #                     (0, 133, 127),
+        #                     (0, 116, 136),
+        #                     (0, 112, 155),
+        #                     (0, 96, 156),
+        #                     (0, 91, 165),
+        #                     (26, 84, 165),
+        #                     (83, 74, 160),
+        #                     (112, 63, 150),
+        #                     (129, 55, 138),
+        #                     (143, 46, 124),
+        #                     (173, 46, 108),
+        #                     (255, 0, 0),
+        #                     (0, 255, 0),
+        #                     (0, 0, 255),
+        #                     (0, 0, 0),
+        #                     (128, 128, 128),
+        #                     (255, 255, 255)]
+
+        self.color_list1 = [(255, 255, 255)]
 
         self.color_list2 = [(185, 31, 87),
                             (208, 47, 72),
@@ -160,6 +165,10 @@ class ColorSimilarityApp:
         self.update_color_preview()
         self.update_current_button_color()
 
+        # 即時計算相似度
+        if self.calculate_when_update_color:
+            self.calculate_similarity()
+
     def update_saturation_brightness(self, event):
         """根據滑鼠點擊位置更新飽和度和亮度，並顯示圈圈"""
         x, y = event.x, event.y
@@ -171,6 +180,10 @@ class ColorSimilarityApp:
 
         self.update_color_preview()
         self.update_current_button_color()
+
+        # 即時計算相似度
+        if self.calculate_when_update_color:
+            self.calculate_similarity()
 
     def update_sb_panel(self):
         """更新飽和度-亮度面板的顏色，並儲存為 Image 緩存"""
@@ -224,6 +237,10 @@ class ColorSimilarityApp:
         self.update_sb_panel()
         self.update_color_preview()
         self.update_current_button_color()
+
+        # 即時計算相似度
+        if self.calculate_when_update_color:
+            self.calculate_similarity()
 
     def create_color_lists(self):
         """建立顏色清單1和清單2的UI"""
@@ -325,7 +342,7 @@ class ColorSimilarityApp:
         # 渲染清單中的值
         for i in range(len(self.color_list1)):
             for j in range(len(self.color_list2)):
-                ax.text(j, i, f"{result_matrix[i][j]:.0f}", va='center', ha='center', color='white', fontsize=7)
+                ax.text(j, i, f"{result_matrix[i][j]:.2f}", va='center', ha='center', color='white', fontsize=7)
 
         # 將圖像顯示於 Tkinter
         for widget in self.result_canvas.winfo_children():
