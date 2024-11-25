@@ -12,7 +12,7 @@ from utils import *
 from models.SFMCNN import SFMCNN
 from models.RGB_SFMCNN import RGB_SFMCNN
 from collections import defaultdict
-
+import numpy as np
 '''
     將 image 按照 kernel size 進行切割
 '''
@@ -72,7 +72,47 @@ def plot_map(rm, grid_size=None, rowspan=None, colspan = None, path=None, **kwar
     else:
         plt.show()
         plt.close()
-    
+
+
+
+def plot_heatmap(CI_values, save_path, width=15, height=15):
+    """
+    Generate and save a heatmap from the given values.
+
+    Parameters:
+    CI_values (list of list of float): The matrix values for the heatmap.
+    save_path (str): The path to save the heatmap image.
+    width (int): The width of the heatmap.
+    height (int): The height of the heatmap.
+    """
+    # Convert the input list to a NumPy array and reshape to the specified width and height
+    reshaped_CI_values = np.array(CI_values).reshape(height, width)
+
+    # Create figure and axis
+    fig, ax = plt.subplots(figsize=(9, 9))  # Enlarge by 1.5 times
+
+    # Display the heatmap
+    cax = ax.matshow(reshaped_CI_values, cmap='viridis')
+
+    # Add color bar
+    fig.colorbar(cax)
+
+    # Set up ticks and labels
+    ax.set_xticks(np.arange(width))
+    ax.set_yticks(np.arange(height))
+    ax.set_xticklabels([''] * width)
+    ax.set_yticklabels([''] * height)
+
+    # Render the values in the matrix
+    for i in range(height):
+        for j in range(width):
+            ax.text(j, i, f"{reshaped_CI_values[i][j]:.2f}", va='center', ha='center', color='white', fontsize=7)
+
+    # Save the figure
+    plt.savefig(save_path, bbox_inches='tight')
+    plt.close()
+
+
 def split(input, kernel_size = (5, 5), stride = (5,5)):
     batch, channel, h, w = input.shape
     output_height = math.floor((h  - (kernel_size[0] - 1) - 1) / stride[0] + 1)
@@ -106,6 +146,9 @@ def get_ci(input, layer, kernel_size = (5,5), stride= (5,5), sfm_filter = (1,1))
         CI_values[i] = values
         CI[i] = segments[indices.tolist()]
     print(f"CI shape: {CI.shape}")
+    print(f"CI_values shape: {CI_values.shape}")
+    print(f"CI_values : {CI_values}")
+    print(f"CI_idx shape: {CI_idx}")
     return CI, CI_idx, CI_values
 
 '''

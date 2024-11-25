@@ -9,6 +9,7 @@ from config import *
 from utils import *
 from models.SFMCNN import SFMCNN
 from models.RGB_SFMCNN import RGB_SFMCNN
+from models.RGB_SFMCNN_V2 import RGB_SFMCNN_V2
 from dataloader import get_dataloader
 
 '''

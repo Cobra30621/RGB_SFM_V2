@@ -8,6 +8,14 @@ import torch.nn.functional as F
 import torch
 import math
 
+
+'''
+來自 2023 楊景豐的碩士論文:
+一種以卷積神經網路為基礎的具可解釋性的深度學習模型
+'''
+
+
+
 class SFMCNN(nn.Module):
     def __init__(self, 
                  in_channels, 
