@@ -60,6 +60,8 @@ def plot_map(rm, grid_size=None, rowspan=None, colspan = None, path=None, **kwar
     if grid_size is None:
         grid_size = (rows*rowspan, cols*colspan)
     fig = plt.figure(figsize=(grid_size[1], grid_size[0]), facecolor="white")
+    
+    # 繪製圖像
     for row in range(rows):
         for col in range(cols):
             ax = plt.subplot2grid(grid_size, (row*rowspan, col*colspan), rowspan=rowspan, colspan=colspan)
@@ -67,6 +69,10 @@ def plot_map(rm, grid_size=None, rowspan=None, colspan = None, path=None, **kwar
             # im = ax.imshow(rm[row][col], cmap='gray', **kwargs) # 如果要畫灰色圖片
             ax.axis('off')
     
+    # 添加色彩對應數值的長條圖，與整張圖片等高
+    cbar_ax = fig.add_axes([0.92, 0.1, 0.02, 0.8])  # 自定義長條圖的位置和大小
+    cbar = plt.colorbar(im, cax=cbar_ax)  # 使用自定義的長條圖軸
+
     if path:
         plt.savefig(path, dpi=300, bbox_inches='tight')
     else:
@@ -146,9 +152,6 @@ def get_ci(input, layer, kernel_size = (5,5), stride= (5,5), sfm_filter = (1,1))
         CI_values[i] = values
         CI[i] = segments[indices.tolist()]
     print(f"CI shape: {CI.shape}")
-    print(f"CI_values shape: {CI_values.shape}")
-    print(f"CI_values : {CI_values}")
-    print(f"CI_idx shape: {CI_idx}")
     return CI, CI_idx, CI_values
 
 '''

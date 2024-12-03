@@ -257,12 +257,16 @@ else:
 
     plot_map(CIs['Gray_convs_0'].reshape(7, 10, *CIs['Gray_convs_0'].shape[2:]).detach().numpy(),
              path=CIs_save_path + '/CIs_Gray_convs_0', cmap='gray')
+    plot_heatmap(CI_values['Gray_convs_0'], CIs_save_path + '/CI_values_Gray_convs_0', 7, 10)
     plot_map(CIs['Gray_convs_1'].reshape(25, 25, *CIs['Gray_convs_1'].shape[2:]).detach().numpy(),
              path=CIs_save_path + '/CIs_Gray_convs_1', cmap='gray')
+    plot_heatmap(CI_values['Gray_convs_1'], CIs_save_path + '/CI_values_Gray_convs_1', 25, 25)
     plot_map(
         CIs['Gray_convs_2'].reshape(int(CIs['Gray_convs_2'].shape[0] ** 0.5), int(CIs['Gray_convs_2'].shape[0] ** 0.5),
                                     *CIs['Gray_convs_2'].shape[2:]).detach().numpy(),
         path=CIs_save_path + '/CIs_Gray_convs_2', cmap='gray')
+
+    plot_heatmap(CI_values['Gray_convs_2'], CIs_save_path + '/CI_values_Gray_convs_2', 35, 35)
 
 print('CI saved')
 
