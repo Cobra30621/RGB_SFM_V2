@@ -714,6 +714,7 @@ class RBF_Conv2d(nn.Module):
 
     def forward(self, input: Tensor) -> Tensor:
         return self._dot_product(input)
+        # return self._cdist(input)
 
 
     # 使用距離公式
@@ -725,15 +726,11 @@ class RBF_Conv2d(nn.Module):
         # Unfold output = (batch, output_width * output_height, C×∏(kernel_size))
         windows = F.unfold(input, kernel_size=self.kernel_size, stride=self.stride, padding=self.padding).permute(0, 2,
                                                                                                                   1)
-        weights = self.transform_weights()
-        result = torch.cdist(windows, weights).permute(0, 2, 1)
+        result = torch.cdist(windows, self.weight).permute(0, 2, 1)
 
         result = result.reshape(result.shape[0], result.shape[1], output_height, output_width)
         return result
 
-    def transform_weights(self):
-         # return torch.clamp(self.weight, 0, 1)  # 將 weights 的值投影到 0~1 之間
-         return self.weight
 
     # 使用卷積
     def _dot_product(self, input: Tensor) -> Tensor:
@@ -741,40 +738,15 @@ class RBF_Conv2d(nn.Module):
         result = F.conv2d(input, self.weight.view(self.out_channels, self.in_channels, *self.kernel_size),
                            stride=self.stride, padding=self.padding)
 
+        # # 計算平均值
+        # kernel_area = self.kernel_size[0] * self.kernel_size[1]  # 卷積核大小 (例如 3x3 -> 9)
+        # result = result / kernel_area
+
         return result
 
 
     def extra_repr(self) -> str:
         return f"initial = {self.initial}, is_weight_cdist = {self.is_weight_cdist},weight shape = {(self.out_channels, self.in_channels, *self.kernel_size)}"
-
-    def weight_cdist(self, windows, weights):
-        N, L, C, kernel_size, out_channels = windows.shape[0], windows.shape[
-            1], self.in_channels, self.kernel_size, self.out_channels
-
-        # Initialize the weight tensor
-        w = torch.zeros(C, device=windows.device)
-        w[:75] = 0.25
-        w[75:] = 0.75
-
-        # Compute the weighted squared differences
-        windows_expanded = windows.unsqueeze(1)  # Shape (N, 1, L, C * kernel_size * kernel_size)
-        weights_expanded = weights.unsqueeze(0).unsqueeze(
-            2)  # Shape (1, out_channels, 1, C * kernel_size * kernel_size)
-
-        diff = windows_expanded - weights_expanded  # Shape (N, out_channels, L, C * kernel_size * kernel_size)
-        squared_diff = diff ** 2  # Shape (N, out_channels, L, C * kernel_size * kernel_size)
-
-        # Sum over each kernel_size * kernel_size block
-        squared_diff_reshaped = squared_diff.view(N, out_channels, L, C, kernel_size[0] * kernel_size[1])
-        block_sums = squared_diff_reshaped.sum(dim=-1)  # Shape (N, out_channels, L, C)
-
-        # Multiply by the weights
-        weighted_block_sums = block_sums * w  # Broadcasting w to match block_sums shape
-
-        # Sum over the feature dimension and take the square root
-        distances = torch.sqrt(weighted_block_sums.sum(dim=-1))  # Shape (N, out_channels, L)
-
-        return distances
 
 
 '''
@@ -855,8 +827,9 @@ class cReLU_percent(nn.Module):
         top_k, _ = x_flatten.topk(k, dim=2, largest=True)  # 找到每個 [h * w] 的 top-k 值
         threshold = top_k[:, :, -1].unsqueeze(2)  # 每個 [h * w] 的最小保留值，形狀為 [batch, h * w, 1]
 
-        # 應用閥值篩選
+        # 應用閥值篩選，確保同時滿足 >= threshold 和 >= 0
         x_filtered = torch.where(x_flatten >= threshold, x_flatten, torch.tensor(0.0))
+        x_filtered = torch.clamp(x_filtered, min=0)  # 確保所有值都大於等於 0
 
         # 恢復到原始形狀
         result = x_filtered.reshape(batch_size, h, w, count).permute(0, 3, 1, 2)
@@ -924,8 +897,8 @@ class triangle_cReLU(nn.Module):
 class SFM(nn.Module):
     def __init__(self,
                  filter: _size_2_t,
-                 alpha_max: float = 1,
-                 alpha_min: float = 1,
+                 alpha_max: float = 0.9,
+                 alpha_min: float = 0.99,
                  device: str = "cuda") -> None:
         super(SFM, self).__init__()
         self.filter = filter
@@ -1000,7 +973,7 @@ class Sigmoid_percent(nn.Module):
         # 找到最大的 percent 个元素
         top_k, _ = x_flatten.topk(math.ceil(self.percent * x_flatten.shape[1]), dim=1, largest=True)
         threshold = top_k[:, -1]
-        threshold = threshold.view(-1, 1, 1, 1)
+        threshold = threshold.view(-1, 1, 1,1)
 
         # 将小于阈值的元素置为 0
         result = torch.where(x >= threshold, x, 0).view(*x.shape)

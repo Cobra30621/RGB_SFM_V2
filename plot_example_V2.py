@@ -99,16 +99,16 @@ if arch['args']['in_channels'] == 1:
 else:
     layers['RGB_convs_0'] = model.RGB_convs[0] # 空間合併前
     layers['RGB_convs_0_SFM'] = nn.Sequential(*(list(model.RGB_convs[:2])))  # 空間合併後
-    layers['RGB_convs_1'] = nn.Sequential(*(list(model.RGB_convs[:2]) + list([model.RGB_convs[2][:3]]))) # 空間合併前
+    layers['RGB_convs_1'] = nn.Sequential(*(list(model.RGB_convs[:2]) + list([model.RGB_convs[2][:-1]]))) # 空間合併前
     layers['RGB_convs_1_SFM'] = nn.Sequential(*(list(model.RGB_convs[:3]))) # 空間合併後
-    layers['RGB_convs_2'] = nn.Sequential(*(list(model.RGB_convs[:3]) + list([model.RGB_convs[3][:3]])))
+    layers['RGB_convs_2'] = nn.Sequential(*(list(model.RGB_convs)))
 
 
     layers['Gray_convs_0'] = model.Gray_convs[0]  # 空間合併前
     layers['Gray_convs_0_SFM'] = model.Gray_convs[:2]  # 空間合併後
-    layers['Gray_convs_1'] = nn.Sequential(*(list(model.Gray_convs[:2]) + list([model.Gray_convs[2][:3]])))# 空間合併前
+    layers['Gray_convs_1'] = nn.Sequential(*(list(model.Gray_convs[:2]) + list([model.Gray_convs[2][:-1]])))# 空間合併前
     layers['Gray_convs_1_SFM'] = model.Gray_convs[:3]  # 空間合併後
-    layers['Gray_convs_2'] = nn.Sequential(*(list(model.Gray_convs[:3]) + list([model.Gray_convs[3][:3]])))
+    layers['Gray_convs_2'] = nn.Sequential(*(list(model.Gray_convs)))
 
 CIs = {}
 kernel_size = arch['args']['Conv2d_kernel'][0]
