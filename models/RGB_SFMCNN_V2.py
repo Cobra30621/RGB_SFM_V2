@@ -11,8 +11,6 @@ import torchvision.transforms
 import torch.nn.functional as F
 import torch
 import math
-import matplotlib.pyplot as plt
-import numpy as np
 
 '''
 來自 2025 陳俊宇的碩士論文:
@@ -192,8 +190,6 @@ class RGB_SFMCNN_V2(nn.Module):
             return nn.Sequential(
                 RGB_Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride=stride, padding=padding,
                            initial=initial, device=device),
-                # triangle(w=activate_param[0], requires_grad=True, device=device),
-                # cReLU_percent(percent=activate_param[1]),
                 triangle_cReLU(w=activate_param[0], percent=activate_param[1], requires_grad=True, device=device),
             )
         elif rbf == "gauss":
@@ -201,7 +197,18 @@ class RGB_SFMCNN_V2(nn.Module):
                 RGB_Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride=stride, padding=padding,
                            initial=initial, device=device),
                 gauss(std=activate_param[0], device=device),
-                cReLU(bias=activate_param[1]),
+            )
+        elif rbf == 'sigmoid':
+            return nn.Sequential(
+                RGB_Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride=stride, padding=padding,
+                           initial=initial, device=device),
+                Sigmoid(),
+            )
+        elif rbf == 'sigmoid and precent':
+            return nn.Sequential(
+                RGB_Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride=stride, padding=padding,
+                           initial=initial, device=device),
+                Sigmoid_percent(percent=activate_param[1]),
             )
         elif rbf == 'triangle and cReLU':
             return nn.Sequential(
@@ -210,11 +217,31 @@ class RGB_SFMCNN_V2(nn.Module):
                 triangle(w=activate_param[0], requires_grad=True, device=device),
                 cReLU(bias=activate_param[1]),
             )
-        elif rbf == 'guass and cReLU_percent':
+        elif rbf == 'gauss and cReLU_percent':
             return nn.Sequential(
                 RGB_Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride=stride, padding=padding,
                            device=device),
                 gauss(std=activate_param[0], device=device),
+                cReLU_percent(percent=activate_param[1]),
+            )
+        elif rbf == 'cReLU_percent':
+            return nn.Sequential(
+                RGB_Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride=stride, padding=padding,
+                           device=device),
+                cReLU_percent(percent=activate_param[1]),
+            )
+        elif rbf == 'sigmoid and cReLU_percent':
+            return nn.Sequential(
+                RGB_Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride=stride, padding=padding,
+                           initial=initial, device=device),
+                Sigmoid(),
+                cReLU_percent(percent=activate_param[1]),
+            )
+        elif rbf == 'bia_gauss and cReLU_percent':
+            return nn.Sequential(
+                RGB_Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride=stride, padding=padding,
+                           initial=initial, device=device),
+                bia_gauss(std=activate_param[0], device=device),
                 cReLU_percent(percent=activate_param[1]),
             )
 
@@ -245,6 +272,18 @@ class RGB_SFMCNN_V2(nn.Module):
                 gauss(std=activate_param[0], device=device),
                 cReLU(bias=activate_param[1]),
             )
+        elif rbf == 'sigmoid':
+            return nn.Sequential(
+                Gray_Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride=stride, padding=padding,
+                            initial=initial, device=device),
+                Sigmoid(),
+            )
+        elif rbf == 'sigmoid and precent':
+            return nn.Sequential(
+                Gray_Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride=stride, padding=padding,
+                            initial=initial, device=device),
+                Sigmoid_percent(percent=activate_param[1]),
+            )
         elif rbf == 'triangle and cReLU':
             return nn.Sequential(
                 Gray_Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride=stride, padding=padding,
@@ -252,11 +291,31 @@ class RGB_SFMCNN_V2(nn.Module):
                 triangle(w=activate_param[0], requires_grad=True, device=device),
                 cReLU(bias=activate_param[1]),
             )
-        elif rbf == 'guass and cReLU_percent':
+        elif rbf == 'gauss and cReLU_percent':
             return nn.Sequential(
                 Gray_Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride=stride, padding=padding,
                             device=device),
                 gauss(std=activate_param[0], device=device),
+                cReLU_percent(percent=activate_param[1]),
+            )
+        elif rbf == 'cReLU_percent':
+            return nn.Sequential(
+                Gray_Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride=stride, padding=padding,
+                            device=device),
+                cReLU_percent(percent=activate_param[1]),
+            )
+        elif rbf == 'sigmoid and cReLU_percent':
+            return nn.Sequential(
+                Gray_Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride=stride, padding=padding,
+                            initial=initial, device=device),
+                Sigmoid(),
+                cReLU_percent(percent=activate_param[1]),
+            )
+        elif rbf == 'bia_gauss and cReLU_percent':
+            return nn.Sequential(
+                Gray_Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride=stride, padding=padding,
+                            initial=initial, device=device),
+                bia_gauss(std=activate_param[0], device=device),
                 cReLU_percent(percent=activate_param[1]),
             )
 
@@ -287,6 +346,20 @@ class RGB_SFMCNN_V2(nn.Module):
                 cReLU(bias=activate_param[1]),
                 SFM(filter=filter, device=device)
             )
+        elif rbf == 'sigmoid':
+            return nn.Sequential(
+                RBF_Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride=stride, padding=padding,
+                           initial=initial, is_weight_cdist=is_weight_cdist, device=device),
+                Sigmoid(),
+                SFM(filter=filter, device=device)
+            )
+        elif rbf == 'sigmoid and precent':
+            return nn.Sequential(
+                RBF_Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride=stride, padding=padding,
+                           initial=initial, is_weight_cdist=is_weight_cdist, device=device),
+                Sigmoid_percent(percent=activate_param[1]),
+                SFM(filter=filter, device=device)
+            )
         elif rbf == 'triangle and cReLU':
             return nn.Sequential(
                 RBF_Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride=stride, padding=padding,
@@ -295,11 +368,34 @@ class RGB_SFMCNN_V2(nn.Module):
                 cReLU(bias=activate_param[1]),
                 SFM(filter=filter, device=device)
             )
-        elif rbf == 'guass and cReLU_percent':
+        elif rbf == 'gauss and cReLU_percent':
             return nn.Sequential(
                 RBF_Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride=stride, padding=padding,
                            is_weight_cdist=is_weight_cdist, device=device),
                 gauss(std=activate_param[0], device=device),
+                cReLU_percent(percent=activate_param[1]),
+                SFM(filter=filter, device=device)
+            )
+        elif rbf == 'cReLU_percent':
+            return nn.Sequential(
+                RBF_Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride=stride, padding=padding,
+                           is_weight_cdist=is_weight_cdist, device=device),
+                cReLU_percent(percent=activate_param[1]),
+                SFM(filter=filter, device=device)
+            )
+        elif rbf == 'sigmoid and cReLU_percent':
+            return nn.Sequential(
+                RBF_Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride=stride, padding=padding,
+                           initial=initial, is_weight_cdist=is_weight_cdist, device=device),
+                Sigmoid(),
+                cReLU_percent(percent=activate_param[1]),
+                SFM(filter=filter, device=device)
+            )
+        elif rbf == 'bia_gauss and cReLU_percent':
+            return nn.Sequential(
+                RBF_Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride=stride, padding=padding,
+                           initial=initial, is_weight_cdist=is_weight_cdist, device=device),
+                bia_gauss(std=activate_param[0], device=device),
                 cReLU_percent(percent=activate_param[1]),
                 SFM(filter=filter, device=device)
             )
@@ -327,6 +423,18 @@ class RGB_SFMCNN_V2(nn.Module):
                 gauss(std=activate_param[0], device=device),
                 cReLU(bias=activate_param[1]),
             )
+        elif rbf == 'sigmoid':
+            return nn.Sequential(
+                RBF_Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride=stride, padding=padding,
+                           initial=initial, device=device),
+                Sigmoid(),
+            )
+        elif rbf == 'sigmoid and precent':
+            return nn.Sequential(
+                RBF_Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride=stride, padding=padding,
+                           initial=initial, device=device),
+                Sigmoid_percent(percent=activate_param[1]),
+            )
         elif rbf == 'triangle and cReLU':
             return nn.Sequential(
                 RBF_Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride=stride, padding=padding,
@@ -334,11 +442,31 @@ class RGB_SFMCNN_V2(nn.Module):
                 triangle(w=activate_param[0], requires_grad=True, device=device),
                 cReLU(bias=activate_param[1]),
             )
-        elif rbf == 'guass and cReLU_percent':
+        elif rbf == 'gauss and cReLU_percent':
             return nn.Sequential(
                 RBF_Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride=stride, padding=padding,
                            device=device),
                 gauss(std=activate_param[0], device=device),
+                cReLU_percent(percent=activate_param[1]),
+            )
+        elif rbf == 'cReLU_percent':
+            return nn.Sequential(
+                RBF_Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride=stride, padding=padding,
+                           device=device),
+                cReLU_percent(percent=activate_param[1]),
+            )
+        elif rbf == 'sigmoid and cReLU_percent':
+            return nn.Sequential(
+                RBF_Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride=stride, padding=padding,
+                           initial=initial, device=device),
+                Sigmoid(),
+                cReLU_percent(percent=activate_param[1]),
+            )
+        elif rbf == 'bia_gauss and cReLU_percent':
+            return nn.Sequential(
+                RBF_Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride=stride, padding=padding,
+                           initial=initial, device=device),
+                bia_gauss(std=activate_param[0], device=device),
                 cReLU_percent(percent=activate_param[1]),
             )
 
@@ -382,8 +510,8 @@ class RGB_Conv2d(nn.Module):
         batch_num = input.shape[0]
 
         # weights shape = (out_channels, 3)
-        weights = self.weights
-        # weights = self.transform_weights()
+        # weights = self.weights
+        weights = self.transform_weights()
         # windows shape = (batch_num, output_width * output_height, 1, 3)
         windows = F.unfold(input, kernel_size=self.kernel_size, stride=self.stride, padding=self.padding).permute(0, 2,
                                                                                                                   1)
@@ -398,6 +526,7 @@ class RGB_Conv2d(nn.Module):
         return result
 
     def transform_weights(self):
+        # return self.weights
         return self.weights
         # return torch.clamp(self.weights , 0, 1)
 
@@ -494,31 +623,10 @@ class Gray_Conv2d(nn.Module):
         # Unfold output = (batch, output_width * output_height, C×∏(kernel_size))
         windows = F.unfold(input, kernel_size=self.kernel_size, stride=self.stride, padding=self.padding).permute(0, 2,
                                                                                                                   1)
-
-        # TODO weight取平方
-        # # 將weight取平方保證其範圍落在 0 ~ 1 之間
-        # weights = torch.pow(self.weight, 2)
-
-        # 1. 取絕對值距離
-        # weight_expand = self.weight.unsqueeze(1).unsqueeze(2)
-        # result = (windows - weight_expand).permute(1,0,2,3)
-        # result = torch.abs(result).sum(dim=-1)
-
-        # 2. 取歐基里德距離
-        # windows = (batch, output_width * output_height, C×∏(kernel_size))
-        # weight = (out_channel, C×∏(kernel_size))
-        # output = (batch, out_channel, output_width * output_height)
-
         if self.is_weight_cdist:
             result = self.weight_cdist(windows=windows, weights=self.weight)
         else:
             result = torch.cdist(windows, self.weight).permute(0, 2, 1)
-
-        # union = windows.unsqueeze(2).repeat(1,1,self.weight.shape[0],1).add(self.weight)
-        # union = torch.sum((windows < 1e-6).float(), dim=-1)
-        # union.clamp_(1e-6)
-        # union = union.unsqueeze(1).repeat(1, self.weight.shape[0], 1)
-        # result = result.div(union)
 
         result = result.reshape(result.shape[0], result.shape[1], output_height, output_width)
         return result
@@ -605,8 +713,11 @@ class RBF_Conv2d(nn.Module):
         self.weight = nn.Parameter(self.weight)
 
     def forward(self, input: Tensor) -> Tensor:
-        # print(input[0, 0, :, :])
-        # print(f"RBF weights = {self.weight[0]}")
+        return self._dot_product(input)
+
+
+    # 使用距離公式
+    def _cdist(self, input: Tensor) -> Tensor:
         output_width = math.floor(
             (input.shape[-1] + self.padding * 2 - (self.kernel_size[0] - 1) - 1) / self.stride[0] + 1)
         output_height = math.floor(
@@ -614,27 +725,24 @@ class RBF_Conv2d(nn.Module):
         # Unfold output = (batch, output_width * output_height, C×∏(kernel_size))
         windows = F.unfold(input, kernel_size=self.kernel_size, stride=self.stride, padding=self.padding).permute(0, 2,
                                                                                                                   1)
-
-        # TODO weight取平方
-        # # 將weight取平方保證其範圍落在 0 ~ 1 之間
-        # weights = torch.pow(self.weight, 2)
-
-        # 1. 取絕對值距離
-        # weight_expand = self.weight.unsqueeze(1).unsqueeze(2)
-        # result = (windows - weight_expand).permute(1,0,2,3)
-        # result = torch.abs(result).sum(dim=-1)
-
-        # 2. 取歐基里德距離
-        # windows = (batch, output_width * output_height, C×∏(kernel_size))
-        # weight = (out_channel, C×∏(kernel_size))
-        # output = (batch, out_channel, output_width * output_height)
-        if self.is_weight_cdist:
-            result = self.weight_cdist(windows=windows, weights=self.weight)
-        else:
-            result = torch.cdist(windows, self.weight).permute(0, 2, 1)
+        weights = self.transform_weights()
+        result = torch.cdist(windows, weights).permute(0, 2, 1)
 
         result = result.reshape(result.shape[0], result.shape[1], output_height, output_width)
         return result
+
+    def transform_weights(self):
+         # return torch.clamp(self.weight, 0, 1)  # 將 weights 的值投影到 0~1 之間
+         return self.weight
+
+    # 使用卷積
+    def _dot_product(self, input: Tensor) -> Tensor:
+        # 使用卷積層進行計算
+        result = F.conv2d(input, self.weight.view(self.out_channels, self.in_channels, *self.kernel_size),
+                           stride=self.stride, padding=self.padding)
+
+        return result
+
 
     def extra_repr(self) -> str:
         return f"initial = {self.initial}, is_weight_cdist = {self.is_weight_cdist},weight shape = {(self.out_channels, self.in_channels, *self.kernel_size)}"
@@ -732,21 +840,29 @@ class cReLU(nn.Module):
 
 
 class cReLU_percent(nn.Module):
-    def __init__(self,
-                 percent: float = 0.5,
-                 requires_grad: bool = True,
-                 device: str = "cuda") -> None:
+    def __init__(self, percent: float = 0.5, device: str = "cuda") -> None:
         super().__init__()
         self.percent = torch.tensor([percent]).to(device)
+        self.device = device
 
     def forward(self, x):
-        x_flatten = x.reshape(x.shape[0], -1)
-        top_k, _ = x_flatten.topk(math.ceil(self.percent * x_flatten.shape[1]), dim=1, largest=True)
-        threshold = top_k[:, -1]
-        threshold = threshold.view(-1, 1, 1, 1)
+        # 攤平成 [batch, h * w, count]
+        batch_size, count, h, w = x.shape
+        x_flatten = x.permute(0, 2, 3, 1).reshape(batch_size, h * w, count)
 
-        result = torch.where(x >= threshold, x, 0).view(*x.shape)
+        # 計算每個位置要保留的前 k 個元素
+        k = math.ceil(self.percent * count)  # 保留前 0.4 * count 的元素
+        top_k, _ = x_flatten.topk(k, dim=2, largest=True)  # 找到每個 [h * w] 的 top-k 值
+        threshold = top_k[:, :, -1].unsqueeze(2)  # 每個 [h * w] 的最小保留值，形狀為 [batch, h * w, 1]
+
+        # 應用閥值篩選
+        x_filtered = torch.where(x_flatten >= threshold, x_flatten, torch.tensor(0.0))
+
+        # 恢復到原始形狀
+        result = x_filtered.reshape(batch_size, h, w, count).permute(0, 3, 1, 2)
+
         return result
+
 
     def extra_repr(self) -> str:
         return f"percent={self.percent.item()}"
@@ -849,3 +965,61 @@ class SFM(nn.Module):
 
     def extra_repr(self) -> str:
         return f"filter={self.filter}, alpha={self.alpha.detach().numpy()}"
+
+
+class Sigmoid(nn.Module):
+    def __init__(self,
+                 requires_grad: bool = True,
+                 device: str = "cuda") -> None:
+        super().__init__()
+        self.requires_grad = requires_grad
+        self.device = device
+
+    def forward(self, x):
+        return torch.sigmoid(x)
+
+    def extra_repr(self) -> str:
+        return "Sigmoid activation"
+
+
+class Sigmoid_percent(nn.Module):
+    def __init__(self,
+                 percent: float = 0.5,
+                 requires_grad: bool = True,
+                 device: str = "cuda") -> None:
+        super().__init__()
+        self.percent = torch.tensor([percent]).to(device)
+
+    def forward(self, x):
+        # 先进行 Sigmoid 激活
+        x = torch.sigmoid(x)
+        
+        # 将 x 展平为二维张量
+        x_flatten = x.reshape(x.shape[0], -1)
+        
+        # 找到最大的 percent 个元素
+        top_k, _ = x_flatten.topk(math.ceil(self.percent * x_flatten.shape[1]), dim=1, largest=True)
+        threshold = top_k[:, -1]
+        threshold = threshold.view(-1, 1, 1, 1)
+
+        # 将小于阈值的元素置为 0
+        result = torch.where(x >= threshold, x, 0).view(*x.shape)
+        return result
+
+    def extra_repr(self) -> str:
+        return f"percent={self.percent.item()}"
+
+
+class bia_gauss(nn.Module):
+    def __init__(self, std: float = 1.0, requires_grad: bool = True, device: str = "cuda"):
+        super().__init__()
+        self.std = torch.tensor(std).to(device)
+        if requires_grad:
+            self.std = nn.Parameter(self.std)
+ 
+    def forward(self, x):
+        # 計算 1 - 以 0 為中心的高斯函數
+        return 1 - torch.exp(-((x) ** 2) / (2 * self.std ** 2))
+ 
+    def extra_repr(self) -> str:
+        return f"std={self.std.item()}"
