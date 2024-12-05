@@ -97,17 +97,27 @@ if arch['args']['in_channels'] == 1:
     layers[2] = nn.Sequential(*(list(model.convs[:2]) + list([model.convs[2][:2]])))
     layers[3] = nn.Sequential(*(list(model.convs[:3]) + list([model.convs[3][:2]])))
 else:
+    layers['RGB_convs_0_Conv'] = model.RGB_convs[0][0]  # 只跑卷積
     layers['RGB_convs_0'] = model.RGB_convs[0] # 空間合併前
     layers['RGB_convs_0_SFM'] = nn.Sequential(*(list(model.RGB_convs[:2])))  # 空間合併後
+
+    layers['RGB_convs_1_Conv'] = nn.Sequential(*(list(model.RGB_convs[:2]) + list([model.RGB_convs[2][0]]))) # 只跑卷積
     layers['RGB_convs_1'] = nn.Sequential(*(list(model.RGB_convs[:2]) + list([model.RGB_convs[2][:-1]]))) # 空間合併前
     layers['RGB_convs_1_SFM'] = nn.Sequential(*(list(model.RGB_convs[:3]))) # 空間合併後
+
+    layers['RGB_convs_2_Conv'] = nn.Sequential(*(list(model.RGB_convs[:3]) + list([model.RGB_convs[3][0]])))  # 只跑卷積
     layers['RGB_convs_2'] = nn.Sequential(*(list(model.RGB_convs)))
 
 
+    layers['Gray_convs_0_Conv'] = model.Gray_convs[0][0]  # 只跑卷積
     layers['Gray_convs_0'] = model.Gray_convs[0]  # 空間合併前
     layers['Gray_convs_0_SFM'] = model.Gray_convs[:2]  # 空間合併後
+
+    layers['Gray_convs_1_Conv'] = nn.Sequential(*(list(model.Gray_convs[:2]) + list([model.Gray_convs[2][0]]))) # 只跑卷積
     layers['Gray_convs_1'] = nn.Sequential(*(list(model.Gray_convs[:2]) + list([model.Gray_convs[2][:-1]])))# 空間合併前
     layers['Gray_convs_1_SFM'] = model.Gray_convs[:3]  # 空間合併後
+
+    layers['Gray_convs_2_Conv'] = nn.Sequential(*(list(model.Gray_convs[:3]) + list([model.Gray_convs[3][0]])))  # 只跑卷積
     layers['Gray_convs_2'] = nn.Sequential(*(list(model.Gray_convs)))
 
 CIs = {}
@@ -167,6 +177,20 @@ elif config['dataset'] == 'AnotherColored_MNIST' or config['dataset'] == 'Anothe
     idx_to_label = {value: key for key, value in label_to_idx.items()}
 
 example_num = 450
+
+# 繪製反應 RM 圖
+def plot_RM_map(layer_num, plot_shape, img, save_path, is_gray = False):
+
+    if is_gray:
+        RM = layers[layer_num](model.gray_transform(img.unsqueeze(0)))[0]
+    else:
+        RM = layers[layer_num](img.unsqueeze(0))[0]
+
+    print(f"Layer{layer_num}_RM: {RM.shape}")
+    RM_H, RM_W = RM.shape[1], RM.shape[2]
+    plot_map(RM.permute(1, 2, 0).reshape(RM_H, RM_W, *plot_shape, 1).detach().numpy(),
+             path=save_path + f'{layer_num}_RM')
+
 
 for test_id in range(example_num):
     print(test_id)
@@ -246,9 +270,11 @@ for test_id in range(example_num):
         plot_map(RM_CI.detach().numpy(), vmax=1, vmin=0, path=RM_CI_save_path + f'Layer{layer_num}_RM_CI', cmap='gray')
         RM_CIs[layer_num] = RM_CI
 
+
     else:
-        # 平行架構
-        # RGB_convs_0
+        ################################### RGB ###################################
+        ### RGB_convs_0 ###
+        # 跑完響應模組，SFM 合併前
         layer_num = 'RGB_convs_0'
         plot_shape = (5, 6)
         RM = layers[layer_num](test_img.unsqueeze(0))[0]
@@ -269,16 +295,14 @@ for test_id in range(example_num):
         plot_map(RM_FM.detach().numpy(), path=RM_CI_save_path + f'{layer_num}_RM_FM')
         plot_map(RM_CI, path=RM_CI_save_path + f'{layer_num}_RM_CI')
 
-        # RGB_convs_0_SFM (SFM 合併後
-        layer_num = 'RGB_convs_0_SFM'
-        RM = layers[layer_num](test_img.unsqueeze(0))[0]
-        plot_shape = (5, 6)
-        print(f"Layer{layer_num}_RM: {RM.shape}")
-        RM_H, RM_W = RM.shape[1], RM.shape[2]
-        plot_map(RM.permute(1, 2, 0).reshape(RM_H, RM_W, *plot_shape, 1).detach().numpy(),
-                 path=RM_save_path + f'{layer_num}_RM')
+        # 只跑 Conv(卷積)
+        plot_RM_map('RGB_convs_0_Conv', plot_shape, test_img, RM_save_path)
+        # SFM 合併後
+        plot_RM_map('RGB_convs_0_SFM', plot_shape, test_img, RM_save_path)
 
-        # RGB_convs_1 (SFM 合併前
+
+        ### RGB_convs_1 ###
+        # 跑完響應模組，SFM 合併前
         layer_num = 'RGB_convs_1'
         RM = layers[layer_num](test_img.unsqueeze(0))[0]
         plot_shape = (int(RM.shape[0] ** 0.5), int(RM.shape[0] ** 0.5))
@@ -305,17 +329,14 @@ for test_id in range(example_num):
                  path=RM_save_path + f'{layer_num}_RM')
         plot_map(RM_CI, path=RM_CI_save_path + f'{layer_num}_RM_CI')
 
-        # RGB_convs_1_SFM (SFM 合併後
-        layer_num = 'RGB_convs_1_SFM'
-        RM = layers[layer_num](test_img.unsqueeze(0))[0]
-        plot_shape = (int(RM.shape[0] ** 0.5), int(RM.shape[0] ** 0.5))
-        print(f"Layer{layer_num}_RM: {RM.shape}")
-        RM_H, RM_W = RM.shape[1], RM.shape[2]
-        plot_map(RM.permute(1, 2, 0).reshape(RM_H, RM_W, *plot_shape, 1).detach().numpy(),
-                 path=RM_save_path + f'{layer_num}_RM')
 
+        # 只跑 Conv(卷積)
+        plot_RM_map('RGB_convs_1_Conv', plot_shape, test_img, RM_save_path)
+        # SFM 合併後
+        plot_RM_map('RGB_convs_1_SFM', plot_shape, test_img, RM_save_path)
 
-        # RGB_convs_2
+        ### RGB_convs_2
+        # 跑完響應模組，SFM 合併前
         layer_num = 'RGB_convs_2'
         RM = layers[layer_num](test_img.unsqueeze(0))[0]
         plot_shape = (int(RM.shape[0] ** 0.5), int(RM.shape[0] ** 0.5))
@@ -342,7 +363,14 @@ for test_id in range(example_num):
                  path=RM_save_path + f'{layer_num}_RM')
         plot_map(RM_CI, path=RM_CI_save_path + f'{layer_num}_RM_CI')
 
-        # Gray_convs_0
+        # 只跑 Conv(卷積)
+        plot_RM_map('RGB_convs_2_Conv', plot_shape, test_img, RM_save_path)
+
+
+
+        ################################### Gray ###################################
+        ### Gray_convs_0 ###
+        # 跑完響應模組，SFM 合併前
         layer_num = 'Gray_convs_0'
         plot_shape = (7, 10)
         RM = layers[layer_num](model.gray_transform(test_img.unsqueeze(0)))[0]
@@ -352,23 +380,19 @@ for test_id in range(example_num):
         CI_H, CI_W = CIs[layer_num].shape[2], CIs[layer_num].shape[3]
         RM_CI = CIs[layer_num][torch.topk(RM, k=1, dim=0, largest=True).indices.flatten()].reshape(RM_H, RM_W, CI_H,
                                                                                                    CI_W, 1)
-        print(test_id, torch.topk(RM, k=1, dim=0, largest=True))
         RM_CIs[layer_num] = RM_CI
         plot_map(RM.permute(1, 2, 0).reshape(RM_H, RM_W, *plot_shape, 1).detach().numpy(),
                  path=RM_save_path + f'{layer_num}_RM')
         plot_map(RM_CI, path=RM_CI_save_path + f'{layer_num}_RM_CI', cmap='gray')
 
-        # Gray_convs_0_SFM (SFM 合併後
-        layer_num = 'Gray_convs_0_SFM'
-        RM = layers[layer_num](model.gray_transform(test_img.unsqueeze(0)))[0]
-        plot_shape = (7, 10)
-        print(f"Layer{layer_num}_RM: {RM.shape}")
-        RM_H, RM_W = RM.shape[1], RM.shape[2]
-        plot_map(RM.permute(1, 2, 0).reshape(RM_H, RM_W, *plot_shape, 1).detach().numpy(),
-                 path=RM_save_path + f'{layer_num}_RM')
+        # 只跑 Conv(卷積)
+        plot_RM_map('Gray_convs_0_Conv', plot_shape, test_img, RM_save_path, is_gray = True)
+        # SFM 合併後
+        plot_RM_map('Gray_convs_0_SFM', plot_shape, test_img, RM_save_path, is_gray = True)
 
 
-        # Gray_convs_1
+        ### Gray_convs_1 ###
+        # 跑完響應模組，SFM 合併前
         layer_num = 'Gray_convs_1'
         RM = layers[layer_num](model.gray_transform(test_img.unsqueeze(0)))[0]
         plot_shape = (int(RM.shape[0] ** 0.5), int(RM.shape[0] ** 0.5))
@@ -383,17 +407,14 @@ for test_id in range(example_num):
                  path=RM_save_path + f'{layer_num}_RM')
         plot_map(RM_CI, path=RM_CI_save_path + f'{layer_num}_RM_CI', cmap='gray')
 
-        # Gray_convs_1_SFM (SFM 合併後
-        layer_num = 'Gray_convs_1_SFM'
-        RM = layers[layer_num](model.gray_transform(test_img.unsqueeze(0)))[0]
-        plot_shape = (int(RM.shape[0] ** 0.5), int(RM.shape[0] ** 0.5))
-        print(f"Layer{layer_num}_RM: {RM.shape}")
-        RM_H, RM_W = RM.shape[1], RM.shape[2]
-        plot_map(RM.permute(1, 2, 0).reshape(RM_H, RM_W, *plot_shape, 1).detach().numpy(),
-                 path=RM_save_path + f'{layer_num}_RM')
+        # 只跑 Conv(卷積)
+        plot_RM_map('Gray_convs_1_Conv', plot_shape, test_img, RM_save_path, is_gray=True)
+        # SFM 合併後
+        plot_RM_map('Gray_convs_1_SFM', plot_shape, test_img, RM_save_path, is_gray=True)
 
 
-        # Gray_convs_2
+        ### Gray_convs_2 ###
+        # 跑完響應模組，SFM 合併前
         layer_num = 'Gray_convs_2'
         RM = layers[layer_num](model.gray_transform(test_img.unsqueeze(0)))[0]
         plot_shape = (int(RM.shape[0] ** 0.5), int(RM.shape[0] ** 0.5))
@@ -407,6 +428,9 @@ for test_id in range(example_num):
         plot_map(RM.permute(1, 2, 0).reshape(RM_H, RM_W, *plot_shape, 1).detach().numpy(),
                  path=RM_save_path + f'{layer_num}_RM')
         plot_map(RM_CI, path=RM_CI_save_path + f'{layer_num}_RM_CI', cmap='gray')
+
+        # 只跑 Conv(卷積)
+        plot_RM_map('Gray_convs_2_Conv', plot_shape, test_img, RM_save_path, is_gray=True)
 
     plt.close('all')
 
