@@ -90,35 +90,7 @@ else:
                                                                 int(model.Gray_convs[3][0].weight.shape[1] ** 0.5), 1)
     print(f'FM[Gray_convs_2] shape: {FMs["Gray_convs_2"].shape}')
 
-layers = {}
-if arch['args']['in_channels'] == 1:
-    layers[0] = nn.Sequential(model.convs[0][:2])
-    layers[1] = nn.Sequential(*(list(model.convs[0]) + list([model.convs[1][:2]])))
-    layers[2] = nn.Sequential(*(list(model.convs[:2]) + list([model.convs[2][:2]])))
-    layers[3] = nn.Sequential(*(list(model.convs[:3]) + list([model.convs[3][:2]])))
-else:
-    layers['RGB_convs_0_Conv'] = model.RGB_convs[0][0]  # 只跑卷積
-    layers['RGB_convs_0'] = model.RGB_convs[0] # 空間合併前
-    layers['RGB_convs_0_SFM'] = nn.Sequential(*(list(model.RGB_convs[:2])))  # 空間合併後
-
-    layers['RGB_convs_1_Conv'] = nn.Sequential(*(list(model.RGB_convs[:2]) + list([model.RGB_convs[2][0]]))) # 只跑卷積
-    layers['RGB_convs_1'] = nn.Sequential(*(list(model.RGB_convs[:2]) + list([model.RGB_convs[2][:-1]]))) # 空間合併前
-    layers['RGB_convs_1_SFM'] = nn.Sequential(*(list(model.RGB_convs[:3]))) # 空間合併後
-
-    layers['RGB_convs_2_Conv'] = nn.Sequential(*(list(model.RGB_convs[:3]) + list([model.RGB_convs[3][0]])))  # 只跑卷積
-    layers['RGB_convs_2'] = nn.Sequential(*(list(model.RGB_convs)))
-
-
-    layers['Gray_convs_0_Conv'] = model.Gray_convs[0][0]  # 只跑卷積
-    layers['Gray_convs_0'] = model.Gray_convs[0]  # 空間合併前
-    layers['Gray_convs_0_SFM'] = model.Gray_convs[:2]  # 空間合併後
-
-    layers['Gray_convs_1_Conv'] = nn.Sequential(*(list(model.Gray_convs[:2]) + list([model.Gray_convs[2][0]]))) # 只跑卷積
-    layers['Gray_convs_1'] = nn.Sequential(*(list(model.Gray_convs[:2]) + list([model.Gray_convs[2][:-1]])))# 空間合併前
-    layers['Gray_convs_1_SFM'] = model.Gray_convs[:3]  # 空間合併後
-
-    layers['Gray_convs_2_Conv'] = nn.Sequential(*(list(model.Gray_convs[:3]) + list([model.Gray_convs[3][0]])))  # 只跑卷積
-    layers['Gray_convs_2'] = nn.Sequential(*(list(model.Gray_convs)))
+layers = get_layers(model)
 
 CIs = {}
 kernel_size = arch['args']['Conv2d_kernel'][0]

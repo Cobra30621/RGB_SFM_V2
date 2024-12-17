@@ -89,20 +89,7 @@ else:
     print(f'FM[Gray_convs_2] shape: {FMs["Gray_convs_2"].shape}')
 
 # 讀取每一層架構(為後面的CI做準備)
-layers = {}
-if arch['args']['in_channels'] == 1:
-    layers[0] = nn.Sequential(model.convs[0][:2])
-    layers[1] = nn.Sequential(*(list(model.convs[0]) + list([model.convs[1][:2]])))
-    layers[2] = nn.Sequential(*(list(model.convs[:2]) + list([model.convs[2][:2]])))
-    layers[3] = nn.Sequential(*(list(model.convs[:3]) + list([model.convs[3][:2]])))
-else:
-    layers['RGB_convs_0'] = model.RGB_convs[0]
-    layers['RGB_convs_1'] = nn.Sequential(*(list(model.RGB_convs[:2]) + list([model.RGB_convs[2][:2]])))
-    layers['RGB_convs_2'] = nn.Sequential(*(list(model.RGB_convs[:3]) + list([model.RGB_convs[3][:2]])))
-
-    layers['Gray_convs_0'] = model.Gray_convs[0]
-    layers['Gray_convs_1'] = nn.Sequential(*(list(model.Gray_convs[:2]) + list([model.Gray_convs[2][:2]])))
-    layers['Gray_convs_2'] = nn.Sequential(*(list(model.Gray_convs[:3]) + list([model.Gray_convs[3][:2]])))
+layers = get_layers(model)
 
 # 獲得每一層的CI
 CIs = {}
