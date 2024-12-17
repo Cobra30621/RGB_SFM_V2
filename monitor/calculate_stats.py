@@ -46,8 +46,8 @@ def get_stats(reshape_RM):
     channel_min_values = normalized_reshape_RM.min(dim=1).values  # 每个通道的最小值
 
     # 计算每个通道的峰值和偏值
-    channel_kurtosis_values = scipy.stats.kurtosis(normalized_reshape_RM.detach().numpy(), axis=1)  # 每个通道的峰值
-    channel_skewness_values = scipy.stats.skew(normalized_reshape_RM.detach().numpy(), axis=1)  # 每个通道的偏值
+    channel_kurtosis_values = scipy.stats.kurtosis(normalized_reshape_RM.cpu().detach().numpy(), axis=1)  # 每个通道的峰值
+    channel_skewness_values = scipy.stats.skew(normalized_reshape_RM.cpu().detach().numpy(), axis=1)  # 每个通道的偏值
 
     # 计算相对于最大值的阈值统计
     count_above_0_99 = (normalized_reshape_RM > 0.99).sum(dim=1)

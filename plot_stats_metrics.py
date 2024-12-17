@@ -48,6 +48,10 @@ layers_infos = config['layers_infos']
 print(layers)
 print(layers_infos)
 
+
+layer_stats, overall_stats = get_all_layers_stats(model, layers, layers_infos, images)
+print(layer_stats)
+print(overall_stats)
+
 save_path = f'./detect/{config["dataset"]}_{checkpoint_filename}/RM_monitor'
-layer_stats = get_all_layers_stats(model, layers, layers_infos, images)
 plot_all_layers_graph(model, layers, layers_infos, images, save_path, space_count=10)

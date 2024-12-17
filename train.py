@@ -13,6 +13,8 @@ from torchsummary import summary
 from dataloader import get_dataloader
 from config import *
 import models
+from monitor.monitor_method import get_all_layers_stats
+
 
 def train(train_dataloader: DataLoader, valid_dataloader: DataLoader, model: nn.Module, loss_fn, optimizer, scheduler, epoch, device):
     # best_valid_loss = float('inf')
@@ -20,6 +22,9 @@ def train(train_dataloader: DataLoader, valid_dataloader: DataLoader, model: nn.
     count = 0
     patience = config['patience']
     checkpoint = {}
+
+
+
     with torch.autograd.set_detect_anomaly(True):
         for e in range(epoch):
             print(f"------------------------------EPOCH {e}------------------------------")
@@ -52,6 +57,9 @@ def train(train_dataloader: DataLoader, valid_dataloader: DataLoader, model: nn.
 
             valid_acc, valid_loss, _ = eval(valid_dataloader, model, loss_fn, False, device = device)
             print(f"Test Loss: {valid_loss}, Test Accuracy: {valid_acc}")
+
+
+
             if scheduler:
                 scheduler.step(valid_loss)
 
@@ -61,7 +69,7 @@ def train(train_dataloader: DataLoader, valid_dataloader: DataLoader, model: nn.
                 "train/accuracy": train_acc,
                 "train/learnrate": optimizer.param_groups[0]['lr'],
                 "valid/loss": valid_loss,
-                "valid/accuracy": valid_acc
+                "valid/accuracy": valid_acc,
             }
             wandb.log(metrics, step=e)
 
@@ -78,6 +86,8 @@ def train(train_dataloader: DataLoader, valid_dataloader: DataLoader, model: nn.
                 best_valid_acc = valid_acc
                 cur_train_loss = train_loss
                 cur_train_acc = train_acc
+
+
                 del checkpoint
                 checkpoint = {}
                 print(f'best epoch: {e}')
@@ -88,11 +98,28 @@ def train(train_dataloader: DataLoader, valid_dataloader: DataLoader, model: nn.
                 checkpoint['train_acc'] = train_acc
                 checkpoint['valid_loss'] = valid_loss
                 checkpoint['valid_acc'] = valid_acc
+
                 torch.save(checkpoint, f'{config["save_dir"]}/epochs{e}.pth')
                 # print(model)
                 
     print(model)
-                    
+    # Monitor
+    # Prepare monitor
+    layers = get_layers(model)
+    layers_infos = config['layers_infos']
+    images, labels = torch.tensor([]).to(device), torch.tensor([]).to(device)
+    for batch in train_dataloader:
+        imgs, lbls = batch
+        images = torch.cat((images, imgs.to(device)))
+        labels = torch.cat((labels, lbls.to(device)))
+    layer_stats, overall_stats = get_all_layers_stats(model, layers, layers_infos, images)
+
+    for key, value in overall_stats.items():
+        wandb.summary[key] = value
+
+    wandb.summary['layers'] = layer_stats
+    print(layer_stats)
+
     return cur_train_loss, cur_train_acc, best_valid_loss, best_valid_acc, checkpoint
 
 def eval(dataloader: DataLoader, model: nn.Module, loss_fn, need_table = True, device=None):

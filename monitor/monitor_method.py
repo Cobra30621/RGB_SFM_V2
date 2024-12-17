@@ -41,7 +41,7 @@ def get_all_layers_stats(model, layers, layers_infos, images):
     images: 輸入的圖像數據。
 
     返回:
-    包含所有層統計數據的字典。
+    包含所有層統計數據的字典，以及每層統計數據的平均值。
     """
     # 使用示例
     layer_stats = {}
@@ -51,5 +51,9 @@ def get_all_layers_stats(model, layers, layers_infos, images):
 
         layer_stats[layer_num] = get_layer_stats(model, layers, layer_num, images, is_gray)
 
-    return layer_stats
+    # 計算 overall_stats 為 layer_stats 的平均值
+    overall_stats = {}
+    for key in layer_stats[next(iter(layer_stats))]:  # 取第一個層的鍵
+        overall_stats[key] = sum(layer_stat[key] for layer_stat in layer_stats.values()) / len(layer_stats)
 
+    return layer_stats, overall_stats
