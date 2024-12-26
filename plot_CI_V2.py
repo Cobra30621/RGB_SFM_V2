@@ -48,7 +48,7 @@ pred = model(images[:batch_num])
 y = labels[:batch_num]
 correct = (pred.argmax(1) == y.argmax(1)).type(torch.float).sum().item()
 print("Test Accuracy: " + str(correct / len(pred)))
-input()
+# input()
 
 # 讀取每層卷積的weight並轉換成Reshape成矩陣(get FM)
 FMs = {}

@@ -311,6 +311,7 @@ class RGB_Conv2d(nn.Module):
         # windows shape = (batch_num, output_width * output_height, 1, 3)
         windows = F.unfold(input, kernel_size=self.kernel_size, stride=self.stride, padding=self.padding).permute(0, 2,
                                                                                                                   1)
+
         windows = windows.reshape(*windows.shape[:-1], 3, math.prod(self.kernel_size))
         windows_RGBcolor = windows.mean(dim=-1)
 
@@ -354,14 +355,28 @@ class RGB_Conv2d(nn.Module):
     '''
 
     def batched_LAB_distance(self, windows_RGBcolor, weights_RGBcolor):
-        R_1, G_1, B_1 = windows_RGBcolor[:, :, :, 0] * 255, windows_RGBcolor[:, :, :, 1] * 255, windows_RGBcolor[:, :,
-                                                                                                :, 2] * 255
+        # RGB 顏色數據從 [0, 1] 映射到 [0, 255]
+        R_1, G_1, B_1 = (windows_RGBcolor[:, :, :, 0] * 255, windows_RGBcolor[:, :, :, 1] * 255,
+                         windows_RGBcolor[:, :, :, 2] * 255)
         R_2, G_2, B_2 = weights_RGBcolor[:, 0] * 255, weights_RGBcolor[:, 1] * 255, weights_RGBcolor[:, 2] * 255
-        rmean = torch.mean(torch.concat([R_1.flatten(), R_2.flatten()]))
+
+        # 計算 rmean 作為矩陣形式
+        rmean = (R_1 + R_2) / 2
+
+        # 計算 RGB 分量的差異
         R = R_1 - R_2
         G = G_1 - G_2
         B = B_1 - B_2
-        return torch.sqrt((2 + rmean / 256) * (R ** 2) + 4 * (G ** 2) + (2 + (255 - rmean) / 256) * (B ** 2) + 1e-8)
+
+        # 計算加權的歐幾里得距離
+        distance = torch.sqrt(
+            (2 + rmean / 256) * (R ** 2) +
+            4 * (G ** 2) +
+            (2 + (255 - rmean) / 256) * (B ** 2) +
+            1e-8
+        )
+
+        return distance
 
 
 '''
@@ -425,11 +440,15 @@ class Gray_Conv2d(nn.Module):
         output_height = math.floor(
             (input.shape[-2] + self.padding * 2 - (self.kernel_size[1] - 1) - 1) / self.stride[1] + 1)
         # Unfold output = (batch, output_width * output_height, C×∏(kernel_size))
-        windows = F.unfold(input, kernel_size=self.kernel_size, stride=self.stride, padding=self.padding).permute(0, 2,
-                                                                                                                  1)
-        result = torch.cdist(windows, self.weight).permute(0, 2, 1)
+        windows = F.unfold(input, kernel_size=self.kernel_size, stride=self.stride, padding=self.padding).permute(0, 2, 1)
+        
+        # 將 self.weight 取平方
+        squared_weight = self.weight ** 2
+        
+        result = torch.cdist(windows, squared_weight).permute(0, 2, 1)
 
         result = result.reshape(result.shape[0], result.shape[1], output_height, output_width)
+
         return result
 
     # 使用卷積
@@ -507,9 +526,13 @@ class RBF_Conv2d(nn.Module):
         # Unfold output = (batch, output_width * output_height, C×∏(kernel_size))
         windows = F.unfold(input, kernel_size=self.kernel_size, stride=self.stride, padding=self.padding).permute(0, 2,
                                                                                                                   1)
-        result = torch.cdist(windows, self.weight).permute(0, 2, 1)
+        # 將 self.weight 取平方
+        squared_weight = self.weight ** 2
+
+        result = torch.cdist(windows, squared_weight).permute(0, 2, 1)
 
         result = result.reshape(result.shape[0], result.shape[1], output_height, output_width)
+
         return result
 
 
@@ -553,7 +576,7 @@ def get_rbf(rbf, activate_param, device):
 
 
 class triangle(nn.Module):
-    def __init__(self, w: float, requires_grad: bool = False, device: str = "cuda"):
+    def __init__(self, w: float, requires_grad: bool = True, device: str = "cuda"):
         super().__init__()
         self.w = torch.Tensor([w]).to(device)
         if requires_grad:
