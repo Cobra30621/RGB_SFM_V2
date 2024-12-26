@@ -2,6 +2,8 @@
 from torchsummary import summary
 from torch import nn
 import torch
+
+from loss.loss_function import get_loss_function
 from models.SFMCNN import SFMCNN
 from models.RGB_SFMCNN import RGB_SFMCNN
 from models.RGB_SFMCNN_V2 import RGB_SFMCNN_V2
@@ -10,6 +12,7 @@ from config import *
 
 
 from monitor.monitor_method import get_all_layers_stats
+from monitor.plot_df import json_to_table, save_table_as_image, plot_heatmap
 from monitor.plot_monitor import plot_all_layers_graph
 
 with torch.no_grad():
@@ -41,17 +44,29 @@ with torch.no_grad():
     y = labels[:batch_num]
     correct = (pred.argmax(1) == y.argmax(1)).type(torch.float).sum().item()
     print("Test Accuracy: " + str(correct / len(pred)))
-    input()
+
+    loss_fn = get_loss_function(config['loss_fn'])
+    loss = loss_fn(pred, y)
+    # input()
 
 layers = get_layers(model)
 layers_infos = config['layers_infos']
-print(layers)
-print(layers_infos)
+# print(layers)
+# print(layers_infos)
 
 
 layer_stats, overall_stats = get_all_layers_stats(model, layers, layers_infos, images)
-print(layer_stats)
-print(overall_stats)
 
 save_path = f'./detect/{config["dataset"]}_{checkpoint_filename}/RM_monitor'
+
+# 確保保存目錄存在
+os.makedirs(save_dir, exist_ok=True)
+
+# Convert to table
+df = json_to_table(layer_stats, overall_stats )
+print(df)
+
+save_table_as_image(df, save_path + "/layers_table.png", title="Layer Metrics Table")
+plot_heatmap(df, save_path + "/heat_map.png", title="Layer Metrics Table")
+
 plot_all_layers_graph(model, layers, layers_infos, images, save_path, space_count=10)

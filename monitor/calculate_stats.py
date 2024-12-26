@@ -56,8 +56,8 @@ def get_stats(reshape_RM):
     count_above_0_9 = (normalized_reshape_RM > 0.9).sum(dim=1)
     ratio_above_0_9 = (count_above_0_9 / normalized_reshape_RM.shape[1]).tolist()
 
-    count_below_0_1 = (normalized_reshape_RM < 0.1).sum(dim=1)
-    ratio_below_0_1 = (count_below_0_1 / normalized_reshape_RM.shape[1]).tolist()
+    count_above_0_1 = (normalized_reshape_RM > 0.1).sum(dim=1)
+    ratio_above_0_1 = (count_above_0_1 / normalized_reshape_RM.shape[1]).tolist()
 
     # 计算每个通道的统计指标并存储在字典中
     channel_stats = {
@@ -69,7 +69,7 @@ def get_stats(reshape_RM):
         "skewness": channel_skewness_values.tolist(),  # 偏值
         "ratio_above_0.99": ratio_above_0_99,
         "ratio_above_0.9": ratio_above_0_9,
-        "ratio_below_0.1": ratio_below_0_1,
+        "ratio_above_0.1": ratio_above_0_1
     }
 
     return channel_stats, overall_stats

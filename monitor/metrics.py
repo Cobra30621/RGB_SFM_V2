@@ -5,26 +5,25 @@ import torch
 def create_metrics_dict():
     """
     創建包含多種統計指標計算方法的字典
+    將整個資料集輸入模型，分析每個濾波器通道的輸出分布。以下為濾波器通道需滿足的條件與指標：
 
     返回:
     - 包含指標計算方法的字典
     """
     metrics = {
-        # 计算每个通道的最大值大于 0.9 的比例
-        'each channel max > 0.9': lambda stats: len([max_val for max_val in stats["max"] if max_val > 0.9]) / len(
-            stats["max"]),
-
-        # 计算所有通道中，反应值大于 0.99 的比例小于 0.1 的通道的比例
-        'ratio_above_0.99 < 0.1': lambda stats: len(
-            [ratio for ratio in stats["ratio_above_0.99"] if ratio < 0.1]) / len(stats["ratio_above_0.99"]),
-
-        # 计算所有通道中，反应值大于 0.9 的比例小于 0.8 的通道的比例
-        'ratio_above_0.9 < 0.8': lambda stats: len([ratio for ratio in stats["ratio_above_0.9"] if ratio < 0.8]) / len(
+        # 1. 避免過於極端的反應
+        ## 避免高效反應：濾波器通道輸出大於 0.9 的數據比例需低於 50%。
+        '避免高效反應 (ratio_above_0.9 < 50%)': lambda stats: len([ratio for ratio in stats["ratio_above_0.9"] if ratio < 0.5]) / len(
             stats["ratio_above_0.9"]),
 
-        # 计算所有通道中，反应值小于 0.1 的比例小于 1 的通道的比例
-        'ratio_below_0.1 < 1': lambda stats: len([ratio for ratio in stats["ratio_below_0.1"] if ratio < 1]) / len(
-            stats["ratio_below_0.1"]),
+        ## 避免低效反應 ：濾波器通道輸出大於 0.1 的數據比例需高於 1%。
+        '避免低效反應 (ratio_above_0.1 > 1%)': lambda stats: len([ratio for ratio in stats["ratio_above_0.1"] if ratio > 0.01]) / len(
+            stats["ratio_above_0.1"]),
+
+        # 2.針對特定特徵的有效反應
+        ## 最大值限制 ：每個濾波器通道的輸出最大值需大於 0.8
+        '最大值限制 (each channel max > 0.8)': lambda stats: len([max_val for max_val in stats["max"] if max_val > 0.8]) / len(
+            stats["max"]),
     }
 
     return metrics
