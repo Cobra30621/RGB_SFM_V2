@@ -60,7 +60,7 @@ layer_stats, overall_stats = get_all_layers_stats(model, layers, layers_infos, i
 save_path = f'./detect/{config["dataset"]}_{checkpoint_filename}/RM_monitor'
 
 # 確保保存目錄存在
-os.makedirs(save_dir, exist_ok=True)
+os.makedirs(save_path, exist_ok=True)
 
 # Convert to table
 df = json_to_table(layer_stats, overall_stats )

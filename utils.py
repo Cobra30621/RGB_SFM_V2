@@ -207,7 +207,12 @@ def get_ci(input, layer, kernel_size = (5,5), stride= (5,5), sfm_filter = (1,1))
     CI_values = CI_values[:, :1]  # 只保留第一个元素
     # 根据 k 对 CI 进行平均，最终形状为 [70, 1, 5, 5, 1]
     CI = CI.mean(dim=1, keepdim=True)  # 在 k 维度上取平均
-    print(f"CI shape: {CI.shape}")
+
+    # 根據 CI_values 的條件修改 CI
+    for i in range(CI_values.shape[0]):  # 遍歷 n
+        if CI_values[i][0] == 0:
+            CI[i] = 1  # 將 CI[i] 的所有值改為 1，保持原來的 shape
+
     return CI, CI_idx, CI_values
 
 '''

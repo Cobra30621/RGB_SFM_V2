@@ -449,26 +449,26 @@ def process_image(image, label, test_id):
 
 
 # 新增的迴圈來讀取指定資料夾中的圖片
-input_folder = f'./detect/{config["dataset"]}_{checkpoint_filename}/test_images/'  # 指定資料夾路徑
-image_files = os.listdir(input_folder)
-
-for image_file in image_files:
-    if image_file.endswith(('.png', '.jpg', '.jpeg')):  # 檢查檔案類型
-        # 讀取圖片
-        image_path = os.path.join(input_folder, image_file)
-        test_image = Image.open(image_path).convert('RGB')  # 轉換為 RGB 格式
-        test_image = torchvision.transforms.ToTensor()(test_image)  # 轉換為 Tensor
-
-
-        # 提取標籤，假設標籤在檔名中
-        label = torch.zeros(10)  # 假設有 10 個類別
-        label[9] = 1  # 將對應的標籤設為 1
-
-
-        # 執行 process_image 函數
-        process_image(test_image, label, image_file)
+# input_folder = f'./detect/{config["dataset"]}_{checkpoint_filename}/test_images/'  # 指定資料夾路徑
+# image_files = os.listdir(input_folder)
+#
+# for image_file in image_files:
+#     if image_file.endswith(('.png', '.jpg', '.jpeg')):  # 檢查檔案類型
+#         # 讀取圖片
+#         image_path = os.path.join(input_folder, image_file)
+#         test_image = Image.open(image_path).convert('RGB')  # 轉換為 RGB 格式
+#         test_image = torchvision.transforms.ToTensor()(test_image)  # 轉換為 Tensor
+#
+#
+#         # 提取標籤，假設標籤在檔名中
+#         label = torch.zeros(10)  # 假設有 10 個類別
+#         label[9] = 1  # 將對應的標籤設為 1
+#
+#
+#         # 執行 process_image 函數
+#         process_image(test_image, label, image_file)
 
 # # 針對整個資料集
-# for test_id in range(example_num):
-#     process_image(images[test_id], labels[test_id], test_id)
+for test_id in range(example_num):
+    process_image(images[test_id], labels[test_id], test_id)
 

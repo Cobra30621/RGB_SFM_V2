@@ -323,9 +323,7 @@ class RGB_Conv2d(nn.Module):
         return result
 
     def transform_weights(self):
-        # return self.weights
         return self.weights
-        # return torch.clamp(self.weights , 0, 1)
 
     def extra_repr(self) -> str:
         return f"initial = {self.initial}, weight shape = {self.weights.shape}, cal_dist = LAB"
@@ -430,6 +428,8 @@ class Gray_Conv2d(nn.Module):
             return self._cdist(input)
         elif self.conv_method == "dot_product":
             return self._dot_product(input)
+        elif self.conv_method == "squared_cdist":
+            return self._squared_cdist(input)
         else:
             print(f"Can't find {self.conv_method} conv method")
 
@@ -440,11 +440,26 @@ class Gray_Conv2d(nn.Module):
         output_height = math.floor(
             (input.shape[-2] + self.padding * 2 - (self.kernel_size[1] - 1) - 1) / self.stride[1] + 1)
         # Unfold output = (batch, output_width * output_height, C×∏(kernel_size))
-        windows = F.unfold(input, kernel_size=self.kernel_size, stride=self.stride, padding=self.padding).permute(0, 2, 1)
-        
+        windows = F.unfold(input, kernel_size=self.kernel_size, stride=self.stride, padding=self.padding).permute(0, 2,
+                                                                                                                  1)
+        result = torch.cdist(windows, self.weight).permute(0, 2, 1)
+
+        result = result.reshape(result.shape[0], result.shape[1], output_height, output_width)
+
+        return result
+
+    # Weight 取平方的後，距離公式
+    def _squared_cdist(self, input: Tensor) -> Tensor:
+        output_width = math.floor(
+            (input.shape[-1] + self.padding * 2 - (self.kernel_size[0] - 1) - 1) / self.stride[0] + 1)
+        output_height = math.floor(
+            (input.shape[-2] + self.padding * 2 - (self.kernel_size[1] - 1) - 1) / self.stride[1] + 1)
+        # Unfold output = (batch, output_width * output_height, C×∏(kernel_size))
+        windows = F.unfold(input, kernel_size=self.kernel_size, stride=self.stride, padding=self.padding).permute(0, 2,
+                                                                                                                  1)
         # 將 self.weight 取平方
         squared_weight = self.weight ** 2
-        
+
         result = torch.cdist(windows, squared_weight).permute(0, 2, 1)
 
         result = result.reshape(result.shape[0], result.shape[1], output_height, output_width)
@@ -513,12 +528,29 @@ class RBF_Conv2d(nn.Module):
             return self._cdist(input)
         elif self.conv_method == "dot_product":
             return self._dot_product(input)
+        elif self.conv_method == "squared_cdist":
+            return self._squared_cdist(input)
         else:
             print(f"Can't find {self.conv_method} conv method")
 
 
     # 使用距離公式
     def _cdist(self, input: Tensor) -> Tensor:
+        output_width = math.floor(
+            (input.shape[-1] + self.padding * 2 - (self.kernel_size[0] - 1) - 1) / self.stride[0] + 1)
+        output_height = math.floor(
+            (input.shape[-2] + self.padding * 2 - (self.kernel_size[1] - 1) - 1) / self.stride[1] + 1)
+        # Unfold output = (batch, output_width * output_height, C×∏(kernel_size))
+        windows = F.unfold(input, kernel_size=self.kernel_size, stride=self.stride, padding=self.padding).permute(0, 2,
+                                                                                                                  1)
+        result = torch.cdist(windows, self.weight).permute(0, 2, 1)
+
+        result = result.reshape(result.shape[0], result.shape[1], output_height, output_width)
+
+        return result
+
+    # Weight 取平方的後，距離公式
+    def _squared_cdist(self,  input: Tensor) -> Tensor:
         output_width = math.floor(
             (input.shape[-1] + self.padding * 2 - (self.kernel_size[0] - 1) - 1) / self.stride[0] + 1)
         output_height = math.floor(
