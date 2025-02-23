@@ -1,4 +1,4 @@
-# RGB_SFMCNN
+# A New CNN-Based Interpretable Deep Learning Model
 Implementation of paper - [https://etd.lib.nycu.edu.tw/cgi-bin/gs32/ncugsweb.cgi/ccd=koGVez/record?r1=1&h1=0](https://etd.lib.nycu.edu.tw/cgi-bin/gs32/ncugsweb.cgi?o=dncucdr&s=id=%22GC111522094%22.&searchmode=basic)
 
 ## 簡介
