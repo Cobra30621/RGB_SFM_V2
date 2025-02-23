@@ -24,7 +24,7 @@ Implementation of paper - [https://etd.lib.nycu.edu.tw/cgi-bin/gs32/ncugsweb.cgi
 
 
 # 可解釋性成果
-<img src="https://github.com/user-attachments/assets/73ed409d-ceb6-4bf8-a830-622d35f9d0da" alt="Editor" width="600">
+<img src="https://github.com/user-attachments/assets/49552508-29ea-4584-98ac-0d357f2d0d7f" alt="Editor" width="600">
 
 
 ## Installation
