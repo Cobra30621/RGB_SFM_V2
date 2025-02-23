@@ -11,6 +11,13 @@ Implementation of paper - [https://etd.lib.nycu.edu.tw/cgi-bin/gs32/ncugsweb.cgi
 最後將輸出的色彩特徵與輪廓特徵結合後輸入進全連接層進行分類。
 ![image](https://github.com/user-attachments/assets/73ed409d-ceb6-4bf8-a830-622d35f9d0da)
 
+# 模型架構
+![模型架構](https://github.com/user-attachments/assets/092c883e-4de1-4b1b-af0c-a31526849c7f)
+![各個區塊架構](https://github.com/user-attachments/assets/6e3198eb-b0eb-43ec-b479-a46fc0cecdb8)
+
+
+
+
 ## Installation
 ```
   1. conda create --name SFM python=3.9
