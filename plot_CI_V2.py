@@ -173,6 +173,10 @@ print('FM saved')
 print('CI saving ...')
 CIs_save_path = save_path + 'CIs/'
 os.makedirs(CIs_save_path, exist_ok=True)
+
+RGB_CI_figs = {}
+
+
 if arch['args']['in_channels'] == 1:
     plot_map(
         CIs[0].reshape(int(CIs[0].shape[0] ** 0.5), int(CIs[0].shape[0] ** 0.5), *CIs[0].shape[2:]).detach().numpy(),
@@ -200,14 +204,14 @@ if arch['args']['in_channels'] == 1:
         CIs[3].reshape(int(CIs[3].shape[0] ** 0.5), int(CIs[3].shape[0] ** 0.5), *CIs[3].shape[2:]).detach().numpy(),
         vmax=1, vmin=0, path=CIs_save_path + '/CIs_3_gray', cmap='gray')
 else:
-    plot_map(CIs['RGB_convs_0'].reshape(5, 6, *CIs['RGB_convs_0'].shape[2:]).detach().numpy(),
-             path=CIs_save_path + '/CIs_RGB_convs_0')
+    RGB_CI_figs['RGB_convs_0'] = plot_map(CIs['RGB_convs_0'].reshape(5, 6, *CIs['RGB_convs_0'].shape[2:]).detach().numpy(),
+                                          path=CIs_save_path + '/CIs_RGB_convs_0')
 
-    plot_heatmap(CI_values['RGB_convs_0'], CIs_save_path + '/CI_values_RGB_convs_0', 6, 5)
+    RGB_CI_figs['RGB_convs_0_heatmap'] = plot_heatmap(CI_values['RGB_convs_0'], CIs_save_path + '/CI_values_RGB_convs_0', 6, 5)
 
     # origin CI代表為原始的CI、沒有origin的CI指的是將CI取平均代表色形成色塊
-    plot_map(CIs['RGB_convs_1'].reshape(15, 15, *CIs['RGB_convs_1'].shape[2:]).detach().numpy(),
-             path=CIs_save_path + '/CIs_RGB_convs_1_origin')
+    RGB_CI_figs['RGB_convs_1'] = plot_map(CIs['RGB_convs_1'].reshape(15, 15, *CIs['RGB_convs_1'].shape[2:]).detach().numpy(),
+                                          path=CIs_save_path + '/CIs_RGB_convs_1_origin')
     CI = CIs['RGB_convs_1'].detach()
     # 將RM_CI取每個小圖的代表色塊後合併成為新的RM_CI
     CI = CI.reshape(*CI.shape[:2], CI.shape[2] // 5, 5, CI.shape[3] // 5, 5, 3)
@@ -221,9 +225,9 @@ else:
              path=CIs_save_path + '/CIs_RGB_convs_1')
     plt.imshow(CI.reshape(15, 15, *CIs['RGB_convs_1'].shape[2:]).detach().numpy()[0, 0])
 
-    plot_heatmap(CI_values['RGB_convs_1'], CIs_save_path + '/CI_values_RGB_convs_1')
+    RGB_CI_figs['RGB_convs_1_heatmap'] = plot_heatmap(CI_values['RGB_convs_1'], CIs_save_path + '/CI_values_RGB_convs_1')
 
-    plot_map(
+    RGB_CI_figs['RGB_convs_2'] = plot_map(
         CIs['RGB_convs_2'].reshape(int(CIs['RGB_convs_2'].shape[0] ** 0.5), int(CIs['RGB_convs_2'].shape[0] ** 0.5),
                                    *CIs['RGB_convs_2'].shape[2:]).detach().numpy(),
         path=CIs_save_path + '/CIs_RGB_convs_2_origin')
@@ -240,7 +244,10 @@ else:
                                    *CIs['RGB_convs_2'].shape[2:]).detach().numpy(),
         path=CIs_save_path + '/CIs_RGB_convs_2')
 
-    plot_heatmap(CI_values['RGB_convs_2'], CIs_save_path + '/CI_values_RGB_convs_2', 25, 25)
+    RGB_CI_figs['RGB_convs_2_heatmap'] = plot_heatmap(CI_values['RGB_convs_2'], CIs_save_path + '/CI_values_RGB_convs_2', 25, 25)
+
+    plot_combine_images(RGB_CI_figs, CIs_save_path + '/RGB_combine')
+
 
     plot_map(CIs['Gray_convs_0'].reshape(7, 10, *CIs['Gray_convs_0'].shape[2:]).detach().numpy(),
              path=CIs_save_path + '/CIs_Gray_convs_0', cmap='gray')

@@ -27,7 +27,8 @@ def plot_heatmap(data, output_path, title=None):
         annot=True,  # 顯示數值
         fmt=".2f",   # 數值格式
         cmap="YlGnBu",  # 色彩樣式
-        cbar_kws={'label': '數值範圍'}
+        cbar_kws={'label': '數值範圍'},
+        xticklabels=True  # 將 x 軸標籤設置為橫向顯示
     )
 
     # 添加標題（如果有）

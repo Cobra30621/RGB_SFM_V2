@@ -95,12 +95,11 @@ def plot_map(rm, grid_size=None, rowspan=None, colspan=None, path=None, **kwargs
 import matplotlib.pyplot as plt
 
 
-def combine_images(images, titles=None, save_path=None, spacing=0.05, fixed_width=5, fixed_height=5):
-    import matplotlib.pyplot as plt
+def plot_combine_images(figs, save_path=None, spacing=0.05, fixed_width=5, fixed_height=5):
 
-    num_images = len(images)
+    num_images = len(figs)
     fig_width = num_images * fixed_width + (num_images - 1) * spacing
-    fig_height = fixed_height + (0.5 if titles else 0)
+    fig_height = fixed_height + 0.5
 
     # 創建畫布，啟用 constrained_layout
     fig, axes = plt.subplots(
@@ -114,14 +113,13 @@ def combine_images(images, titles=None, save_path=None, spacing=0.05, fixed_widt
     if num_images == 1:
         axes = [axes]
 
-    for i, (fig_source, ax) in enumerate(zip(images, axes)):
+    for i, ((key, fig_source), ax) in enumerate(zip(figs.items(), axes)):
         # 將 `fig_source` 等比例縮小 90%
         fig_source.set_size_inches(fig_source.get_size_inches() * 0.8)
         ax.imshow(fig_source.canvas.buffer_rgba())
         ax.axis('off')
-
-        if titles and i < len(titles):
-            ax.set_title(titles[i], fontsize=10, pad=10)
+        
+        ax.set_title(key, fontsize=10, pad=10)
 
     if save_path:
         plt.savefig(save_path, dpi=300)
@@ -168,6 +166,8 @@ def plot_heatmap(CI_values, save_path, width=15, height=15):
     # Save the figure
     plt.savefig(save_path, bbox_inches='tight')
     plt.close()
+
+    return fig
 
 
 def split(input, kernel_size = (5, 5), stride = (5,5)):

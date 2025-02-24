@@ -6,7 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
-from research.similarity_method import lab_distance
+from research.similarity_method import lab_distance, lab_cieluv_similarity, lab_delta_e_similarity
 from similarity_method import lab_euclidean_similarity, lab_manhattan_similarity
 
 
@@ -24,69 +24,11 @@ class ColorSimilarityApp:
         self.value = 1.0
 
         # 顏色清單1和清單2
-        # self.color_list1 = [(185, 31, 87),
-        #                     (208, 47, 72),
-        #                     (221, 68, 59),
-        #                     (233, 91, 35),
-        #                     (230, 120, 0),
-        #                     (244, 157, 0),
-        #                     (241, 181, 0),
-        #                     (238, 201, 0),
-        #                     (210, 193, 0),
-        #                     (168, 187, 0),
-        #                     (88, 169, 29),
-        #                     (0, 161, 90),
-        #                     (0, 146, 110),
-        #                     (0, 133, 127),
-        #                     (0, 116, 136),
-        #                     (0, 112, 155),
-        #                     (0, 96, 156),
-        #                     (0, 91, 165),
-        #                     (26, 84, 165),
-        #                     (83, 74, 160),
-        #                     (112, 63, 150),
-        #                     (129, 55, 138),
-        #                     (143, 46, 124),
-        #                     (173, 46, 108),
-        #                     (255, 0, 0),
-        #                     (0, 255, 0),
-        #                     (0, 0, 255),
-        #                     (0, 0, 0),
-        #                     (128, 128, 128),
-        #                     (255, 255, 255)]
+        # self.color_list1 = [[255, 255, 255], [219, 178, 187], [210, 144, 98], [230, 79, 56], [207, 62, 108], [130, 44, 28], [91, 31, 58], [209, 215, 63], [194, 202, 119], [224, 148, 36], [105, 147, 29], [131, 104, 50], [115, 233, 72], [189, 211, 189], [109, 215, 133], [72, 131, 77], [69, 81, 65], [77, 212, 193], [101, 159, 190], [120, 142, 215], [121, 102, 215], [111, 42, 240], [75, 42, 185], [57, 41, 119], [42, 46, 71], [216, 129, 199], [214, 67, 205], [147, 107, 128], [136, 48, 133], [0, 0, 0]]
 
-        self.color_list1 = [(255, 255, 255)]
+        self.color_list1 = [(255, 255, 255), (255, 0, 0), (0, 255, 0), (0, 0, 255)]
 
-        self.color_list2 = [(185, 31, 87),
-                            (208, 47, 72),
-                            (221, 68, 59),
-                            (233, 91, 35),
-                            (230, 120, 0),
-                            (244, 157, 0),
-                            (241, 181, 0),
-                            (238, 201, 0),
-                            (210, 193, 0),
-                            (168, 187, 0),
-                            (88, 169, 29),
-                            (0, 161, 90),
-                            (0, 146, 110),
-                            (0, 133, 127),
-                            (0, 116, 136),
-                            (0, 112, 155),
-                            (0, 96, 156),
-                            (0, 91, 165),
-                            (26, 84, 165),
-                            (83, 74, 160),
-                            (112, 63, 150),
-                            (129, 55, 138),
-                            (143, 46, 124),
-                            (173, 46, 108),
-                            (255, 0, 0),
-                            (0, 255, 0),
-                            (0, 0, 255),
-                            (0, 0, 0),
-                            (128, 128, 128),
-                            (255, 255, 255)]
+        self.color_list2 = [[255, 255, 255], [219, 178, 187], [210, 144, 98], [230, 79, 56], [207, 62, 108], [130, 44, 28], [91, 31, 58], [209, 215, 63], [194, 202, 119], [224, 148, 36], [105, 147, 29], [131, 104, 50], [115, 233, 72], [189, 211, 189], [109, 215, 133], [72, 131, 77], [69, 81, 65], [77, 212, 193], [101, 159, 190], [120, 142, 215], [121, 102, 215], [111, 42, 240], [75, 42, 185], [57, 41, 119], [42, 46, 71], [216, 129, 199], [214, 67, 205], [147, 107, 128], [136, 48, 133], [0, 0, 0]]
 
         # 初始化UI介面
         self.current_button = None  # 當前選擇的按鈕
@@ -360,10 +302,10 @@ class ColorSimilarityApp:
         tk.Label(menu_frame, text="選擇相似度方法").pack()
 
         self.similarity_method_var = tk.StringVar()
-        self.similarity_method_var.set("CIELAB")  # 預設值
+        self.similarity_method_var.set("CIELab_RGB")  # 預設值
 
         similarity_menu = ttk.Combobox(menu_frame, textvariable=self.similarity_method_var)
-        similarity_menu['values'] = ("Euclidean LAB", "Manhattan LAB", "CIELAB")
+        similarity_menu['values'] = ("Euclidean LAB", "Manhattan LAB", "CIELab", "CIELab_RGB", "CIELuv")
         similarity_menu.bind("<<ComboboxSelected>>", self.update_similarity_method)
         similarity_menu.pack()
 
@@ -375,8 +317,12 @@ class ColorSimilarityApp:
             self.similarity_method = lab_euclidean_similarity
         elif method == "Manhattan LAB":
             self.similarity_method = lab_manhattan_similarity
-        elif method == "CIELAB":
+        elif method == "CIELab_RGB":
             self.similarity_method = lab_distance
+        elif method == "CIELuv":
+            self.similarity_method = lab_cieluv_similarity
+        elif method == "CIELab":
+            self.similarity_method = lab_delta_e_similarity
 
     def rgb_to_hex(self, rgb):
         """將 RGB 顏色轉為 HEX 格式"""

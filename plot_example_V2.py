@@ -153,13 +153,11 @@ example_num = 450
 
 
 # 繪製反應 RM 圖，並存到陣列中
-def plot_RM_then_save(layer_num, plot_shape, img, save_path, is_gray = False, figs = None, titles = None):
+def plot_RM_then_save(layer_num, plot_shape, img, save_path, is_gray = False, figs = None):
     fig = plot_RM_map(layer_num, plot_shape, img, save_path, is_gray)
 
     if figs is not None:
-        figs.append(fig)
-    if titles is not None:
-        titles.append(f'Layer{layer_num}_RM')
+        figs[layer_num] = fig
 
 # 繪製反應 RM 圖
 def plot_RM_map(layer_num, plot_shape, img, save_path, is_gray = False):
@@ -199,12 +197,14 @@ def process_image(image, label, test_id):
                      stride=(arch['args']['strides'][0], arch['args']['strides'][0]))[0]
 
     RM_CIs = {}
-    RM_figs = []
-    RM_title = []
+
+    RM_figs = {}
+
+    RM_CI_figs = {}
 
     fig = plot_map(segments.permute(1, 2, 3, 4, 0), path=save_path + f'origin_split_{test_id}.png')
-    RM_figs.append(fig)
-    RM_title.append('Origin_Split')
+    RM_figs['Origin_Split'] = fig
+    RM_CI_figs['Origin_Split'] =  fig
 
     if arch['args']['in_channels'] == 1:
         # Layer 0
@@ -272,7 +272,7 @@ def process_image(image, label, test_id):
 
         # 繪製只跑 Conv(卷積) 的 RM
         plot_RM_then_save('RGB_convs_0_Conv', plot_shape, image, RM_save_path,
-                          False, RM_figs, RM_title)
+                          False, RM_figs)
 
         RM = layers[layer_num](image.unsqueeze(0))[0]
         RM_H, RM_W = RM.shape[1], RM.shape[2]
@@ -283,15 +283,17 @@ def process_image(image, label, test_id):
         RM_CI = CIs[layer_num][torch.topk(RM, k=1, dim=0, largest=True).indices.flatten()].reshape(RM_H, RM_W, CI_H,
                                                                                                    CI_W, arch['args'][
                                                                                                        'in_channels'])
-        plot_map(RM_CI, path=RM_CI_save_path + f'{layer_num}_RM_CI_origin')
+        RM_CI_figs[layer_num] = plot_map(RM_CI, path=RM_CI_save_path + f'{layer_num}_RM_CI_origin')
         RM_CI = RM_CI.permute(0, 1, 4, 2, 3).reshape(*RM_CI.shape[:2], arch['args']['in_channels'], -1).mean(
             dim=-1).unsqueeze(-2).unsqueeze(-2).repeat(1, 1, *RM_CI.shape[2:4], 1)
+
+
         RM_CIs[layer_num] = RM_CI
         # 繪製 RM
         fig = plot_map(RM.permute(1, 2, 0).reshape(RM_H, RM_W, *plot_shape, 1).detach().numpy(),
                  path=RM_save_path + f'{layer_num}_RM')
-        RM_figs.append(fig)
-        RM_title.append(layer_num)
+        RM_figs[layer_num] = fig
+
 
         plot_map(RM_FM.detach().numpy(), path=RM_CI_save_path + f'{layer_num}_RM_FM')
         plot_map(RM_CI, path=RM_CI_save_path + f'{layer_num}_RM_CI')
@@ -299,7 +301,7 @@ def process_image(image, label, test_id):
 
         # 繪製 SFM 合併後的 RM
         plot_RM_then_save('RGB_convs_0_SFM', plot_shape, image, RM_save_path,
-                          False, RM_figs, RM_title)
+                          False, RM_figs)
 
         ### RGB_convs_1 ###
         # 跑完響應模組，SFM 合併前
@@ -308,7 +310,7 @@ def process_image(image, label, test_id):
         plot_shape = (int(RM.shape[0] ** 0.5), int(RM.shape[0] ** 0.5))
         # 繪製 只跑 Conv(卷積) 的 RM
         plot_RM_then_save('RGB_convs_1_Conv', plot_shape, image, RM_save_path,
-                          False, RM_figs, RM_title)
+                          False, RM_figs)
 
         print(f"Layer{layer_num}_RM: {RM.shape}")
         # 存RM_FM、RM_CI
@@ -317,7 +319,7 @@ def process_image(image, label, test_id):
         RM_CI = CIs[layer_num][torch.topk(RM, k=1, dim=0, largest=True).indices.flatten()].reshape(RM_H, RM_W, CI_H,
                                                                                                    CI_W, arch['args'][
                                                                                                        'in_channels'])
-        plot_map(RM_CI, path=RM_CI_save_path + f'{layer_num}_RM_CI_origin')
+        RM_CI_figs[layer_num] = plot_map(RM_CI, path=RM_CI_save_path + f'{layer_num}_RM_CI_origin')
         # 將RM_CI取每個小圖的代表色塊後合併成為新的RM_CI
         RM_CI = RM_CI.reshape(RM_H, RM_W, CI_H // RM_CIs['RGB_convs_0'].shape[2], RM_CIs['RGB_convs_0'].shape[2],
                               CI_W // RM_CIs['RGB_convs_0'].shape[3], RM_CIs['RGB_convs_0'].shape[3],
@@ -333,13 +335,12 @@ def process_image(image, label, test_id):
         # 繪製 RM
         fig = plot_map(RM.permute(1, 2, 0).reshape(RM_H, RM_W, *plot_shape, 1).detach().numpy(),
                  path=RM_save_path + f'{layer_num}_RM')
-        RM_figs.append(fig)
-        RM_title.append(layer_num)
+        RM_figs[layer_num] = fig
 
 
         # 繪製 SFM 合併後的 RM
         plot_RM_then_save('RGB_convs_1_SFM', plot_shape, image, RM_save_path,
-                          False, RM_figs, RM_title)
+                          False, RM_figs)
 
         ### RGB_convs_2
         # 跑完響應模組，SFM 合併前
@@ -349,7 +350,7 @@ def process_image(image, label, test_id):
         print(f"Layer{layer_num}_RM: {RM.shape}")
         # 繪製只跑 Conv(卷積) 的 RM
         plot_RM_then_save('RGB_convs_2_Conv', plot_shape, image, RM_save_path,
-                          False, RM_figs, RM_title)
+                          False, RM_figs)
 
         # 存RM_FM、RM_CI
         RM_H, RM_W = RM.shape[1], RM.shape[2]
@@ -357,7 +358,7 @@ def process_image(image, label, test_id):
         RM_CI = CIs[layer_num][torch.topk(RM, k=1, dim=0, largest=True).indices.flatten()].reshape(RM_H, RM_W, CI_H,
                                                                                                    CI_W, arch['args'][
                                                                                                        'in_channels'])
-        plot_map(RM_CI, path=RM_CI_save_path + f'{layer_num}_RM_CI_origin')
+        RM_CI_figs[layer_num] = plot_map(RM_CI, path=RM_CI_save_path + f'{layer_num}_RM_CI_origin')
         # 將RM_CI取每個小圖的代表色塊後合併成為新的RM_CI
         RM_CI = RM_CI.reshape(RM_H, RM_W, CI_H // RM_CIs['RGB_convs_0'].shape[2], RM_CIs['RGB_convs_0'].shape[2],
                               CI_W // RM_CIs['RGB_convs_0'].shape[3], RM_CIs['RGB_convs_0'].shape[3],
@@ -373,12 +374,7 @@ def process_image(image, label, test_id):
         # 繪製 RM
         fig = plot_map(RM.permute(1, 2, 0).reshape(RM_H, RM_W, *plot_shape, 1).detach().numpy(),
                        path=RM_save_path + f'{layer_num}_RM')
-        RM_figs.append(fig)
-        RM_title.append(layer_num)
-
-
-        combine_images(RM_figs, RM_title, RM_save_path + f'RGB_combine')
-
+        RM_figs[layer_num] = fig
 
         ################################### Gray ###################################
         ### Gray_convs_0 ###
@@ -395,7 +391,7 @@ def process_image(image, label, test_id):
         RM_CIs[layer_num] = RM_CI
         plot_map(RM.permute(1, 2, 0).reshape(RM_H, RM_W, *plot_shape, 1).detach().numpy(),
                  path=RM_save_path + f'{layer_num}_RM')
-        plot_map(RM_CI, path=RM_CI_save_path + f'{layer_num}_RM_CI', cmap='gray')
+        RM_CI_figs[layer_num] = plot_map(RM_CI, path=RM_CI_save_path + f'{layer_num}_RM_CI', cmap='gray')
 
         # 只跑 Conv(卷積)
         plot_RM_map('Gray_convs_0_Conv', plot_shape, image, RM_save_path, is_gray = True)
@@ -417,7 +413,7 @@ def process_image(image, label, test_id):
         RM_CIs[layer_num] = RM_CI
         plot_map(RM.permute(1, 2, 0).reshape(RM_H, RM_W, *plot_shape, 1).detach().numpy(),
                  path=RM_save_path + f'{layer_num}_RM')
-        plot_map(RM_CI, path=RM_CI_save_path + f'{layer_num}_RM_CI', cmap='gray')
+        RM_CI_figs[layer_num] = plot_map(RM_CI, path=RM_CI_save_path + f'{layer_num}_RM_CI', cmap='gray')
 
         # 只跑 Conv(卷積)
         plot_RM_map('Gray_convs_1_Conv', plot_shape, image, RM_save_path, is_gray=True)
@@ -439,10 +435,13 @@ def process_image(image, label, test_id):
         RM_CIs[layer_num] = RM_CI
         plot_map(RM.permute(1, 2, 0).reshape(RM_H, RM_W, *plot_shape, 1).detach().numpy(),
                  path=RM_save_path + f'{layer_num}_RM')
-        plot_map(RM_CI, path=RM_CI_save_path + f'{layer_num}_RM_CI', cmap='gray')
+        RM_CI_figs[layer_num] =plot_map(RM_CI, path=RM_CI_save_path + f'{layer_num}_RM_CI', cmap='gray')
 
         # 只跑 Conv(卷積)
         plot_RM_map('Gray_convs_2_Conv', plot_shape, image, RM_save_path, is_gray=True)
+
+        plot_combine_images(RM_figs, RM_save_path + f'RGB_combine')
+        plot_combine_images(RM_CI_figs, RM_CI_save_path + f'combine')
 
     plt.close('all')
 

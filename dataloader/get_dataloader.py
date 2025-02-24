@@ -4,7 +4,7 @@ from medmnist import INFO, Evaluator, PathMNIST
 from torch.utils.data import DataLoader
 
 from .CustomerMedMNIST import CustomerMedMNIST, CustomerDermaMNIST, CustomerPathMNIST, CustomerRetinaMNIST, \
-    CustomerBloodMNIST
+    CustomerBloodMNIST, CustomerRetinaMNIST_224
 from .HeartCalcification import *
 from .MNIST import MNISTDataset
 from .MNISTWeight import MNISTWeightDataset
@@ -42,6 +42,7 @@ dataset_classes = {
     "PathMNIST" :  CustomerPathMNIST,
     "DermaMNIST" : CustomerDermaMNIST,
     "RetinaMNIST" : CustomerRetinaMNIST,
+    "RetinaMNIST_224" : CustomerRetinaMNIST_224,
     "BloodMNIST" :  CustomerBloodMNIST
 }
 

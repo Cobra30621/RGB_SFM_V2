@@ -22,6 +22,7 @@ class CustomerMedMNIST(Dataset):
             transform: Optional[Callable] = None,
             target_transform: Optional[Callable] = None,
             flag : str = "pathmnist",
+            size: int = 28
     ) -> None:
         if train:
             split = "train"
@@ -31,7 +32,8 @@ class CustomerMedMNIST(Dataset):
         self.info = INFO[flag]
         self.n_classes = len(self.info['label'])
         DataClass = getattr(medmnist, self.info['python_class'])
-        self.dataset = DataClass(transform = transform, download=True, split=split)
+        self.dataset = DataClass(transform = transform, download=True,
+                                 split=split, size=size)
 
 
 
@@ -61,6 +63,14 @@ class CustomerDermaMNIST(CustomerMedMNIST):
 class CustomerRetinaMNIST(CustomerMedMNIST):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs, flag="retinamnist")
+
+
+class CustomerRetinaMNIST_224(CustomerMedMNIST):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs, flag="retinamnist", size=224)
+
+
+
 
 class CustomerBloodMNIST(CustomerMedMNIST):
     def __init__(self, *args, **kwargs):

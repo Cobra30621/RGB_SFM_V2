@@ -47,6 +47,7 @@ class RGB_SFMCNN_V2(nn.Module):
                  conv_method,
                  initial,
                  rbfs,
+                 SFM_method,
                  paddings,
                  fc_input,
                  device,
@@ -97,6 +98,7 @@ class RGB_SFMCNN_V2(nn.Module):
                 padding=paddings[i],
                 filter=SFM_filters[i],
                 rbfs=rbfs[0][i],
+                SFM_method=SFM_method,
                 initial=initial[0][i],
                 device=device,
                 activate_param=activate_params[0][i],
@@ -107,7 +109,7 @@ class RGB_SFMCNN_V2(nn.Module):
         # 整個彩色部分
         self.RGB_convs = nn.Sequential(
             self.RGB_conv2d,
-            SFM(filter=SFM_filters[0], device=device),
+            SFM(filter=SFM_filters[0], device=device, method=SFM_method),
             *rgb_basicBlocks,
             self._make_ConvBlock(
                 channels[0][-2],
@@ -133,6 +135,7 @@ class RGB_SFMCNN_V2(nn.Module):
                 padding=paddings[i],
                 filter=SFM_filters[i],
                 rbfs=rbfs[1][i],
+                SFM_method=SFM_method,
                 initial=initial[1][i],
                 device=device,
                 activate_param=activate_params[1][i],
@@ -143,7 +146,7 @@ class RGB_SFMCNN_V2(nn.Module):
         # 整個灰階部分
         self.Gray_convs = nn.Sequential(
             self.GRAY_conv2d,
-            SFM(filter=SFM_filters[0], device=device),
+            SFM(filter=SFM_filters[0], device=device, method=SFM_method),
             *gray_basicBlocks,
             self._make_ConvBlock(
                 channels[1][-2],
@@ -191,7 +194,8 @@ class RGB_SFMCNN_V2(nn.Module):
 
         # 建立響應模組
         for rbf in rbfs:
-            layers.append(get_rbf(rbf, activate_param, device))
+            print(rbf)
+            layers.append(get_rbf(rbf, activate_param, device, required_grad=False))
 
         return nn.Sequential(*layers)
 
@@ -227,6 +231,7 @@ class RGB_SFMCNN_V2(nn.Module):
                          padding: int = 0,
                          filter: tuple = (1, 1),
                          rbfs=['gauss', 'cReLU_percent'],
+                         SFM_method: str ="alpha_mean",
                          initial: str = "kaiming",
                          device: str = "cuda",
                          activate_param=[0, 0],
@@ -239,7 +244,7 @@ class RGB_SFMCNN_V2(nn.Module):
         for rbf in rbfs:
             layers.append(get_rbf(rbf, activate_param, device))
 
-        layers.append(SFM(filter=filter, device=device))
+        layers.append(SFM(filter=filter, device=device, method = SFM_method))
 
         return nn.Sequential(*layers)
 
@@ -587,9 +592,9 @@ class RBF_Conv2d(nn.Module):
     響應過濾模組(所有可能性)
 '''
 
-def get_rbf(rbf, activate_param, device):
+def get_rbf(rbf, activate_param, device, required_grad = True):
     if rbf == "triangle":
-        return triangle(w=activate_param[0], requires_grad=True, device=device)
+        return triangle(w=activate_param[0], requires_grad=required_grad, device=device)
     elif rbf == "gauss":
         return gauss(std=activate_param[0], device=device)
     elif rbf == 'sigmoid':
@@ -708,41 +713,43 @@ class SFM(nn.Module):
                  filter: _size_2_t,
                  alpha_max: float = 0.9,
                  alpha_min: float = 0.99,
-                 device: str = "cuda") -> None:
+                 device: str = "cuda",
+                 method: str = "alpha_mean") -> None:
         super(SFM, self).__init__()
         self.filter = filter
         self.alpha = torch.linspace(start=alpha_min, end=alpha_max, steps=math.prod(self.filter),
                                     requires_grad=True).reshape(*self.filter)
         self.device = device
+        self.method = method
 
     def forward(self, input: Tensor) -> Tensor:
-        alpha_pows = self.alpha.repeat(input.shape[1], 1, 1).to(self.device)
-
         batch_num, channels, height, width = input.shape
+        alpha_pows = self.alpha.repeat(input.shape[1], 1, 1).to(self.device)
         _, filter_h, filter_w = alpha_pows.shape
 
-        # 使用 unfold 將 input 展開成形狀為 (batch_num, channels, (height-filter_h+step)*(width-filter_w+step), filter_h * filter_w) 的二維張量
         unfolded_input = input.unfold(2, filter_h, filter_h).unfold(3, filter_w, filter_w).reshape(batch_num, channels,
-                                                                                                   -1,
-                                                                                                   filter_h * filter_w)
-        # print(f"unfolded_input = {unfolded_input.shape}")
-        # print(unfolded_input)
+                                                                                               -1,
+                                                                                               filter_h * filter_w)
 
-        # 將 filter 擴展成形狀為 (1, channels, 1, filter_h * filter_w)
-        expanded_filter = alpha_pows.reshape(channels, 1, -1)
-        expanded_filter = expanded_filter.repeat(batch_num, 1, 1, 1)
-        # print(f"expanded_filter = {expanded_filter.shape}")
-        # print(expanded_filter)
+        if self.method == "max":
+            # 直接取最大值，不進行與 alpha 的乘法計算
+            output_width = math.floor((width - (filter_w - 1) - 1) / filter_w + 1)
+            output_height = math.floor((height - (filter_h - 1) - 1) / filter_h + 1)
+            output = unfolded_input.max(dim=-1).values.reshape(batch_num, channels, output_height, output_width)
+        elif self.method == "alpha_mean":  # 預設為 mean
 
-        # 對應相乘
-        result = unfolded_input * expanded_filter
-        # print(f"result = {result.shape}")
+            expanded_filter = alpha_pows.reshape(channels, 1, -1)
+            expanded_filter = expanded_filter.repeat(batch_num, 1, 1, 1)
 
-        # 將 dim=-1 的維度相加取 mean
-        output_width = math.floor((width - (filter_w - 1) - 1) / filter_w + 1)
-        output_height = math.floor((height - (filter_h - 1) - 1) / filter_h + 1)
-        output = result.mean(dim=-1).reshape(batch_num, channels, output_height, output_width)
-        # print(f"output = {output.shape}")
+            result = unfolded_input * expanded_filter
+
+            output_width = math.floor((width - (filter_w - 1) - 1) / filter_w + 1)
+            output_height = math.floor((height - (filter_h - 1) - 1) / filter_h + 1)
+            output = result.mean(dim=-1).reshape(batch_num, channels, output_height, output_width)
+        else:
+            raise ValueError(f"Unknown method: {self.method}")  # 處理未知方法的情況
+
+
         return output
 
     def extra_repr(self) -> str:

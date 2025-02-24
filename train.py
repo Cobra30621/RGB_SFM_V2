@@ -24,8 +24,6 @@ def train(train_dataloader: DataLoader, valid_dataloader: DataLoader, model: nn.
     patience = config['patience']
     checkpoint = {}
 
-
-
     with torch.autograd.set_detect_anomaly(True):
         for e in range(epoch):
             print(f"------------------------------EPOCH {e}------------------------------")
@@ -37,6 +35,8 @@ def train(train_dataloader: DataLoader, valid_dataloader: DataLoader, model: nn.
             X, y = next(iter(train_dataloader))
             for batch, (X, y) in progress:
                 X = X.to(device); y= y.to(device)
+
+
                 pred = model(X)
                 loss = loss_fn(pred, y)
                 # 反向传播
@@ -47,7 +47,7 @@ def train(train_dataloader: DataLoader, valid_dataloader: DataLoader, model: nn.
                 # 清零梯度
                 optimizer.zero_grad()
                 
-                losses += loss.detach().item()
+                losses                  += loss.detach().item()
                 size += len(X)
                 
                 correct += (pred.argmax(1) == y.argmax(1)).type(torch.float).sum().item()
