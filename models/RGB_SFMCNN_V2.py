@@ -290,11 +290,23 @@ class RGB_Conv2d(nn.Module):
                  dtype=None) -> None:
         super().__init__()  # TODO RGB_Conv2d function
         # 30 個濾波器
-        weights = [[255, 255, 255], [219, 178, 187], [210, 144, 98], [230, 79, 56], [207, 62, 108], [130, 44, 28], [91, 31, 58], [209, 215, 63], [194, 202, 119], [224, 148, 36], [105, 147, 29], [131, 104, 50], [115, 233, 72], [189, 211, 189], [109, 215, 133], [72, 131, 77], [69, 81, 65], [77, 212, 193], [101, 159, 190], [120, 142, 215], [121, 102, 215], [111, 42, 240], [75, 42, 185], [57, 41, 119], [42, 46, 71], [216, 129, 199], [214, 67, 205], [147, 107, 128], [136, 48, 133], [0, 0, 0]]
+        # color_weights = [[255, 255, 255], [219, 178, 187], [210, 144, 98], [230, 79, 56], [207, 62, 108], [130, 44, 28], [91, 31, 58], [209, 215, 63], [194, 202, 119], [224, 148, 36], [105, 147, 29], [131, 104, 50], [115, 233, 72], [189, 211, 189], [109, 215, 133], [72, 131, 77], [69, 81, 65], [77, 212, 193], [101, 159, 190], [120, 142, 215], [121, 102, 215], [111, 42, 240], [75, 42, 185], [57, 41, 119], [42, 46, 71], [216, 129, 199], [214, 67, 205], [147, 107, 128], [136, 48, 133], [0, 0, 0]]
+
+        # self.color_weights = torch.Tensor(color_weights).to(device=device, dtype=dtype)
+        # self.color_weights = self.color_weights / 255
+        # self.color_weights =  nn.Parameter(self.color_weights, requires_grad=False)
+
+        # 30 個濾波器
+        weights = [[255, 255, 255], [219, 178, 187], [210, 144, 98], [230, 79, 56], [207, 62, 108], [130, 44, 28],
+                   [91, 31, 58], [209, 215, 63], [194, 202, 119], [224, 148, 36], [105, 147, 29], [131, 104, 50],
+                   [115, 233, 72], [189, 211, 189], [109, 215, 133], [72, 131, 77], [69, 81, 65], [77, 212, 193],
+                   [101, 159, 190], [120, 142, 215], [121, 102, 215], [111, 42, 240], [75, 42, 185], [57, 41, 119],
+                   [42, 46, 71], [216, 129, 199], [214, 67, 205], [147, 107, 128], [136, 48, 133], [0, 0, 0]]
+        
+
         self.weights = torch.Tensor(weights).to(device=device, dtype=dtype)
         self.weights = self.weights / 255
         self.weights = nn.Parameter(self.weights, requires_grad=False)
-
 
         self.out_channels = out_channels
         self.kernel_size = kernel_size
@@ -302,29 +314,108 @@ class RGB_Conv2d(nn.Module):
         self.padding = padding
         self.initial = initial
 
-    def forward(self, input):
-        # 2. 計算代表色距離
-        output_width = math.floor(
-            (input.shape[-1] + self.padding * 2 - (self.kernel_size[0] - 1) - 1) / self.stride + 1)
-        output_height = math.floor(
-            (input.shape[-2] + self.padding * 2 - (self.kernel_size[1] - 1) - 1) / self.stride + 1)
-        batch_num = input.shape[0]
+        self.use_average = True
 
-        # weights shape = (out_channels, 3)
-        # weights = self.weights
-        weights = self.transform_weights()
-        # windows shape = (batch_num, output_width * output_height, 1, 3)
-        windows = F.unfold(input, kernel_size=self.kernel_size, stride=self.stride, padding=self.padding).permute(0, 2,
-                                                                                                                  1)
 
-        windows = windows.reshape(*windows.shape[:-1], 3, math.prod(self.kernel_size))
-        windows_RGBcolor = windows.mean(dim=-1)
 
-        result = self.batched_LAB_distance(windows_RGBcolor.unsqueeze(-2), weights)
-        result = result / 765
+    def forward(self, input_tensor):
 
-        result = result.permute(0, 2, 1).reshape(batch_num, self.out_channels, output_height, output_width)
+        weights = self.weights.unsqueeze(-1).unsqueeze(-1).expand(-1, -1, 5, 5)  # 變成 (30, 3, 5, 5)
 
+        # 使用 unfold 取得 5x5 的卷積區域 (展開操作)
+        unfold = torch.nn.Unfold(kernel_size=5, stride=4)
+        input_unfolded = unfold(input_tensor)  # shape = (-1, 75, 36)
+        # print(f"input_unfolded{input_unfolded.shape}")
+
+        # 重新塑形成適合計算的格式
+        input_unfolded = input_unfolded.view(-1, 3, 5, 5, 6, 6)  # (1000, 3, 5, 5, 6, 6)
+        input_unfolded = input_unfolded.permute(0, 4, 5, 1, 2, 3)  # (1000, 6, 6, 3, 5, 5)
+        #
+        # print(f"input_unfolded after {input_unfolded.shape}")
+        # print(f"weight {weights.shape}")
+        #
+        # print(f"input_unfolded.unsqueeze(1) {input_unfolded.unsqueeze(1).shape}")
+        # print(f"weights.unsqueeze(0).unsqueeze(2).unsqueeze(3) {weights.unsqueeze(0).unsqueeze(2).unsqueeze(3).shape}")
+        #
+
+        # 計算顏色相似度 (可以選擇不同公式)
+        distances = self. batched_LAB_distance(input_unfolded.unsqueeze(1), weights.unsqueeze(0).unsqueeze(2).unsqueeze(3))
+        # distances shape = (1000, 30, 6, 6)
+        # print("Output shape:", distances.shape)
+
+        return distances
+
+
+    '''
+        LAB Distance
+    '''
+
+    def batched_LAB_distance(self, windows_RGBcolor, weights_RGBcolor):
+        # RGB 顏色數據從 [0, 1] 映射到 [0, 255]
+        R_1, G_1, B_1 = (windows_RGBcolor[:, :, :, :, 0] * 255, windows_RGBcolor[:, :, :, :, 1] * 255,
+                         windows_RGBcolor[:, :, :, :, 2] * 255)
+        R_2, G_2, B_2 = weights_RGBcolor[:, :, :, :, 0] * 255, weights_RGBcolor[:, :, :, :, 1] * 255, weights_RGBcolor[:, :, :, :, 2] * 255
+
+        # 計算 rmean 作為矩陣形式
+        rmean = (R_1 + R_2) / 2
+
+        # 計算 RGB 分量的差異
+        R = R_1 - R_2
+        G = G_1 - G_2
+        B = B_1 - B_2
+
+        # 計算加權的歐幾里得距離
+        distance = torch.sqrt(
+            (2 + rmean / 256) * (R ** 2) +
+            4 * (G ** 2) +
+            (2 + (255 - rmean) / 256) * (B ** 2) +
+            1e-8
+        ).sum(dim=4).sum(dim=4)
+
+        distance = distance / (25 * 768)
+        #
+        # print(f"distance {distance.shape}")
+        # print(f"distance {distance}")
+
+        return distance
+
+    def color_similarity(self, input_patch, weight_kernel, method="delta_e"):
+        """
+        計算輸入圖像區塊與權重之間的顏色相似度
+        input_patch: (1000, 6, 6, 3, 5, 5) -> 區塊圖像
+        weight_kernel: (30, 3, 5, 5) -> 權重過濾器
+        method: 選擇的顏色公式, 預設使用 Delta E
+
+        返回: (1000, 30, 6, 6) 相似度張量
+        """
+        if method == "delta_e":
+            # 假設 RGB 是近似 Lab 顏色空間 (不是真的 Lab 轉換)
+            delta = (input_patch - weight_kernel) ** 2
+            # print(f"delta {delta.shape}")
+            # print(f"distance {torch.sqrt(delta.sum(dim=4).sum(dim=4).sum(dim=4))}")
+
+            return torch.sqrt(delta.sum(dim=4).sum(dim=4).sum(dim=4)) / 10 # (1000, 30, 6, 6)
+
+        elif method == "cosine":
+            # Cosine 相似度 = dot(A, B) / (||A|| * ||B||)
+            input_flat = input_patch.flatten(start_dim=3)  # (1000, 6, 6, 3*5*5)
+            weight_flat = weight_kernel.flatten(start_dim=2)  # (30, 3*5*5)
+
+            dot_product = (input_flat * weight_flat.unsqueeze(0).unsqueeze(2).unsqueeze(3)).sum(dim=4)
+            norm_input = torch.norm(input_flat, dim=4)
+            norm_weight = torch.norm(weight_flat, dim=2, keepdim=True)
+
+            return dot_product / (norm_input * norm_weight)  # (1000, 30, 6, 6)
+
+        else:
+            raise ValueError("不支援的方法，請選擇 'delta_e' 或 'cosine'")
+
+
+    # 使用卷積
+    def _dot_product(self, input: Tensor) -> Tensor:
+        # 使用卷積層進行計算
+        result = F.conv2d(input, self.weight.view(self.out_channels, self.out_channels, *self.kernel_size),
+                          stride=self.stride, padding=self.padding)
         return result
 
     def transform_weights(self):
@@ -353,33 +444,6 @@ class RGB_Conv2d(nn.Module):
         h = (h / 6.0) % 1.0
         return h, s, v
 
-    '''
-        LAB Distance
-    '''
-
-    def batched_LAB_distance(self, windows_RGBcolor, weights_RGBcolor):
-        # RGB 顏色數據從 [0, 1] 映射到 [0, 255]
-        R_1, G_1, B_1 = (windows_RGBcolor[:, :, :, 0] * 255, windows_RGBcolor[:, :, :, 1] * 255,
-                         windows_RGBcolor[:, :, :, 2] * 255)
-        R_2, G_2, B_2 = weights_RGBcolor[:, 0] * 255, weights_RGBcolor[:, 1] * 255, weights_RGBcolor[:, 2] * 255
-
-        # 計算 rmean 作為矩陣形式
-        rmean = (R_1 + R_2) / 2
-
-        # 計算 RGB 分量的差異
-        R = R_1 - R_2
-        G = G_1 - G_2
-        B = B_1 - B_2
-
-        # 計算加權的歐幾里得距離
-        distance = torch.sqrt(
-            (2 + rmean / 256) * (R ** 2) +
-            4 * (G ** 2) +
-            (2 + (255 - rmean) / 256) * (B ** 2) +
-            1e-8
-        )
-
-        return distance
 
 
 '''

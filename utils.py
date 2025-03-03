@@ -193,7 +193,7 @@ def get_ci(input, layer, kernel_size = (5,5), stride= (5,5), sfm_filter = (1,1))
         outputs = outputs.permute(0,2,3,1).reshape(-1, n_filters)
         print(f"output shape: {outputs.shape}")
 
-    k = 50
+    k = 1
     CI = torch.empty(n_filters, k, ci_h, ci_w, input.shape[1])
     CI_values = torch.empty(n_filters, k) 
     CI_idx = torch.empty(n_filters, k)    
