@@ -30,6 +30,29 @@ class Renormalize(object):
         result = torch.where(max_vals == min_vals, torch.zeros_like(images), normalized_images)
         return result
 
+class NormalizeToRange(object):
+    def __call__(self, images):
+        """
+        将图像归一化到 [-1, 1] 区间
+        
+        Args:
+            images: 输入图像张量
+            
+        Returns:
+            归一化后的图像张量，范围在 [-1, 1] 之间
+        """
+        batch, channel = images.shape[0], images.shape[1]
+        min_vals = images.view(batch, channel, -1).min(dim=-1, keepdim=True)[0].unsqueeze(-1)
+        max_vals = images.view(batch, channel, -1).max(dim=-1, keepdim=True)[0].unsqueeze(-1)
+        
+        # 先归一化到 [0, 1]
+        normalized_images = (images - min_vals) / (max_vals - min_vals + 1e-8)
+        # 然后转换到 [-1, 1]
+        result = normalized_images * 2 - 1
+        
+        # 处理特殊情况：当 max_vals == min_vals 时，返回零张量
+        return torch.where(max_vals == min_vals, torch.zeros_like(images), result)
+
 
 '''
     主模型Part
@@ -58,7 +81,8 @@ class RGB_SFMCNN_V2(nn.Module):
         self.gray_transform = torchvision.transforms.Compose([
             torchvision.transforms.Grayscale(),
             # Sobel_Conv2d(),
-            Renormalize(),
+            # Renormalize(),
+            NormalizeToRange(),
         ])
 
         # 彩色卷積第一層
@@ -488,6 +512,11 @@ class Gray_Conv2d(nn.Module):
         else:
             raise "RBF_Conv2d initial error"
 
+        # 将第一个输出通道的权重设置为0
+        with torch.no_grad():
+            self.weight[0].fill_(-1)
+            self.weight[1].fill_(1)
+
         # self.weight = (self.weight - torch.min(self.weight)) / (torch.max(self.weight) - torch.min(self.weight))
 
         self.weight = nn.Parameter(self.weight)
@@ -499,6 +528,8 @@ class Gray_Conv2d(nn.Module):
             return self._dot_product(input)
         elif self.conv_method == "squared_cdist":
             return self._squared_cdist(input)
+        elif self.conv_method == "cosine":
+            return self._cosine(input)
         else:
             print(f"Can't find {self.conv_method} conv method")
 
@@ -533,6 +564,31 @@ class Gray_Conv2d(nn.Module):
 
         result = result.reshape(result.shape[0], result.shape[1], output_height, output_width)
 
+        return result
+
+    # 使用餘弦相似度
+    def _cosine(self, input: Tensor) -> Tensor:
+        output_width = math.floor(
+            (input.shape[-1] + self.padding * 2 - (self.kernel_size[0] - 1) - 1) / self.stride[0] + 1)
+        output_height = math.floor(
+            (input.shape[-2] + self.padding * 2 - (self.kernel_size[1] - 1) - 1) / self.stride[1] + 1)
+        # Unfold output = (batch, output_width * output_height, C×∏(kernel_size))
+        windows = F.unfold(input, kernel_size=self.kernel_size, stride=self.stride, padding=self.padding).permute(0, 2, 1)
+        
+        # 計算 windows 和 weight 的 L2 範數
+        windows_norm = torch.norm(windows, p=2, dim=2, keepdim=True)
+        weight_norm = torch.norm(self.weight, p=2, dim=1, keepdim=True)
+        
+        # 計算點積
+        dot_product = torch.matmul(windows, self.weight.t())
+        
+        # 計算餘弦相似度
+        cosine = dot_product / (windows_norm * weight_norm.t() + 1e-8)
+        
+        # 調整維度順序並重塑
+        result = cosine.permute(0, 2, 1)
+        result = result.reshape(result.shape[0], result.shape[1], output_height, output_width)
+        
         return result
 
     # 使用卷積
@@ -599,6 +655,8 @@ class RBF_Conv2d(nn.Module):
             return self._dot_product(input)
         elif self.conv_method == "squared_cdist":
             return self._squared_cdist(input)
+        elif self.conv_method == "cosine":
+            return self._cosine(input)
         else:
             print(f"Can't find {self.conv_method} conv method")
 
@@ -642,6 +700,31 @@ class RBF_Conv2d(nn.Module):
         # 使用卷積層進行計算
         result = F.conv2d(input, self.weight.view(self.out_channels, self.in_channels, *self.kernel_size),
                            stride=self.stride, padding=self.padding)
+        return result
+
+    # 使用餘弦相似度
+    def _cosine(self, input: Tensor) -> Tensor:
+        output_width = math.floor(
+            (input.shape[-1] + self.padding * 2 - (self.kernel_size[0] - 1) - 1) / self.stride[0] + 1)
+        output_height = math.floor(
+            (input.shape[-2] + self.padding * 2 - (self.kernel_size[1] - 1) - 1) / self.stride[1] + 1)
+        # Unfold output = (batch, output_width * output_height, C×∏(kernel_size))
+        windows = F.unfold(input, kernel_size=self.kernel_size, stride=self.stride, padding=self.padding).permute(0, 2, 1)
+        
+        # 計算 windows 和 weight 的 L2 範數
+        windows_norm = torch.norm(windows, p=2, dim=2, keepdim=True)
+        weight_norm = torch.norm(self.weight, p=2, dim=1, keepdim=True)
+        
+        # 計算點積
+        dot_product = torch.matmul(windows, self.weight.t())
+        
+        # 計算餘弦相似度
+        cosine = dot_product / (windows_norm * weight_norm.t() + 1e-8)
+        
+        # 調整維度順序並重塑
+        result = cosine.permute(0, 2, 1)
+        result = result.reshape(result.shape[0], result.shape[1], output_height, output_width)
+        
         return result
 
 
