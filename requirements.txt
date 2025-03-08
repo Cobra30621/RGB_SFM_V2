@@ -6,3 +6,4 @@ typing
 shapely
 medmnist
 plotly
+grad-cam
