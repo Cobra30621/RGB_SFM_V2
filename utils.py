@@ -87,7 +87,7 @@ def plot_map(rm, grid_size=None, rowspan=None, colspan=None, path=None, **kwargs
     else:
         plt.show()
         plt.close()
-    
+
     return fig  # 新增：回傳繪製的圖像
         
 
@@ -95,7 +95,7 @@ def plot_map(rm, grid_size=None, rowspan=None, colspan=None, path=None, **kwargs
 import matplotlib.pyplot as plt
 
 
-def plot_combine_images(figs, save_path=None, spacing=0.05, fixed_width=5, fixed_height=5):
+def plot_combine_images(figs, save_path=None, spacing=0.05, fixed_width=5, fixed_height=5, show=False):
 
     num_images = len(figs)
     fig_width = num_images * fixed_width + (num_images - 1) * spacing
@@ -119,11 +119,14 @@ def plot_combine_images(figs, save_path=None, spacing=0.05, fixed_width=5, fixed
         ax.imshow(fig_source.canvas.buffer_rgba())
         ax.axis('off')
         
-        ax.set_title(key, fontsize=10, pad=10)
+        ax.set_title(key, fontsize=20, pad=10)
 
     if save_path:
         plt.savefig(save_path, dpi=300)
-        plt.close(fig)
+        if not show:
+            plt.close(fig)
+        else:
+            plt.show()
     else:
         plt.show()
 

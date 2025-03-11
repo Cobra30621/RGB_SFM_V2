@@ -4,11 +4,15 @@ import torchvision
 import random
 import torch.nn.functional as F
 import numpy as np
+from pytorch_grad_cam import ( GradCAM, HiResCAM, GradCAMPlusPlus,
+                              GradCAMElementWise, XGradCAM, AblationCAM, ScoreCAM, EigenCAM, EigenGradCAM,
+                              LayerCAM, KPCA_CAM)
 
 from torchsummary import summary
 from torch import nn
 
 from config import *
+from plot_heatmap import visualize_all_heatmap, get_target_layers
 from utils import *
 from models.SFMCNN import SFMCNN
 from models.RGB_SFMCNN import RGB_SFMCNN
@@ -16,6 +20,12 @@ from models.RGB_SFMCNN_V2 import RGB_SFMCNN_V2
 from dataloader import get_dataloader
 
 import matplotlib
+
+# 繪製熱圖
+PLOT_HEATMAP = True
+heatmap_methods = [GradCAM, HiResCAM, GradCAMPlusPlus, GradCAMElementWise, XGradCAM, AblationCAM,
+                   ScoreCAM, EigenCAM, EigenGradCAM, LayerCAM, KPCA_CAM]
+
 
 matplotlib.use('Agg')
 
@@ -443,29 +453,17 @@ def process_image(image, label, test_id):
         plot_combine_images(RM_figs, RM_save_path + f'RGB_combine')
         plot_combine_images(RM_CI_figs, RM_CI_save_path + f'combine')
 
+        ################################### heatmap ###################################
+
+        if PLOT_HEATMAP:
+            heatmap_layers = get_target_layers(model)
+            visualize_all_heatmap(model, heatmap_layers, image, label.argmax().item(), save_path, heatmap_methods)
+
+
+
     plt.close('all')
 
 
-
-# 新增的迴圈來讀取指定資料夾中的圖片
-# input_folder = f'./detect/{config["dataset"]}_{checkpoint_filename}/test_images/'  # 指定資料夾路徑
-# image_files = os.listdir(input_folder)
-#
-# for image_file in image_files:
-#     if image_file.endswith(('.png', '.jpg', '.jpeg')):  # 檢查檔案類型
-#         # 讀取圖片
-#         image_path = os.path.join(input_folder, image_file)
-#         test_image = Image.open(image_path).convert('RGB')  # 轉換為 RGB 格式
-#         test_image = torchvision.transforms.ToTensor()(test_image)  # 轉換為 Tensor
-#
-#
-#         # 提取標籤，假設標籤在檔名中
-#         label = torch.zeros(10)  # 假設有 10 個類別
-#         label[9] = 1  # 將對應的標籤設為 1
-#
-#
-#         # 執行 process_image 函數
-#         process_image(test_image, label, image_file)
 
 # # 針對整個資料集
 for test_id in range(example_num):
