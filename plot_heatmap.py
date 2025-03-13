@@ -41,7 +41,7 @@ class ModelWrapper(torch.nn.Module):
 def generate_cam_visualization(
     model: torch.nn.Module,
     target_layer: torch.nn.Module,
-    cam_targets: List[Callable],
+    cam_target: Callable,
     transform: Optional[Callable],
     input_tensor: torch.Tensor,
     input_image: Image.Image,
@@ -52,14 +52,14 @@ def generate_cam_visualization(
     Args:
         model: 目標模型
         target_layer: 目標層
-        cam_targets: CAM 目標列表
+        cam_target: CAM 目標函數
         transform: 形狀轉換函數
         input_tensor: 輸入張量
         input_image: 輸入圖像
         cam_method: CAM 方法
         
     Returns:
-        包含所有目標的 CAM 可視化結果
+        CAM 可視化結果
     """
     wrapped_model = ModelWrapper(model)
     
@@ -68,20 +68,18 @@ def generate_cam_visualization(
         target_layers=[target_layer],
         reshape_transform=transform
     ) as cam:
-        batch_tensor = input_tensor[None, :].repeat(len(cam_targets), 1, 1, 1)
-        cam_results = cam(input_tensor=batch_tensor, targets=cam_targets)
+        # 移除批次處理邏輯，直接使用單個輸入
+        input_batch = input_tensor.unsqueeze(0)
+        grayscale_cam = cam(input_tensor=input_batch, targets=[cam_target])[0]
         
-        visualizations = []
-        for grayscale_cam in cam_results:
-            vis = show_cam_on_image(
-                np.float32(input_image) / 255,
-                grayscale_cam,
-                use_rgb=True
-            )
-            vis = cv2.resize(vis, (vis.shape[1] * 2, vis.shape[0] * 2))
-            visualizations.append(vis)
+        vis = show_cam_on_image(
+            np.float32(input_image) / 255,
+            grayscale_cam,
+            use_rgb=True
+        )
+        vis = cv2.resize(vis, (vis.shape[1] * 2, vis.shape[0] * 2))
             
-        return np.hstack(visualizations)
+        return vis
 
 
 def get_target_layers(model: torch.nn.Module) -> dict:
@@ -124,11 +122,11 @@ def visualize_heatmap(model, layers, image, img_tensor, label, method: Callable 
     plt.close(fig_raw)
     imgs['raw'] = fig_raw
 
-    targets_for_gradcam = [ClassifierOutputTarget(label)]
+    target_for_gradcam = ClassifierOutputTarget(label)
     for layer in layers:
         target_layer = layers[layer]
 
-        cam_img = generate_cam_visualization(model, target_layer, targets_for_gradcam, None, img_tensor, image, method)
+        cam_img = generate_cam_visualization(model, target_layer, target_for_gradcam, None, img_tensor, image, method)
 
         # 確保cam_img是正確的numpy數組
         if isinstance(cam_img, torch.Tensor):
