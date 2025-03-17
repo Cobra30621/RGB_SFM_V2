@@ -1,19 +1,10 @@
-from PIL import Image
-import torch
-import torchvision
-import random
-import torch.nn.functional as F
-import numpy as np
 from pytorch_grad_cam import ( GradCAM, HiResCAM, GradCAMPlusPlus,
                               GradCAMElementWise, XGradCAM, AblationCAM, ScoreCAM, EigenCAM, EigenGradCAM,
                               LayerCAM, KPCA_CAM)
 
 from torchsummary import summary
-from torch import nn
 
-from config import *
-from plot_heatmap import get_cam_target_layers, get_each_layers_cam, plot_RM_CI_with_cam_mask, \
-    plot_cams_on_image, get_reduced_cam, plot_reduced_cam
+from plot_cam import  generate_cam_visualizations
 from utils import *
 from models.SFMCNN import SFMCNN
 from models.RGB_SFMCNN import RGB_SFMCNN
@@ -21,11 +12,6 @@ from models.RGB_SFMCNN_V2 import RGB_SFMCNN_V2
 from dataloader import get_dataloader
 
 import matplotlib
-
-# 繪製熱圖
-PLOT_HEATMAP = True
-heatmap_methods = [GradCAM, HiResCAM, GradCAMPlusPlus, GradCAMElementWise, XGradCAM, AblationCAM,
-                   ScoreCAM, EigenCAM, EigenGradCAM, LayerCAM, KPCA_CAM]
 
 
 matplotlib.use('Agg')
@@ -435,58 +421,44 @@ def process_image(image, label, test_id):
         # 繪製 RM 的合併圖
         plot_combine_images(RM_figs, RM_save_path + f'RGB_combine')
         # 繪製 RM_CI 的合併圖
-        plot_combine_images(RM_CI_figs, RM_CI_save_path + f'combine')
+        RM_CI_combine_fig = plot_combine_images(RM_CI_figs, RM_CI_save_path + f'combine')
 
-        ################################### heatmap ###################################
+        ################################### CAM ###################################
 
-        # 創建保存熱圖的目錄
-        cam_save_pth = os.path.join(save_path, 'heatmap')
-        os.makedirs(cam_save_pth, exist_ok=True)
+        # 定義所有要使用的 CAM 方法
+        cam_methods = [GradCAM, HiResCAM, GradCAMPlusPlus, GradCAMElementWise, XGradCAM, AblationCAM,
+                           ScoreCAM, EigenCAM, EigenGradCAM, LayerCAM, KPCA_CAM]
+        # 如果只想測試部分方法,可以使用下面這行
+        # cam_methods = [GradCAM, HiResCAM, GradCAMPlusPlus]
 
-        # 獲取標籤的索引值
-        label_arg = label.argmax().item()
-        # 獲取需要生成 CAM 的目標層
-        heatmap_layers = get_cam_target_layers(model)
-        # 設定使用 GradCAM 方法
-        method = GradCAM
+        # 創建兩個字典來存儲不同方法生成的圖像
+        cam_figs = {}  # 存儲 CAM 可視化結果
+        RM_CI_figs = {}  # 存儲 RM-CI 可視化結果
+        RM_CI_figs['raw'] = RM_CI_combine_fig  # 保存原始的 RM-CI 組合圖
 
-        # 對每一層生成 CAM (Class Activation Map)
-        cams = get_each_layers_cam(
-            model=model,
-            target_layers=heatmap_layers,
-            label=label_arg,
-            input_tensor=image,
-            cam_method=method)
+        # 對每個 CAM 方法進行處理
+        for method in cam_methods:
+            print(f"drawing {method.__name__}")  
+            # 生成 CAM 可視化結果
+            cam_fig, RM_CI_fig = generate_cam_visualizations(
+                model=model,          # 模型
+                label=label.argmax().item(),  # 預測標籤
+                image=image,          # 輸入圖像
+                origin_img=origin_img,  # 原始圖像
+                RM_CIs=RM_CIs,         # RM-CI 數據
+                save_path=RM_CI_save_path,  # 保存路徑
+                method=method         # CAM 方法
+            )
+            # 將結果保存到對應的字典中
+            cam_figs[f'{method.__name__}'] = cam_fig
+            RM_CI_figs[f'{method.__name__}'] = RM_CI_fig
 
+        print(cam_figs)  # 打印所有生成的 CAM 圖像
 
-        # 初始化存儲 CAM 遮罩後的 RM_CI 圖和縮減後的 CAM 圖的字典
-        RM_CI_cams = {}
-        reduced_cams = {}
-        # 將原始分割圖加入字典
-        RM_CI_cams['Origin_Split'] = origin_img
-        reduced_cams['Origin_Split'] = origin_img
-
-        # 對每一層的 RM_CI 進行處理
-        for layer_name, RM_CI in RM_CIs.items():
-            print(f"{layer_name}, {RM_CI.shape}")
-
-            # 設定輸出形狀為 RM_CI 的高寬
-            output_shape = (RM_CI.shape[0], RM_CI.shape[1])
-            # 將 CAM 縮減到指定大小
-            reduced_cam = get_reduced_cam(cams[layer_name], output_shape)
-
-            # 繪製並保存縮減後的 CAM
-            reduced_cams[layer_name] = plot_reduced_cam(reduced_cam)
-            # 繪製並保存使用 CAM 遮罩後的 RM_CI 圖
-            RM_CI_cams[layer_name] = plot_RM_CI_with_cam_mask(RM_CI, reduced_cam, RM_CI_save_path)
-
-        # 將所有使用 CAM 遮罩後的 RM_CI 圖組合成一張圖並保存
-        plot_combine_images(RM_CI_cams, RM_CI_save_path + f'/cam_RM_CI_combine')
-        # 將所有縮減後的 CAM 圖組合成一張圖並保存
-        plot_combine_images(reduced_cams, cam_save_pth + f'/reduced_cam_combine')
-        # 在原始圖像上繪製 CAM 並保存
-        plot_cams_on_image(image, cams, cam_save_pth, method.__name__)
- 
+        # 將所有 CAM 結果垂直組合並保存
+        plot_combine_images_vertical(cam_figs, RM_CI_save_path + f'cam/cams_combine')
+        # 將所有 RM-CI 結果垂直組合並保存
+        plot_combine_images_vertical(RM_CI_figs, RM_CI_save_path + f'/{method.__name__}_combine')
 
     plt.close('all')
 

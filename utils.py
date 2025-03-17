@@ -1,19 +1,8 @@
-from pathlib import Path
-import glob
-import re
 import torchvision
-import matplotlib.pyplot as plt
-import os
-import torch
 import math
 import torch.nn.functional as F
-from torchvision.utils import save_image
 
 from config import *
-from utils import *
-from models.SFMCNN import SFMCNN
-from models.RGB_SFMCNN import RGB_SFMCNN
-from collections import defaultdict
 import numpy as np
 '''
     將 image 按照 kernel size 進行切割
@@ -41,17 +30,6 @@ def read_Image(path = 'D:/Project/paper/RGB_SFM/showout/Colored_MNIST_0610_RGB_S
     test_img = test_img[:3, :, :]
     return test_img
 
-def increment_path(path, exist_ok=True, sep=''):
-    # Increment path, i.e. runs/exp --> runs/exp{sep}0, runs/exp{sep}1 etc.
-    path = Path(path)  # os-agnostic
-    if (path.exists() and exist_ok) or (not path.exists()):
-        return str(path)
-    else:
-        dirs = glob.glob(f"{path}{sep}*")  # similar paths
-        matches = [re.search(rf"%s{sep}(\d+)" % path.stem, d) for d in dirs]
-        i = [int(m.groups()[0]) for m in matches if m]  # indices
-        n = max(i) + 1 if i else 2  # increment number
-        return f"{path}{sep}{n}"  # update path
 
 def plot_map(rm, grid_size=None, rowspan=None, colspan=None, path=None, **kwargs):
     # 新增：計算 rm 的全局最大值和最小值
@@ -98,11 +76,11 @@ def plot_map(rm, grid_size=None, rowspan=None, colspan=None, path=None, **kwargs
 import matplotlib.pyplot as plt
 
 
-def plot_combine_images(figs, save_path=None, spacing=0.05, fixed_width=5, fixed_height=5, show=False):
+def plot_combine_images(figs, save_path=None, spacing=0.05, fixed_width=5, fixed_height=5, show=False, title="Combined Images"):
 
     num_images = len(figs)
     fig_width = num_images * fixed_width + (num_images - 1) * spacing
-    fig_height = fixed_height + 0.5
+    fig_height = fixed_height + 2
 
     # 創建畫布，啟用 constrained_layout
     fig, axes = plt.subplots(
@@ -123,6 +101,45 @@ def plot_combine_images(figs, save_path=None, spacing=0.05, fixed_width=5, fixed
         ax.axis('off')
         
         ax.set_title(key, fontsize=20, pad=10)
+
+    # 新增整張大圖片的標題
+    fig.suptitle(title, fontsize=24, y=0.96)
+
+    if save_path:
+        plt.savefig(save_path, dpi=300)
+        if not show:
+            plt.close(fig)
+        else:
+            plt.show()
+    else:
+        plt.show()
+
+    return fig
+
+
+def plot_combine_images_vertical(figs, save_path=None, spacing=0.05, fixed_width=5, fixed_height=1, show=False):
+    num_images = len(figs)
+    fig_width = fixed_width
+    fig_height = num_images * fixed_height + (num_images - 1) * spacing
+    print(f"fig_width: {fig_width}, {fig_height}")
+
+    # 創建畫布，啟用 constrained_layout
+    fig, axes = plt.subplots(
+        num_images, 1,
+        figsize=(fig_width, fig_height),
+        gridspec_kw={'height_ratios': [1] * num_images, 'hspace': spacing / fixed_height},
+        constrained_layout=True
+    )
+
+    # 確保 axes 是列表
+    if num_images == 1:
+        axes = [axes]
+
+    for i, ((key, fig_source), ax) in enumerate(zip(figs.items(), axes)):
+        # 將 `fig_source` 等比例縮小 80%
+        fig_source.set_size_inches(fig_source.get_size_inches() * 0.8)
+        ax.imshow(fig_source.canvas.buffer_rgba())
+        ax.axis('off')
 
     if save_path:
         plt.savefig(save_path, dpi=300)

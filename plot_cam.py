@@ -7,13 +7,11 @@ from utils import plot_combine_images, plot_map
 warnings.filterwarnings('ignore')
 from torchvision import transforms
 import seaborn as sns
-from pytorch_grad_cam import run_dff_on_image, GradCAM, HiResCAM, GradCAMPlusPlus, GradCAMElementWise, XGradCAM, \
-    AblationCAM, ScoreCAM, EigenCAM, EigenGradCAM, LayerCAM, FullGrad, DeepFeatureFactorization, KPCA_CAM
+from pytorch_grad_cam import  GradCAM
 from pytorch_grad_cam.utils.model_targets import ClassifierOutputTarget
 from pytorch_grad_cam.utils.image import show_cam_on_image
-from PIL import Image
+
 import numpy as np
-import cv2
 import torch
 from typing import List, Callable, Optional, Dict
 import matplotlib.pyplot as plt
@@ -36,6 +34,89 @@ class ModelWrapper(torch.nn.Module):
 
     def forward(self, inputs: torch.Tensor) -> torch.Tensor:
         return self.model(inputs)
+
+
+def generate_cam_visualizations(model: torch.nn.Module,
+                              label: int,
+                              image: torch.Tensor,
+                              origin_img,
+                              RM_CIs,
+                              save_path,
+                              method: Callable = GradCAM,
+                              ):
+    """生成並保存模型的 CAM 可視化結果
+    
+    此函數為模型的不同層級生成 Class Activation Map (CAM) 可視化，並產生多種視覺化圖像：
+    1. 原始 CAM 熱力圖疊加在輸入圖像上
+    2. 縮減尺寸後的 CAM 熱力圖
+    3. 使用 CAM 遮罩後的 RM_CI（區域重要性）圖
+    
+    Args:
+        model (torch.nn.Module): 要分析的神經網路模型
+        label (int): 目標類別的標籤
+        image (torch.Tensor): 輸入圖像張量
+        origin_img: 原始分割圖像
+        RM_CIs (dict): 包含各層 RM_CI 數據的字典，格式為 {layer_name: array}
+        save_path (str): 輸出圖像的保存路徑
+        method (Callable, optional): CAM 計算方法，默認使用 GradCAM
+    
+    Returns:
+        tuple: 包含兩個圖像物件：
+            - cam_fig: 原始 CAM 可視化圖
+            - RM_CI_with_cam_fig: CAM 遮罩後的 RM_CI 圖
+    """
+    # 獲取需要生成 CAM 的目標層
+    heatmap_layers = get_cam_target_layers(model)
+
+    # 對每一層生成 CAM (Class Activation Map)
+    cams = get_each_layers_cam(
+        model=model,
+        target_layers=heatmap_layers,
+        label=label,
+        input_tensor=image,
+        cam_method=method)
+
+    # 初始化存儲 CAM 遮罩後的 RM_CI 圖和縮減後的 CAM 圖的字典
+    RM_CI_cams = {}
+    reduced_cams = {}
+    # 將原始分割圖加入字典
+    RM_CI_cams['Origin_Split'] = origin_img
+    reduced_cams['Origin_Split'] = origin_img
+
+    # 對每一層的 RM_CI 進行處理
+    for layer_name, RM_CI in RM_CIs.items():
+        print(f"{layer_name}, {RM_CI.shape}")
+
+        # 設定輸出形狀為 RM_CI 的高寬
+        output_shape = (RM_CI.shape[0], RM_CI.shape[1])
+        # 將 CAM 縮減到指定大小
+        reduced_cam = get_reduced_cam(cams[layer_name], output_shape)
+
+        # 繪製並保存縮減後的 CAM
+        reduced_cams[layer_name] = plot_reduced_cam(reduced_cam)
+        # 繪製並保存使用 CAM 遮罩後的 RM_CI 圖
+        RM_CI_cams[layer_name] = plot_RM_CI_with_cam_mask(RM_CI, reduced_cam, save_path)
+
+    # 創建保存 Cam 的目錄
+    cam_save_pth = os.path.join(save_path, 'cam')
+    os.makedirs(cam_save_pth, exist_ok=True)
+    # 創建保存使用 CAM 遮罩後的 RM_CI（區域重要性）圖
+    cam_RM_CI_save_pth = os.path.join(save_path, 'cam_RM_CI')
+    os.makedirs(cam_RM_CI_save_pth , exist_ok=True)
+
+    # 在原始圖像上繪製 CAM 並保存
+    cam_fig = plot_cams_on_image(image, cams, cam_save_pth , method.__name__)
+
+    # 將所有縮減後的 CAM 圖組合成一張圖並保存
+    plot_combine_images(reduced_cams, cam_save_pth  + f'/{method.__name__}_reduced_cam',
+                        title=f"{method.__name__}_reduced_cam")
+
+
+    # 將所有使用 CAM 遮罩後的 RM_CI 圖組合成一張圖並保存
+    RM_CI_with_cam_fig = plot_combine_images(RM_CI_cams, cam_RM_CI_save_pth  + f'/{method.__name__}_RM_CI',
+                                         title=f"{method.__name__}_RM_CI")
+
+    return cam_fig,  RM_CI_with_cam_fig
 
 
 def get_each_layers_cam(
@@ -105,6 +186,7 @@ def plot_cams_on_image(
     plt.close(fig_raw)
     imgs['raw'] = fig_raw
 
+
     for layer, cam in cams.items():
         cam_on_image = show_cam_on_image(
             np.float32(pil_image) / 255,
@@ -121,7 +203,9 @@ def plot_cams_on_image(
         imgs[layer] = fig
 
     output_path = os.path.join(save_path, cam_method_name)
-    plot_combine_images(imgs, output_path, show=True)
+    cam_fig = plot_combine_images(imgs, output_path, show=True, title=f'{cam_method_name}')
+
+    return cam_fig
 
 
 def get_cam_target_layers(model: torch.nn.Module) -> dict:
@@ -174,7 +258,7 @@ def get_reduced_cam(cam, output_shape):
     return reduced_cam
 
 
-def plot_RM_CI_with_cam_mask(RM_CI, reduced_cam, save_path = None):
+def plot_RM_CI_with_cam_mask(RM_CI, reduced_cam, save_path=None):
     """使用 CAM 遮罩繪製 RM_CI 圖
     
     根據 CAM 熱力圖的閾值，遮罩 RM_CI 圖像中的特定區域。
@@ -191,15 +275,18 @@ def plot_RM_CI_with_cam_mask(RM_CI, reduced_cam, save_path = None):
     # 找出 cam 中小於 Threshold 的位置
     mask = reduced_cam < Threshold
 
-    # 將對應的 RM_CI 區塊全部設為 0
-    RM_CI[mask] = 0
+    # 深度複製 RM_CI
+    RM_CI_copy = np.copy(RM_CI)
 
-    fig = plot_map(RM_CI, path = save_path)
+    # 將對應的 RM_CI 區塊全部設為 0
+    RM_CI_copy[mask] = 0
+
+    fig = plot_map(RM_CI_copy, path=save_path + "temp")
 
     return fig
 
 
-def plot_reduced_cam(resize_cam,  title="Heatmap of resize_cam", save_path=None):
+def plot_reduced_cam(resize_cam, title="Heatmap of resize_cam", save_path=None):
     """繪製縮減後的 CAM 熱力圖
     
     將縮減後的 CAM 熱力圖以熱力圖形式可視化。
@@ -227,6 +314,3 @@ def plot_reduced_cam(resize_cam,  title="Heatmap of resize_cam", save_path=None)
     plt.close()  # 關閉圖形，節省內存
 
     return fig
-
-
-
