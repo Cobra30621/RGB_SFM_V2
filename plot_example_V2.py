@@ -12,7 +12,8 @@ from torchsummary import summary
 from torch import nn
 
 from config import *
-from plot_heatmap import visualize_all_heatmap, get_target_layers
+from plot_heatmap import get_cam_target_layers, get_each_layers_cam, plot_RM_CI_with_cam_mask, \
+    plot_cams_on_image, get_reduced_cam, plot_reduced_cam
 from utils import *
 from models.SFMCNN import SFMCNN
 from models.RGB_SFMCNN import RGB_SFMCNN
@@ -212,9 +213,9 @@ def process_image(image, label, test_id):
 
     RM_CI_figs = {}
 
-    fig = plot_map(segments.permute(1, 2, 3, 4, 0), path=save_path + f'origin_split_{test_id}.png')
-    RM_figs['Origin_Split'] = fig
-    RM_CI_figs['Origin_Split'] =  fig
+    origin_img = plot_map(segments.permute(1, 2, 3, 4, 0), path=save_path + f'origin_split_{test_id}.png')
+    RM_figs['Origin_Split'] = origin_img
+    RM_CI_figs['Origin_Split'] = origin_img
 
     if arch['args']['in_channels'] == 1:
         # Layer 0
@@ -329,19 +330,10 @@ def process_image(image, label, test_id):
         RM_CI = CIs[layer_num][torch.topk(RM, k=1, dim=0, largest=True).indices.flatten()].reshape(RM_H, RM_W, CI_H,
                                                                                                    CI_W, arch['args'][
                                                                                                        'in_channels'])
-        RM_CI_figs[layer_num] = plot_map(RM_CI, path=RM_CI_save_path + f'{layer_num}_RM_CI_origin')
-        # 將RM_CI取每個小圖的代表色塊後合併成為新的RM_CI
-        RM_CI = RM_CI.reshape(RM_H, RM_W, CI_H // RM_CIs['RGB_convs_0'].shape[2], RM_CIs['RGB_convs_0'].shape[2],
-                              CI_W // RM_CIs['RGB_convs_0'].shape[3], RM_CIs['RGB_convs_0'].shape[3],
-                              arch['args']['in_channels'])
-        RM_CI = RM_CI.permute(0, 2, 1, 4, 3, 5, 6)
-        RM_CI = RM_CI.reshape(RM_CIs['RGB_convs_0'].shape)
-        RM_CI = RM_CI.permute(0, 1, 4, 2, 3).reshape(*RM_CI.shape[:2], arch['args']['in_channels'], -1).mean(
-            dim=-1).unsqueeze(-2).unsqueeze(-2).repeat(1, 1, *RM_CI.shape[2:4], 1)
-        RM_CI = RM_CI.reshape(RM_H, RM_CI.shape[0] // RM_H, RM_W, RM_CI.shape[1] // RM_W, *RM_CI.shape[2:])
-        RM_CI = RM_CI.permute(0, 2, 1, 4, 3, 5, 6).reshape(RM_H, RM_W, CI_H, CI_W, 3)
         RM_CIs[layer_num] = RM_CI
-        plot_map(RM_CI, path=RM_CI_save_path + f'{layer_num}_RM_CI')
+        RM_CI_figs[layer_num] = plot_map(RM_CI, path=RM_CI_save_path + f'{layer_num}_RM_CI_origin')
+
+
         # 繪製 RM
         fig = plot_map(RM.permute(1, 2, 0).reshape(RM_H, RM_W, *plot_shape, 1).detach().numpy(),
                  path=RM_save_path + f'{layer_num}_RM')
@@ -368,18 +360,8 @@ def process_image(image, label, test_id):
         RM_CI = CIs[layer_num][torch.topk(RM, k=1, dim=0, largest=True).indices.flatten()].reshape(RM_H, RM_W, CI_H,
                                                                                                    CI_W, arch['args'][
                                                                                                        'in_channels'])
-        RM_CI_figs[layer_num] = plot_map(RM_CI, path=RM_CI_save_path + f'{layer_num}_RM_CI_origin')
-        # 將RM_CI取每個小圖的代表色塊後合併成為新的RM_CI
-        RM_CI = RM_CI.reshape(RM_H, RM_W, CI_H // RM_CIs['RGB_convs_0'].shape[2], RM_CIs['RGB_convs_0'].shape[2],
-                              CI_W // RM_CIs['RGB_convs_0'].shape[3], RM_CIs['RGB_convs_0'].shape[3],
-                              arch['args']['in_channels'])
-        RM_CI = RM_CI.permute(0, 2, 1, 4, 3, 5, 6)
-        RM_CI = RM_CI.reshape(RM_CIs['RGB_convs_0'].shape)
-        RM_CI = RM_CI.permute(0, 1, 4, 2, 3).reshape(*RM_CI.shape[:2], arch['args']['in_channels'], -1).mean(
-            dim=-1).unsqueeze(-2).unsqueeze(-2).repeat(1, 1, *RM_CI.shape[2:4], 1)
-        RM_CI = RM_CI.reshape(RM_H, RM_CI.shape[0] // RM_H, RM_W, RM_CI.shape[1] // RM_W, *RM_CI.shape[2:])
-        RM_CI = RM_CI.permute(0, 2, 1, 4, 3, 5, 6).reshape(RM_H, RM_W, CI_H, CI_W, 3)
         RM_CIs[layer_num] = RM_CI
+        RM_CI_figs[layer_num] = plot_map(RM_CI, path=RM_CI_save_path + f'{layer_num}_RM_CI_origin')
         plot_map(RM_CI, path=RM_CI_save_path + f'{layer_num}_RM_CI')
         # 繪製 RM
         fig = plot_map(RM.permute(1, 2, 0).reshape(RM_H, RM_W, *plot_shape, 1).detach().numpy(),
@@ -450,16 +432,61 @@ def process_image(image, label, test_id):
         # 只跑 Conv(卷積)
         plot_RM_map('Gray_convs_2_Conv', plot_shape, image, RM_save_path, is_gray=True)
 
+        # 繪製 RM 的合併圖
         plot_combine_images(RM_figs, RM_save_path + f'RGB_combine')
+        # 繪製 RM_CI 的合併圖
         plot_combine_images(RM_CI_figs, RM_CI_save_path + f'combine')
 
         ################################### heatmap ###################################
 
-        if PLOT_HEATMAP:
-            heatmap_layers = get_target_layers(model)
-            visualize_all_heatmap(model, heatmap_layers, image, label.argmax().item(), save_path, heatmap_methods)
+        # 創建保存熱圖的目錄
+        cam_save_pth = os.path.join(save_path, 'heatmap')
+        os.makedirs(cam_save_pth, exist_ok=True)
+
+        # 獲取標籤的索引值
+        label_arg = label.argmax().item()
+        # 獲取需要生成 CAM 的目標層
+        heatmap_layers = get_cam_target_layers(model)
+        # 設定使用 GradCAM 方法
+        method = GradCAM
+
+        # 對每一層生成 CAM (Class Activation Map)
+        cams = get_each_layers_cam(
+            model=model,
+            target_layers=heatmap_layers,
+            label=label_arg,
+            input_tensor=image,
+            cam_method=method)
 
 
+        # 初始化存儲 CAM 遮罩後的 RM_CI 圖和縮減後的 CAM 圖的字典
+        RM_CI_cams = {}
+        reduced_cams = {}
+        # 將原始分割圖加入字典
+        RM_CI_cams['Origin_Split'] = origin_img
+        reduced_cams['Origin_Split'] = origin_img
+
+        # 對每一層的 RM_CI 進行處理
+        for layer_name, RM_CI in RM_CIs.items():
+            print(f"{layer_name}, {RM_CI.shape}")
+
+            # 設定輸出形狀為 RM_CI 的高寬
+            output_shape = (RM_CI.shape[0], RM_CI.shape[1])
+            # 將 CAM 縮減到指定大小
+            reduced_cam = get_reduced_cam(cams[layer_name], output_shape)
+
+            # 繪製並保存縮減後的 CAM
+            reduced_cams[layer_name] = plot_reduced_cam(reduced_cam)
+            # 繪製並保存使用 CAM 遮罩後的 RM_CI 圖
+            RM_CI_cams[layer_name] = plot_RM_CI_with_cam_mask(RM_CI, reduced_cam, RM_CI_save_path)
+
+        # 將所有使用 CAM 遮罩後的 RM_CI 圖組合成一張圖並保存
+        plot_combine_images(RM_CI_cams, RM_CI_save_path + f'/cam_RM_CI_combine')
+        # 將所有縮減後的 CAM 圖組合成一張圖並保存
+        plot_combine_images(reduced_cams, cam_save_pth + f'/reduced_cam_combine')
+        # 在原始圖像上繪製 CAM 並保存
+        plot_cams_on_image(image, cams, cam_save_pth, method.__name__)
+ 
 
     plt.close('all')
 

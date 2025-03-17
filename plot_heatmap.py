@@ -2,11 +2,11 @@
 import os
 import warnings
 
-from utils import plot_combine_images
+from utils import plot_combine_images, plot_map
 
 warnings.filterwarnings('ignore')
 from torchvision import transforms
-
+import seaborn as sns
 from pytorch_grad_cam import run_dff_on_image, GradCAM, HiResCAM, GradCAMPlusPlus, GradCAMElementWise, XGradCAM, \
     AblationCAM, ScoreCAM, EigenCAM, EigenGradCAM, LayerCAM, FullGrad, DeepFeatureFactorization, KPCA_CAM
 from pytorch_grad_cam.utils.model_targets import ClassifierOutputTarget
@@ -15,14 +15,21 @@ from PIL import Image
 import numpy as np
 import cv2
 import torch
-from typing import List, Callable, Optional
+from typing import List, Callable, Optional, Dict
 import matplotlib.pyplot as plt
 
 """ Model wrapper to return a tensor"""
 
 
 class ModelWrapper(torch.nn.Module):
-    """將 Huggingface 模型包裝為返回張量的模型"""
+    """將 Huggingface 模型包裝為返回張量的模型
+    
+    這個包裝器類用於確保模型輸出為張量格式，主要用於配合 CAM 可視化方法的使用。
+    
+    Args:
+        model (torch.nn.Module): 要包裝的原始模型
+    """
+
     def __init__(self, model: torch.nn.Module):
         super().__init__()
         self.model = model
@@ -31,65 +38,102 @@ class ModelWrapper(torch.nn.Module):
         return self.model(inputs)
 
 
-""" Helper function to run GradCAM on an image and create a visualization.
-    (note to myself: this is probably useful enough to move into the package)
-    If several targets are passed in targets_for_gradcam,
-    e.g different categories,
-    a visualization for each of them will be created.
-
-"""
-def generate_cam_visualization(
-    model: torch.nn.Module,
-    target_layer: torch.nn.Module,
-    cam_target: Callable,
-    transform: Optional[Callable],
-    input_tensor: torch.Tensor,
-    input_image: Image.Image,
-    cam_method: Callable = GradCAM
-) -> np.ndarray:
-    """生成 CAM 可視化結果
+def get_each_layers_cam(
+        model: torch.nn.Module,
+        target_layers: dict,
+        label: int,
+        input_tensor: torch.Tensor,
+        cam_method: Callable = GradCAM
+):
+    """為每個目標層生成 CAM 熱力圖
+    
+    使用指定的 CAM 方法，為模型中的每個目標層生成對應的熱力圖。
     
     Args:
-        model: 目標模型
-        target_layer: 目標層
-        cam_target: CAM 目標函數
-        transform: 形狀轉換函數
-        input_tensor: 輸入張量
-        input_image: 輸入圖像
-        cam_method: CAM 方法
+        model (torch.nn.Module): 目標模型
+        target_layers (dict): 目標層字典
+        label (int): 目標標籤
+        input_tensor (torch.Tensor): 輸入圖像張量
+        cam_method (Callable): CAM 方法，默認使用 GradCAM
         
     Returns:
-        CAM 可視化結果
+        Dict[str, torch.Tensor]: 每個層的名稱及其對應的 CAM 熱力圖
     """
     wrapped_model = ModelWrapper(model)
+    cam_target = ClassifierOutputTarget(label)
+
+    cams = {}
+    for layer_name in target_layers:
+        layer = target_layers[layer_name]
+
+        with cam_method(
+                model=wrapped_model,
+                target_layers=[layer]
+        ) as cam:
+            # 移除批次處理邏輯，直接使用單個輸入
+            input_batch = input_tensor.unsqueeze(0)
+            grayscale_cam = cam(input_tensor=input_batch, targets=[cam_target])[0]
+            cams[layer_name] = grayscale_cam
+
+    return cams
+
+
+def plot_cams_on_image(
+        input_image: torch.Tensor,
+        cams: Dict[str, torch.Tensor],
+        save_path: str,
+        cam_method_name: str
+):
+    """將 CAM 熱力圖疊加在原始圖像上並繪製
     
-    with cam_method(
-        model=wrapped_model,
-        target_layers=[target_layer],
-        reshape_transform=transform
-    ) as cam:
-        # 移除批次處理邏輯，直接使用單個輸入
-        input_batch = input_tensor.unsqueeze(0)
-        grayscale_cam = cam(input_tensor=input_batch, targets=[cam_target])[0]
-        
-        vis = show_cam_on_image(
-            np.float32(input_image) / 255,
-            grayscale_cam,
-            use_rgb=True
-        )
-        vis = cv2.resize(vis, (vis.shape[1] * 2, vis.shape[0] * 2))
-            
-        return vis
-
-
-def get_target_layers(model: torch.nn.Module) -> dict:
-    """獲取需要分析的目標層
+    將生成的 CAM 熱力圖與原始圖像進行融合，並保存可視化結果。
     
     Args:
-        model: 目標模型
+        input_image (torch.Tensor): 原始輸入圖像
+        cams (Dict[str, torch.Tensor]): 每個層的 CAM 熱力圖
+        save_path (str): 保存路徑
+        cam_method_name (str): CAM 方法名稱
+    """
+    pil_image = transforms.ToPILImage()(input_image)
+
+    imgs = {}
+    # 添加原始圖像的figure
+    fig_raw = plt.figure(figsize=(6, 6))
+    plt.imshow(pil_image)  # 確保數據是numpy數組
+    plt.axis('off')
+    plt.draw()
+    plt.close(fig_raw)
+    imgs['raw'] = fig_raw
+
+    for layer, cam in cams.items():
+        cam_on_image = show_cam_on_image(
+            np.float32(pil_image) / 255,
+            cam,
+            use_rgb=True
+        )
+
+        fig = plt.figure(figsize=(6, 6))
+        plt.imshow(cam_on_image)
+        plt.axis('off')
+        plt.draw()
+        plt.close(fig)
+
+        imgs[layer] = fig
+
+    output_path = os.path.join(save_path, cam_method_name)
+    plot_combine_images(imgs, output_path, show=True)
+
+
+def get_cam_target_layers(model: torch.nn.Module) -> dict:
+    """獲取模型中需要分析的目標層
+    
+    返回模型中所有需要進行 CAM 分析的層級。
+    
+    Args:
+        model (torch.nn.Module): 目標模型
         
     Returns:
-        包含所有目標層的字典
+        dict: 包含所有目標層的字典，鍵為層名稱，值為層物件
     """
     return {
         'RGB_convs_0': model.RGB_convs[1],
@@ -101,87 +145,88 @@ def get_target_layers(model: torch.nn.Module) -> dict:
     }
 
 
-
-def visualize_heatmap(model, layers, image, img_tensor, label, method: Callable = GradCAM):
-    """生成可視化結果
-
-        Args:
-            model: 目標模型
-            layers: 目標層字典
-            image: 輸入圖像
-            img_tensor: 輸入圖片 tensor
-            label: 目標標籤
-            method: CAM 方法
-        """
-    imgs = {}
-    # 添加原始圖像的figure
-    fig_raw = plt.figure(figsize=(6, 6))
-    plt.imshow(img_tensor.permute(1, 2, 0).cpu().numpy())  # 確保數據是numpy數組
-    plt.axis('off')
-    plt.draw()
-    plt.close(fig_raw)
-    imgs['raw'] = fig_raw
-
-    target_for_gradcam = ClassifierOutputTarget(label)
-    for layer in layers:
-        target_layer = layers[layer]
-
-        cam_img = generate_cam_visualization(model, target_layer, target_for_gradcam, None, img_tensor, image, method)
-
-        # 確保cam_img是正確的numpy數組
-        if isinstance(cam_img, torch.Tensor):
-            cam_img = cam_img.cpu().numpy()
-
-        fig = plt.figure(figsize=(6, 6))
-
-        plt.imshow(cam_img)
-        plt.axis('off')
-        plt.draw()
-        plt.close(fig)
-
-        imgs[layer] = fig
-
-    return imgs
-
-
-def visualize_all_heatmap(
-    model: torch.nn.Module,
-    target_layers: dict,
-    image: torch.Tensor,
-    label: int,
-    output_dir: str,
-    cam_methods: List[Callable]
-) -> None:
-    """為所有 CAM 方法生成可視化結果
+def get_reduced_cam(cam, output_shape):
+    """將 CAM 熱力圖縮減到指定大小
+    
+    通過區塊平均的方式將 CAM 熱力圖縮減到目標尺寸。
     
     Args:
-        model: 目標模型
-        target_layers: 目標層字典
-        image: 輸入圖像
-        label: 目標標籤
-        output_dir: 輸出目錄
-        cam_methods: CAM 方法列表
+        cam (numpy.ndarray): 原始 CAM 熱力圖
+        output_shape (tuple): 目標輸出形狀 (高度, 寬度)
+        
+    Returns:
+        numpy.ndarray: 縮減後的 CAM 熱力圖
     """
-    heatmap_dir = os.path.join(output_dir, 'heatmap')
-    os.makedirs(heatmap_dir, exist_ok=True)
+    n, m = cam.shape
+    target_n, target_m = output_shape
+
+    # 沿著兩個維度進行不均勻分割
+    split_n = np.array_split(np.arange(n), target_n)
+    split_m = np.array_split(np.arange(m), target_m)
+
+    # 對每個區塊取平均
+    reduced_cam = np.array([
+        np.mean(cam[np.ix_(rows, cols)])
+        for rows in split_n
+        for cols in split_m
+    ]).reshape(output_shape)
+
+    return reduced_cam
+
+
+def plot_RM_CI_with_cam_mask(RM_CI, reduced_cam, save_path = None):
+    """使用 CAM 遮罩繪製 RM_CI 圖
     
-    pil_image = transforms.ToPILImage()(image)
-    img_tensor = transforms.ToTensor()(pil_image)
+    根據 CAM 熱力圖的閾值，遮罩 RM_CI 圖像中的特定區域。
     
-    for method in cam_methods:
-        try:
-            print(f"\n使用方法: {method.__name__}")
-            visualizations = visualize_heatmap(
-                model=model,
-                layers=target_layers,
-                image=pil_image,
-                img_tensor=img_tensor,
-                label=label,
-                method=method
-            )
-            
-            output_path = os.path.join(heatmap_dir, method.__name__)
-            plot_combine_images(visualizations, output_path, show=True)
-            
-        except Exception as e:
-            print(f"方法 {method.__name__} 執行失敗: {str(e)}")
+    Args:
+        RM_CI (numpy.ndarray): RM_CI 數據
+        reduced_cam (numpy.ndarray): 縮減後的 CAM 熱力圖
+        save_path (str): 保存路徑
+        
+    Returns:
+        matplotlib.figure.Figure: 生成的圖形物件
+    """
+    Threshold = 0.2
+    # 找出 cam 中小於 Threshold 的位置
+    mask = reduced_cam < Threshold
+
+    # 將對應的 RM_CI 區塊全部設為 0
+    RM_CI[mask] = 0
+
+    fig = plot_map(RM_CI, path = save_path)
+
+    return fig
+
+
+def plot_reduced_cam(resize_cam,  title="Heatmap of resize_cam", save_path=None):
+    """繪製縮減後的 CAM 熱力圖
+    
+    將縮減後的 CAM 熱力圖以熱力圖形式可視化。
+    
+    Args:
+        resize_cam (numpy.ndarray): 縮減後的 CAM 數據
+        save_path (str): 保存路徑
+        title (str): 圖表標題，默認為 "Heatmap of resize_cam"
+        
+    Returns:
+        matplotlib.figure.Figure: 生成的圖形物件
+    """
+    fig = plt.figure(figsize=(8, 6))
+    sns.heatmap(resize_cam, annot=True, cmap="viridis", cbar=True, fmt=".2f")
+    plt.title(title)
+    plt.xlabel("m-axis")
+    plt.ylabel("n-axis")
+
+    # 儲存圖像
+    if save_path:
+        plt.savefig(save_path, bbox_inches='tight')
+    else:
+        plt.show()
+
+    plt.close()  # 關閉圖形，節省內存
+
+    return fig
+
+
+

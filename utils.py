@@ -7,6 +7,8 @@ import os
 import torch
 import math
 import torch.nn.functional as F
+from torchvision.utils import save_image
+
 from config import *
 from utils import *
 from models.SFMCNN import SFMCNN
@@ -86,9 +88,10 @@ def plot_map(rm, grid_size=None, rowspan=None, colspan=None, path=None, **kwargs
         plt.savefig(path, dpi=300, bbox_inches='tight')
     else:
         plt.show()
-        plt.close()
 
-    return fig  # 新增：回傳繪製的圖像
+    plt.close(fig)
+
+    return fig  # 回傳繪製的圖像
         
 
 

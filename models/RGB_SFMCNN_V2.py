@@ -574,21 +574,21 @@ class Gray_Conv2d(nn.Module):
             (input.shape[-2] + self.padding * 2 - (self.kernel_size[1] - 1) - 1) / self.stride[1] + 1)
         # Unfold output = (batch, output_width * output_height, C×∏(kernel_size))
         windows = F.unfold(input, kernel_size=self.kernel_size, stride=self.stride, padding=self.padding).permute(0, 2, 1)
-        
+
         # 計算 windows 和 weight 的 L2 範數
         windows_norm = torch.norm(windows, p=2, dim=2, keepdim=True)
         weight_norm = torch.norm(self.weight, p=2, dim=1, keepdim=True)
-        
+
+
         # 計算點積
         dot_product = torch.matmul(windows, self.weight.t())
-        
+
+
         # 計算餘弦相似度
         cosine = dot_product / (windows_norm * weight_norm.t() + 1e-8)
-        
         # 調整維度順序並重塑
         result = cosine.permute(0, 2, 1)
         result = result.reshape(result.shape[0], result.shape[1], output_height, output_width)
-        
         return result
 
     # 使用卷積
@@ -704,27 +704,28 @@ class RBF_Conv2d(nn.Module):
 
     # 使用餘弦相似度
     def _cosine(self, input: Tensor) -> Tensor:
+
         output_width = math.floor(
             (input.shape[-1] + self.padding * 2 - (self.kernel_size[0] - 1) - 1) / self.stride[0] + 1)
         output_height = math.floor(
             (input.shape[-2] + self.padding * 2 - (self.kernel_size[1] - 1) - 1) / self.stride[1] + 1)
         # Unfold output = (batch, output_width * output_height, C×∏(kernel_size))
-        windows = F.unfold(input, kernel_size=self.kernel_size, stride=self.stride, padding=self.padding).permute(0, 2, 1)
-        
-        # 計算 windows 和 weight 的 L2 範數
+        windows = F.unfold(input, kernel_size=self.kernel_size, stride=self.stride, padding=self.padding).permute(0, 2,
+                                                                                                                  1)
+
+        # 計算 windows 和 weight 的 L2 範數(向量的歐基里德距離)
         windows_norm = torch.norm(windows, p=2, dim=2, keepdim=True)
         weight_norm = torch.norm(self.weight, p=2, dim=1, keepdim=True)
-        
+
         # 計算點積
         dot_product = torch.matmul(windows, self.weight.t())
-        
+
         # 計算餘弦相似度
         cosine = dot_product / (windows_norm * weight_norm.t() + 1e-8)
-        
+
         # 調整維度順序並重塑
         result = cosine.permute(0, 2, 1)
         result = result.reshape(result.shape[0], result.shape[1], output_height, output_width)
-        
         return result
 
 
@@ -859,7 +860,7 @@ class SFM(nn.Module):
     def __init__(self,
                  filter: _size_2_t,
                  alpha_max: float = 0.9,
-                 alpha_min: float = 0.99,
+                 alpha_min: float = 1.0,
                  device: str = "cuda",
                  method: str = "alpha_mean") -> None:
         super(SFM, self).__init__()
