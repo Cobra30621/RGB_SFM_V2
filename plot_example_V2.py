@@ -453,7 +453,6 @@ def process_image(image, label, test_id):
             cam_figs[f'{method.__name__}'] = cam_fig
             RM_CI_figs[f'{method.__name__}'] = RM_CI_fig
 
-        print(cam_figs)  # 打印所有生成的 CAM 圖像
 
         # 將所有 CAM 結果垂直組合並保存
         plot_combine_images_vertical(cam_figs, RM_CI_save_path + f'cam/cams_combine')

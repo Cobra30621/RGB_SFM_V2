@@ -85,8 +85,6 @@ def generate_cam_visualizations(model: torch.nn.Module,
 
     # 對每一層的 RM_CI 進行處理
     for layer_name, RM_CI in RM_CIs.items():
-        print(f"{layer_name}, {RM_CI.shape}")
-
         # 設定輸出形狀為 RM_CI 的高寬
         output_shape = (RM_CI.shape[0], RM_CI.shape[1])
         # 將 CAM 縮減到指定大小
