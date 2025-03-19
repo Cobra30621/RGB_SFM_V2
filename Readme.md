@@ -1,6 +1,6 @@
 # A New CNN-Based Interpretable Deep Learning Model
-Implementation of paper - [https://etd.lib.nycu.edu.tw/cgi-bin/gs32/ncugsweb.cgi/ccd=koGVez/record?r1=1&h1=0](https://etd.lib.nycu.edu.tw/cgi-bin/gs32/ncugsweb.cgi?o=dncucdr&s=id=%22GC111522094%22.&searchmode=basic)
-Introduction PPT：https://docs.google.com/presentation/d/1RVQyYK1Z_ld_ynAwWAJSIH9tQb7rh1GJ/edit?usp=drive_link&ouid=115867738728025033314&rtpof=true&sd=true
+[ [Implementation of paper](https://etd.lib.nycu.edu.tw/cgi-bin/gs32/ncugsweb.cgi?o=dncucdr&s=id=%22GC111522094%22.&searchmode=basic) ]\
+[ [Introduction PPT](https://docs.google.com/presentation/d/1RVQyYK1Z_ld_ynAwWAJSIH9tQb7rh1GJ/edit?usp=drive_link&ouid=115867738728025033314&rtpof=true&sd=true) ]
 
 ## 簡介
 本研究提出了基於卷積神經網路的新型可解釋性深度學習模型，
