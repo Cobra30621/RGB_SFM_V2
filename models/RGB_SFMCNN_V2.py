@@ -750,6 +750,8 @@ def get_rbf(rbf, activate_param, device, required_grad = True):
         return cReLU_percent(percent=activate_param[1])
     elif rbf == 'bia_gauss':
         return bia_gauss(std=activate_param[0], device=device)
+    elif rbf == 'regularization':
+        return MeanVarianceRegularization()
     else:
         raise ValueError(f"Unknown RBF type: {rbf}")
 
@@ -845,14 +847,29 @@ class cReLU_percent(nn.Module):
         return f"percent={self.percent.item()}"
 
 
+class MeanVarianceRegularization(nn.Module):
+    def __init__(self, target_range=(0, 1), epsilon=1e-8):
+        super().__init__()
+        self.target_min, self.target_max = target_range
+        self.epsilon = epsilon
+
+    def forward(self, x):
+        # 計算每個 feature map 的最小值和最大值
+        min_per_map = x.amin(dim=(0, 2, 3), keepdim=True)  # shape = [1, C, 1, 1] 
+        max_per_map = x.amax(dim=(0, 2, 3), keepdim=True)  # shape = [1, C, 1, 1]
+
+        # Min-max 正規化到目標範圍
+        x_norm = (x - min_per_map) / (max_per_map - min_per_map + self.epsilon)
+        x_final = x_norm * (self.target_max - self.target_min) + self.target_min
+        
+        return x_final
+
 
 '''
     時序合併層
     parameters:
         filter: 合併的範圍
 '''
-
-
 class SFM(nn.Module):
     def __init__(self,
                  filter: _size_2_t,
@@ -863,12 +880,35 @@ class SFM(nn.Module):
         super(SFM, self).__init__()
         self.filter = filter
         self.alpha = torch.linspace(start=alpha_min, end=alpha_max, steps=math.prod(self.filter),
-                                    requires_grad=True).reshape(*self.filter)
+                                    requires_grad=False).reshape(*self.filter)
         self.device = device
         self.method = method
+        
+        # 新增可訓練的卷積權重參數
+        if method == "conv":
+            self.conv_weight = nn.Parameter(
+                torch.empty(1, 1, *self.filter).uniform_(-0.1, 0.1)
+            )
+        else:
+            self.register_buffer("conv_weight", torch.zeros(1, 1, *self.filter))
 
     def forward(self, input: Tensor) -> Tensor:
         batch_num, channels, height, width = input.shape
+        
+        if self.method == "conv":
+            # 將權重擴展到對應的通道數
+            expanded_weight = self.conv_weight.repeat(channels, 1, 1, 1)
+            
+            # 進行卷積操作
+            output = F.conv2d(
+                input=input,
+                weight=expanded_weight,
+                stride=self.filter,  # 使用 filter 作為 stride
+                groups=channels  # 每個通道獨立卷積
+            )
+            return output
+            
+        # 其他方法保持不變
         alpha_pows = self.alpha.repeat(input.shape[1], 1, 1).to(self.device)
         _, filter_h, filter_w = alpha_pows.shape
 
@@ -898,7 +938,10 @@ class SFM(nn.Module):
         return output
 
     def extra_repr(self) -> str:
-        return f"filter={self.filter}, alpha={self.alpha.detach().numpy()}"
+        base_repr = f"filter={self.filter}, method={self.method}"
+        if self.method == "conv":
+            return base_repr + f", conv_weight_shape={self.conv_weight.shape}"
+        return base_repr + f", alpha={self.alpha.detach().numpy()}"
 
 
 class Sigmoid(nn.Module):

@@ -112,7 +112,7 @@ def generate_cam_visualizations(model: torch.nn.Module,
 
     # 將所有使用 CAM 遮罩後的 RM_CI 圖組合成一張圖並保存
     RM_CI_with_cam_fig = plot_combine_images(RM_CI_cams, cam_RM_CI_save_pth  + f'/{method.__name__}_RM_CI',
-                                         title=f"{method.__name__}_RM_CI")
+                                         title=f"{method.__name__}")
 
     return cam_fig,  RM_CI_with_cam_fig
 

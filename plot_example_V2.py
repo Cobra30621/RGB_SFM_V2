@@ -14,6 +14,8 @@ from dataloader import get_dataloader
 import matplotlib
 
 
+PLOT_CAM = False
+
 matplotlib.use('Agg')
 
 '''
@@ -425,39 +427,40 @@ def process_image(image, label, test_id):
 
         ################################### CAM ###################################
 
-        # 定義所有要使用的 CAM 方法
-        cam_methods = [GradCAM, HiResCAM, GradCAMPlusPlus, GradCAMElementWise, XGradCAM, AblationCAM,
-                           ScoreCAM, EigenCAM, EigenGradCAM, LayerCAM, KPCA_CAM]
-        # 如果只想測試部分方法,可以使用下面這行
-        # cam_methods = [GradCAM, HiResCAM, GradCAMPlusPlus]
+        if PLOT_CAM:
+            # 定義所有要使用的 CAM 方法
+            cam_methods = [GradCAM, HiResCAM, GradCAMPlusPlus, GradCAMElementWise, XGradCAM, AblationCAM,
+                               ScoreCAM, EigenCAM, EigenGradCAM, LayerCAM, KPCA_CAM]
+            # 如果只想測試部分方法,可以使用下面這行
+            # cam_methods = [GradCAM, HiResCAM, GradCAMPlusPlus]
 
-        # 創建兩個字典來存儲不同方法生成的圖像
-        cam_figs = {}  # 存儲 CAM 可視化結果
-        RM_CI_figs = {}  # 存儲 RM-CI 可視化結果
-        RM_CI_figs['raw'] = RM_CI_combine_fig  # 保存原始的 RM-CI 組合圖
+            # 創建兩個字典來存儲不同方法生成的圖像
+            cam_figs = {}  # 存儲 CAM 可視化結果
+            RM_CI_figs = {}  # 存儲 RM-CI 可視化結果
+            RM_CI_figs['raw'] = RM_CI_combine_fig  # 保存原始的 RM-CI 組合圖
 
-        # 對每個 CAM 方法進行處理
-        for method in cam_methods:
-            print(f"drawing {method.__name__}")  
-            # 生成 CAM 可視化結果
-            cam_fig, RM_CI_fig = generate_cam_visualizations(
-                model=model,          # 模型
-                label=label.argmax().item(),  # 預測標籤
-                image=image,          # 輸入圖像
-                origin_img=origin_img,  # 原始圖像
-                RM_CIs=RM_CIs,         # RM-CI 數據
-                save_path=RM_CI_save_path,  # 保存路徑
-                method=method         # CAM 方法
-            )
-            # 將結果保存到對應的字典中
-            cam_figs[f'{method.__name__}'] = cam_fig
-            RM_CI_figs[f'{method.__name__}'] = RM_CI_fig
+            # 對每個 CAM 方法進行處理
+            for method in cam_methods:
+                print(f"drawing {method.__name__}")
+                # 生成 CAM 可視化結果
+                cam_fig, RM_CI_fig = generate_cam_visualizations(
+                    model=model,          # 模型
+                    label=label.argmax().item(),  # 預測標籤
+                    image=image,          # 輸入圖像
+                    origin_img=origin_img,  # 原始圖像
+                    RM_CIs=RM_CIs,         # RM-CI 數據
+                    save_path=RM_CI_save_path,  # 保存路徑
+                    method=method         # CAM 方法
+                )
+                # 將結果保存到對應的字典中
+                cam_figs[f'{method.__name__}'] = cam_fig
+                RM_CI_figs[f'{method.__name__}'] = RM_CI_fig
 
 
-        # 將所有 CAM 結果垂直組合並保存
-        plot_combine_images_vertical(cam_figs, RM_CI_save_path + f'cam/cams_combine')
-        # 將所有 RM-CI 結果垂直組合並保存
-        plot_combine_images_vertical(RM_CI_figs, RM_CI_save_path + f'/{method.__name__}_combine')
+            # 將所有 CAM 結果垂直組合並保存
+            plot_combine_images_vertical(cam_figs, RM_CI_save_path + f'cam/cams_combine')
+            # 將所有 RM-CI 結果垂直組合並保存
+            plot_combine_images_vertical(RM_CI_figs, RM_CI_save_path + f'/{method.__name__}_combine')
 
     plt.close('all')
 
