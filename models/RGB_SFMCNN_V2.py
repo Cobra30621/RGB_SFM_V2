@@ -306,7 +306,7 @@ class RGB_Conv2d(nn.Module):
     def __init__(self,
                  in_channels: int,
                  out_channels: int,
-                 kernel_size: int,
+                 kernel_size: tuple,
                  stride: int = 1,
                  padding: int = 0,
                  initial: str = "kaiming",
@@ -346,21 +346,18 @@ class RGB_Conv2d(nn.Module):
 
         weights = self.weights.unsqueeze(-1).unsqueeze(-1).expand(-1, -1, 5, 5)  # 變成 (30, 3, 5, 5)
 
+        # print(  f"input_tensor {input_tensor.shape}") # ([2, 3, 224, 224])
         # 使用 unfold 取得 5x5 的卷積區域 (展開操作)
-        unfold = torch.nn.Unfold(kernel_size=5, stride=4)
-        input_unfolded = unfold(input_tensor)  # shape = (-1, 75, 36)
-        # print(f"input_unfolded{input_unfolded.shape}")
+        unfold = torch.nn.Unfold(kernel_size=self.kernel_size, stride=self.stride)
+
+        input_unfolded = unfold(input_tensor)
 
         # 重新塑形成適合計算的格式
-        input_unfolded = input_unfolded.view(-1, 3, 5, 5, 6, 6)  # (1000, 3, 5, 5, 6, 6)
-        input_unfolded = input_unfolded.permute(0, 4, 5, 1, 2, 3)  # (1000, 6, 6, 3, 5, 5)
-        #
-        # print(f"input_unfolded after {input_unfolded.shape}")
-        # print(f"weight {weights.shape}")
-        #
-        # print(f"input_unfolded.unsqueeze(1) {input_unfolded.unsqueeze(1).shape}")
-        # print(f"weights.unsqueeze(0).unsqueeze(2).unsqueeze(3) {weights.unsqueeze(0).unsqueeze(2).unsqueeze(3).shape}")
-        #
+        height, width = int(input_unfolded.shape[2] ** 0.5), int(input_unfolded.shape[2] ** 0.5)
+        input_unfolded = input_unfolded.view(-1, 3, self.kernel_size[0], self.kernel_size[1], height, width)  # (1000, 3, 5, 5, height, width)
+        input_unfolded = input_unfolded.permute(0, 4, 5, 1, 2, 3)  # (1000, height, width, 3, 5, 5)
+
+
 
         # 計算顏色相似度 (可以選擇不同公式)
         distances = self. batched_LAB_distance(input_unfolded.unsqueeze(1), weights.unsqueeze(0).unsqueeze(2).unsqueeze(3))
