@@ -10,8 +10,9 @@ from dataloader import get_dataloader
 from config import *
 import models
 from file_tools import increment_path
-from loss.loss_function import get_loss_function
+from loss.loss_function import get_loss_function, CustomLoss
 from monitor.monitor_method import get_all_layers_stats
+
 
 
 def train(train_dataloader: DataLoader, valid_dataloader: DataLoader, model: nn.Module, loss_fn, optimizer, scheduler, epoch, device):
@@ -20,6 +21,10 @@ def train(train_dataloader: DataLoader, valid_dataloader: DataLoader, model: nn.
     count = 0
     patience = config['patience']
     checkpoint = {}
+
+    layers = get_layers(model)
+    layers_infos = config['layers_infos']
+    custom_loss_fn = CustomLoss()
 
     with torch.autograd.set_detect_anomaly(True):
         for e in range(epoch):
@@ -35,7 +40,9 @@ def train(train_dataloader: DataLoader, valid_dataloader: DataLoader, model: nn.
 
 
                 pred = model(X)
-                loss = loss_fn(pred, y)
+                # loss = loss_fn(pred, y)
+                images = X
+                loss = custom_loss_fn(pred, y, model, layers, layers_infos, images)
                 # 反向传播
                 loss.backward()
                 # 更新模型参数

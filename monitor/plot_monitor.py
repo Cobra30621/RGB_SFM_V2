@@ -74,7 +74,7 @@ def plot_layer_graph(model, layers, layer_num, images, is_gray=False, plot_shape
     if plot_shape is None:
         plot_shape = (int(raw.shape[0] ** 0.5), int(raw.shape[0] ** 0.5))
 
-    xlim = (global_stats['min'], global_stats['max'])
+    xlim = (global_stats['total_min'], global_stats['total_max'])
 
     plot_channel_histograms(raw, plot_shape=plot_shape, save_dir=save_dir, layer_num=layer_num, xlim=xlim,
                             space_count=space_count)
@@ -88,7 +88,3 @@ def plot_all_layers_graph(model, layers, layers_infos, images, save_dir='./outpu
 
         print(f"plotting {layer_num} graph")
         plot_layer_graph(model, layers, layer_num, images, is_gray, plot_shape, save_dir, space_count)
-
-
-# save_dir = './output'
-# plot_all_layers_graph(model, layers, layers_infos,images save_dir)

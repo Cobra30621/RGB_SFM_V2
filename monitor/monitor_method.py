@@ -1,6 +1,6 @@
 from monitor.calculate_stats import calculate_RM, get_stats
 from monitor.metrics import calculate_layer_metrics
-
+import torch
 
 def get_layer_stats(model, layers, layer_num, images, is_gray=False):
     """
@@ -23,6 +23,9 @@ def get_layer_stats(model, layers, layer_num, images, is_gray=False):
 
     raw = calculate_RM(layers, layer_num, input_images)
     channel_stats, overall_stats = get_stats(raw)
+    #
+    # for key, value in channel_stats.items():
+    #     print(f"{key}: {value.requires_grad}")
 
     # 計算指標
     metrics_results = calculate_layer_metrics({**overall_stats, **channel_stats})
@@ -52,8 +55,12 @@ def get_all_layers_stats(model, layers, layers_infos, images):
         layer_stats[layer_num] = get_layer_stats(model, layers, layer_num, images, is_gray)
 
     # 計算 overall_stats 為 layer_stats 的平均值
+    # overall_stats = {}
+    # for key in layer_stats[next(iter(layer_stats))]:  # 取第一個層的鍵
+    #     overall_stats[key] = sum(layer_stat[key] for layer_stat in layer_stats.values()) / len(layer_stats)
+
     overall_stats = {}
-    for key in layer_stats[next(iter(layer_stats))]:  # 取第一個層的鍵
-        overall_stats[key] = sum(layer_stat[key] for layer_stat in layer_stats.values()) / len(layer_stats)
+    for key in layer_stats[next(iter(layer_stats))]:
+        overall_stats[key] = torch.stack([layer_stat[key] for layer_stat in layer_stats.values()]).mean()
 
     return layer_stats, overall_stats

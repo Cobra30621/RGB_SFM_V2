@@ -2,6 +2,9 @@ from torch import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from monitor.monitor_method import get_all_layers_stats
+
+
 def get_loss_function(loss_name: str, weight=None, reduction='mean'):
     if loss_name == 'CrossEntropyLoss':
         return nn.CrossEntropyLoss(weight=weight, reduction=reduction)
@@ -15,9 +18,7 @@ def get_loss_function(loss_name: str, weight=None, reduction='mean'):
 
 
 class CustomLoss(nn.Module):
-    def __init__(self, weight=None, reduction='mean',
-                 penalty_scale=10.0, upper_threshold=0.9, lower_threshold=0.1,
-                 filter_penalty_scale=5.0, reflect_threshold=0.9, reflect_ratio_threshold=0.5):
+    def __init__(self, weight=None, reduction='mean'):
         """
         自定義損失函數，包含：
         - 基礎損失 (CrossEntropyLoss)
@@ -26,24 +27,13 @@ class CustomLoss(nn.Module):
 
         Args:
             weight (Tensor, optional): CrossEntropyLoss 的類別權重。
-            reduction (str, optional): 損失的縮減方式 ('mean' 或 'sum')。
-            penalty_scale (float): 平均預測值的懲罰倍率。
-            upper_threshold (float): 預測平均值的上限閾值。
-            lower_threshold (float): 預測平均值的下限閾值。
-            filter_penalty_scale (float): 濾波器懲罰的倍率。
-            reflect_threshold (float): 通道輸出反映值的閾值。
-            reflect_ratio_threshold (float): 輸出反映值超過閾值的比例閾值。
         """
         super(CustomLoss, self).__init__()
         self.loss_fn = nn.CrossEntropyLoss(weight=weight, reduction=reduction)
-        self.penalty_scale = penalty_scale
-        self.upper_threshold = upper_threshold
-        self.lower_threshold = lower_threshold
-        self.filter_penalty_scale = filter_penalty_scale
-        self.reflect_threshold = reflect_threshold
-        self.reflect_ratio_threshold = reflect_ratio_threshold
+        self. each_channel_max_weight = 0.5
 
-    def forward(self, predictions, targets):
+
+    def forward(self, predictions, targets, model, layers, layers_infos, images):
         """
         計算損失和懲罰。
 
@@ -54,23 +44,26 @@ class CustomLoss(nn.Module):
         Returns:
             Tensor: 總損失值。
         """
-        print(f"prediction: {predictions.shape}")
         # 基礎損失
         base_loss = self.loss_fn(predictions, targets)
 
-        print(base_loss)
 
-        # 每個濾波器通道的懲罰
-        filter_penalty = 0.0
-        # 假設 predictions 維度為 (batch_size, num_filters, feature_map_size)
-        if predictions.dim() > 2:  # 檢查 predictions 是否為高維數據
-            max_per_channel = predictions.amax(dim=(0, 2))  # 每個濾波器通道的最大值
-            reflect_ratio_per_channel = (predictions > self.reflect_threshold).float().mean(dim=(0, 2))  # 超過閾值的比例
+        images.requires_grad_()
+        layer_stats, overall_stats = get_all_layers_stats(model, layers, layers_infos, images)
 
-            # 懲罰條件
-            filter_penalty += torch.sum((max_per_channel < self.reflect_threshold).float() * self.filter_penalty_scale)
-            filter_penalty += torch.sum(
-                (reflect_ratio_per_channel > self.reflect_ratio_threshold).float() * self.filter_penalty_scale)
+        # print(layer_stats['RGB_convs_2']['最大值限制 (each channel max > 0.8)'])
+
+        # each_channel_max =  torch.tensor(overall_stats['最大值限制 (each channel max > 0.8)'], requires_grad=True)
+        # max_loss = (1 - each_channel_max) * self.each_channel_max_weight
+        max_loss = overall_stats['最大值限制 (each channel max > 0.8)']
+
+        total_loss = base_loss + max_loss
+
+        print(overall_stats)
+
+        # print(overall_stats['最大值限制 (each channel max > 0.8)'])
+        print(f"base: {base_loss}")
+        print(f"max_loss: {max_loss}")
 
         # 返回總損失
-        return base_loss +  filter_penalty
+        return - max_loss
