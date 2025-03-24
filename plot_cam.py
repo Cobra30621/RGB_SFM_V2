@@ -84,11 +84,12 @@ def generate_cam_visualizations(model: torch.nn.Module,
     reduced_cams['Origin_Split'] = origin_img
 
     # 對每一層的 RM_CI 進行處理
-    for layer_name, RM_CI in RM_CIs.items():
+    for layer_name, cam in cams.items():
         # 設定輸出形狀為 RM_CI 的高寬
+        RM_CI = RM_CIs[layer_name]
         output_shape = (RM_CI.shape[0], RM_CI.shape[1])
         # 將 CAM 縮減到指定大小
-        reduced_cam = get_reduced_cam(cams[layer_name], output_shape)
+        reduced_cam = get_reduced_cam(cam, output_shape)
 
         # 繪製並保存縮減後的 CAM
         reduced_cams[layer_name] = plot_reduced_cam(reduced_cam)
@@ -142,8 +143,12 @@ def get_each_layers_cam(
     cam_target = ClassifierOutputTarget(label)
 
     cams = {}
+    print(target_layers)
+
     for layer_name in target_layers:
         layer = target_layers[layer_name]
+        print(f"layer {layer_name}")
+        print(f"target {target_layers[layer_name]}")
 
         with cam_method(
                 model=wrapped_model,
@@ -218,7 +223,7 @@ def get_cam_target_layers(model: torch.nn.Module) -> dict:
         dict: 包含所有目標層的字典，鍵為層名稱，值為層物件
     """
     return {
-        'RGB_convs_0': model.RGB_convs[1],
+        # 'RGB_convs_0': model.RGB_convs[1], // RGB 第一層無梯度，無法計算
         'RGB_convs_1': model.RGB_convs[2][1],
         'RGB_convs_2': model.RGB_convs[3],
         'Gray_convs_0': model.Gray_convs[0][1],

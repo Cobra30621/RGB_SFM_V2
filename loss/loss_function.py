@@ -10,14 +10,14 @@ def get_loss_function(loss_name: str, weight=None, reduction='mean'):
         return nn.CrossEntropyLoss(weight=weight, reduction=reduction)
     elif loss_name == 'MSELoss':
         return nn.MSELoss()
-    elif loss_name == 'CustomLoss':
-        return CustomLoss()  # 假設您已經定義了 CustomLoss
+    elif loss_name == 'MetricBaseLoss':
+        return MetricBaseLoss()
     # 可以根據需要添加更多損失函數
     else:
         raise ValueError(f"Unknown loss function: {loss_name}")
 
 
-class CustomLoss(nn.Module):
+class MetricBaseLoss(nn.Module):
     def __init__(self, weight=None, reduction='mean'):
         """
         自定義損失函數，包含：
@@ -28,9 +28,10 @@ class CustomLoss(nn.Module):
         Args:
             weight (Tensor, optional): CrossEntropyLoss 的類別權重。
         """
-        super(CustomLoss, self).__init__()
+        super(MetricBaseLoss, self).__init__()
         self.loss_fn = nn.CrossEntropyLoss(weight=weight, reduction=reduction)
-        self. each_channel_max_weight = 0.5
+        self.each_channel_max_weight = 1
+        self.min_weight = 1
 
 
     def forward(self, predictions, targets, model, layers, layers_infos, images):
@@ -49,21 +50,23 @@ class CustomLoss(nn.Module):
 
 
         images.requires_grad_()
-        layer_stats, overall_stats = get_all_layers_stats(model, layers, layers_infos, images)
+        layer_stats, overall_stats = get_all_layers_stats(model, layers, layers_infos, images, keep_tensor=True, without_RGBConv0=True)
 
         # print(layer_stats['RGB_convs_2']['最大值限制 (each channel max > 0.8)'])
 
         # each_channel_max =  torch.tensor(overall_stats['最大值限制 (each channel max > 0.8)'], requires_grad=True)
         # max_loss = (1 - each_channel_max) * self.each_channel_max_weight
         max_loss = overall_stats['最大值限制 (each channel max > 0.8)']
+        min_loss = overall_stats['避免低效反應 (ratio_above_0.1 > 1%)']
 
-        total_loss = base_loss + max_loss
+        total_loss = base_loss - max_loss * self.each_channel_max_weight - min_loss * self.min_weight
 
-        print(overall_stats)
+        # print(overall_stats)
 
         # print(overall_stats['最大值限制 (each channel max > 0.8)'])
         print(f"base: {base_loss}")
         print(f"max_loss: {max_loss}")
+        print(f"min_loss: {min_loss}")
 
         # 返回總損失
-        return - max_loss
+        return total_loss

@@ -10,12 +10,13 @@ from dataloader import get_dataloader
 from config import *
 import models
 from file_tools import increment_path
-from loss.loss_function import get_loss_function, CustomLoss
+from loss.loss_function import get_loss_function, MetricBaseLoss
 from monitor.monitor_method import get_all_layers_stats
 
 
 
-def train(train_dataloader: DataLoader, valid_dataloader: DataLoader, model: nn.Module, loss_fn, optimizer, scheduler, epoch, device):
+def train(train_dataloader: DataLoader, valid_dataloader: DataLoader, model: nn.Module, eval_loss_fn, optimizer, scheduler, epoch, device,
+          training_loss_fn, use_metric_based_loss=False):
     # best_valid_loss = float('inf')
     best_valid_acc = 0
     count = 0
@@ -24,7 +25,6 @@ def train(train_dataloader: DataLoader, valid_dataloader: DataLoader, model: nn.
 
     layers = get_layers(model)
     layers_infos = config['layers_infos']
-    custom_loss_fn = CustomLoss()
 
     with torch.autograd.set_detect_anomaly(True):
         for e in range(epoch):
@@ -40,9 +40,12 @@ def train(train_dataloader: DataLoader, valid_dataloader: DataLoader, model: nn.
 
 
                 pred = model(X)
-                # loss = loss_fn(pred, y)
-                images = X
-                loss = custom_loss_fn(pred, y, model, layers, layers_infos, images)
+                # 判斷是否使用 metric-based loss
+                if use_metric_based_loss:
+                    loss = training_loss_fn(pred, y, model, layers, layers_infos, X)
+                else:
+                    loss = training_loss_fn(pred, y)
+
                 # 反向传播
                 loss.backward()
                 # 更新模型参数
@@ -60,7 +63,7 @@ def train(train_dataloader: DataLoader, valid_dataloader: DataLoader, model: nn.
                 train_acc = correct/size
                 progress.set_description("Loss: {:.7f}, Accuracy: {:.7f}".format(train_loss, train_acc))
 
-            valid_acc, valid_loss, _ = eval(valid_dataloader, model, loss_fn, False, device = device)
+            valid_acc, valid_loss, _ = eval(valid_dataloader, model, eval_loss_fn, False, device = device)
             print(f"Test Loss: {valid_loss}, Test Accuracy: {valid_acc}")
 
 
@@ -187,17 +190,10 @@ model = model.to(config['device'])
 print(model)
 summary(model, input_size = (config['model']['args']['in_channels'], *config['input_shape']))
 
-# if(config['use_weightsAdjust']):
-#     # 計算每個類別的權重
-#     weights = torch.tensor([weight for weight in config['loss_weights_rate']], dtype=torch.float32)
-#
-#     # 將權重傳給 CrossEntropyLoss
-#     loss_fn = getattr(nn, config['loss_fn'])(weight=weights.to(device))
-# else:
-#     loss_fn = getattr(nn, config['loss_fn'])()
 
-loss_fn = get_loss_function(config['loss_fn'])
-
+eval_loss_fn = get_loss_function(config['loss_fn'])
+training_loss_fn = get_loss_function(config['training_loss_fn'])
+use_metric_based_loss = config['use_metric_based_loss']
 
 optimizer = getattr(optim, config['optimizer']['name'])(model.parameters(), lr=config['lr'], **dict(config['optimizer']['args']))
 scheduler = getattr(optim.lr_scheduler, config['lr_scheduler']['name'])(optimizer, **dict(config['lr_scheduler']['args']))
@@ -206,14 +202,15 @@ shutil.copyfile(f'./models/{config["model"]["name"]}.py', f'{config["save_dir"]}
 shutil.copyfile(f'./config.py', f'{config["save_dir"]}/config.py')
 
 # wandb.watch(model, loss_fn, log="all", log_freq=1)
-train_loss, train_acc, valid_loss, valid_acc, checkpoint = train(train_dataloader, test_dataloader, model, loss_fn, optimizer, scheduler, config['epoch'], device = config['device'])
+train_loss, train_acc, valid_loss, valid_acc, checkpoint = train(train_dataloader, test_dataloader, model, eval_loss_fn,
+                                                                 optimizer, scheduler, config['epoch'], device = config['device'], training_loss_fn=training_loss_fn, use_metric_based_loss=use_metric_based_loss)
 print("Train: \n\tAccuracy: {}, Avg loss: {} \n".format(train_acc, train_loss))
 print("Valid: \n\tAccuracy: {}, Avg loss: {} \n".format(valid_acc, valid_loss))
 
 # Test model
 model.load_state_dict(checkpoint['model_weights'])
 model.to(device)
-test_acc, test_loss, test_table = eval(test_dataloader, model, loss_fn, device = config['device'], need_table=False)
+test_acc, test_loss, test_table = eval(test_dataloader, model, eval_loss_fn, device = config['device'], need_table=False)
 print("Test: \n\tAccuracy: {}, Avg loss: {} \n".format(test_acc, test_loss))
 
 # Record result into Wandb

@@ -1,54 +1,15 @@
-import torch
-import torch.nn.functional as F
-import numpy as np
 
-from torchsummary import summary
-from torch import nn
-
-from config import *
+from load_tools import load_model_and_data
 from utils import *
-from models.SFMCNN import SFMCNN
-from models.RGB_SFMCNN import RGB_SFMCNN
-from models.RGB_SFMCNN_V2 import RGB_SFMCNN_V2
-from dataloader import get_dataloader
 
 '''
 	產生FM、CI的可解釋性圖片
 '''
 
-images = []
-
-image_paths = []
-labels = []
-
-# Load Dataset
-train_dataloader, test_dataloader = get_dataloader(dataset=config['dataset'], root=config['root'] + '/data/',
-                                                   batch_size=config['batch_size'], input_size=config['input_shape'])
-images, labels = torch.tensor([]), torch.tensor([])
-for batch in test_dataloader:
-    imgs, lbls = batch
-    images = torch.cat((images, imgs))
-    labels = torch.cat((labels, lbls))
-print(images.shape, labels.shape)
-
-# Load Model
-models = {'SFMCNN': SFMCNN, 'RGB_SFMCNN': RGB_SFMCNN, 'RGB_SFMCNN_V2': RGB_SFMCNN_V2}
+# 讀取模型與資料
 checkpoint_filename = 'RGB_SFMCNN_V2_best'
-checkpoint = torch.load(f'./pth/{config["dataset"]}_pth/{checkpoint_filename}.pth', weights_only=True)
-model = models[arch['name']](**dict(config['model']['args']))
-model.load_state_dict(checkpoint['model_weights'])
-model.cpu()
-model.eval()
-summary(model, input_size=(config['model']['args']['in_channels'], *config['input_shape']), device='cpu')
-print(model)
+model, train_dataloader, test_dataloader, images, labels = load_model_and_data(checkpoint_filename)
 
-# Test Model
-batch_num = 1000
-pred = model(images[:batch_num])
-y = labels[:batch_num]
-correct = (pred.argmax(1) == y.argmax(1)).type(torch.float).sum().item()
-print("Test Accuracy: " + str(correct / len(pred)))
-# input()
 
 # 讀取每層卷積的weight並轉換成Reshape成矩陣(get FM)
 FMs = {}

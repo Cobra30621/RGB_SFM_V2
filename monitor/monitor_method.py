@@ -33,7 +33,7 @@ def get_layer_stats(model, layers, layer_num, images, is_gray=False):
     return {**metrics_results}
 
 
-def get_all_layers_stats(model, layers, layers_infos, images):
+def get_all_layers_stats(model, layers, layers_infos, images, keep_tensor=False, without_RGBConv0 = False):
     """
     獲取所有層的統計數據。
 
@@ -42,25 +42,34 @@ def get_all_layers_stats(model, layers, layers_infos, images):
     layers: 模型的層列表。
     layers_infos: 包含每層信息的列表，每個信息包含層編號和是否為灰度圖像的標記。
     images: 輸入的圖像數據。
+    keep_tensor: 若為 False，回傳結果中的 tensor 會轉換成 list。
 
     返回:
     包含所有層統計數據的字典，以及每層統計數據的平均值。
     """
-    # 使用示例
     layer_stats = {}
     for layer_info in layers_infos:
+        # 可以跳過 RGBConv0 (由於其中的參數不需要訓練)
+        if without_RGBConv0 and layer_info["layer_num"] == "RGB_convs_0":
+            continue
         layer_num = layer_info["layer_num"]
         is_gray = layer_info["is_gray"]
 
         layer_stats[layer_num] = get_layer_stats(model, layers, layer_num, images, is_gray)
 
-    # 計算 overall_stats 為 layer_stats 的平均值
-    # overall_stats = {}
-    # for key in layer_stats[next(iter(layer_stats))]:  # 取第一個層的鍵
-    #     overall_stats[key] = sum(layer_stat[key] for layer_stat in layer_stats.values()) / len(layer_stats)
-
     overall_stats = {}
     for key in layer_stats[next(iter(layer_stats))]:
         overall_stats[key] = torch.stack([layer_stat[key] for layer_stat in layer_stats.values()]).mean()
+
+    if not keep_tensor:
+        # 遍歷並轉換 tensor 為 list
+        for layer_num, stats in layer_stats.items():
+            for key, value in stats.items():
+                if isinstance(value, torch.Tensor):
+                    layer_stats[layer_num][key] = value.tolist()
+
+        for key, value in overall_stats.items():
+            if isinstance(value, torch.Tensor):
+                overall_stats[key] = value.tolist()
 
     return layer_stats, overall_stats
