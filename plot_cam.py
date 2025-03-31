@@ -2,6 +2,7 @@
 import os
 import warnings
 
+from Code.runs.train.exp.config import layers_infos
 from utils import plot_combine_images, plot_map
 
 warnings.filterwarnings('ignore')
@@ -94,7 +95,10 @@ def generate_cam_visualizations(model: torch.nn.Module,
         # 繪製並保存縮減後的 CAM
         reduced_cams[layer_name] = plot_reduced_cam(reduced_cam)
         # 繪製並保存使用 CAM 遮罩後的 RM_CI 圖
-        RM_CI_cams[layer_name] = plot_RM_CI_with_cam_mask(RM_CI, reduced_cam, save_path)
+        target_layer = next(item for item in layers_infos if item["layer_num"] == layer_name)
+        is_gray = target_layer["is_gray"]
+
+        RM_CI_cams[layer_name] = plot_RM_CI_with_cam_mask(RM_CI, reduced_cam, is_gray = is_gray, save_path = save_path)
 
     # 創建保存 Cam 的目錄
     cam_save_pth = os.path.join(save_path, 'cam')
@@ -143,12 +147,9 @@ def get_each_layers_cam(
     cam_target = ClassifierOutputTarget(label)
 
     cams = {}
-    print(target_layers)
 
     for layer_name in target_layers:
         layer = target_layers[layer_name]
-        print(f"layer {layer_name}")
-        print(f"target {target_layers[layer_name]}")
 
         with cam_method(
                 model=wrapped_model,
@@ -223,7 +224,7 @@ def get_cam_target_layers(model: torch.nn.Module) -> dict:
         dict: 包含所有目標層的字典，鍵為層名稱，值為層物件
     """
     return {
-        # 'RGB_convs_0': model.RGB_convs[1], // RGB 第一層無梯度，無法計算
+        'RGB_convs_0': model.RGB_convs[0], # RGB 第一層無梯度，無法計算
         'RGB_convs_1': model.RGB_convs[2][1],
         'RGB_convs_2': model.RGB_convs[3],
         'Gray_convs_0': model.Gray_convs[0][1],
@@ -261,7 +262,7 @@ def get_reduced_cam(cam, output_shape):
     return reduced_cam
 
 
-def plot_RM_CI_with_cam_mask(RM_CI, reduced_cam, save_path=None):
+def plot_RM_CI_with_cam_mask(RM_CI, reduced_cam, is_gray = False, save_path=None):
     """使用 CAM 遮罩繪製 RM_CI 圖
     
     根據 CAM 熱力圖的閾值，遮罩 RM_CI 圖像中的特定區域。
@@ -281,8 +282,11 @@ def plot_RM_CI_with_cam_mask(RM_CI, reduced_cam, save_path=None):
     # 深度複製 RM_CI
     RM_CI_copy = np.copy(RM_CI)
 
-    # 將對應的 RM_CI 區塊全部設為 0
-    RM_CI_copy[mask] = 0
+    # 將對應的 RM_CI 區塊全部設為 0 or -1
+    if is_gray:
+        RM_CI_copy[mask] = -1
+    else:
+        RM_CI_copy[mask] = 0
 
     fig = plot_map(RM_CI_copy, path=save_path + "temp")
 

@@ -71,7 +71,6 @@ class CustomerRetinaMNIST_224(CustomerMedMNIST):
 
 
 
-
 class CustomerBloodMNIST(CustomerMedMNIST):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs, flag="bloodmnist")

@@ -2,7 +2,7 @@ from pytorch_grad_cam import ( GradCAM, HiResCAM, GradCAMPlusPlus,
                               GradCAMElementWise, XGradCAM, AblationCAM, ScoreCAM, EigenCAM, EigenGradCAM,
                               LayerCAM, KPCA_CAM)
 
-
+from diabetic_retinopathy_handler import preprocess_retinal_tensor_image, display_image_comparison
 from load_tools import load_model_and_data
 from plot_cam import  generate_cam_visualizations
 from utils import *
@@ -10,7 +10,10 @@ from utils import *
 import matplotlib
 
 
-PLOT_CAM = True
+PLOT_CAM = False
+# PLOT_CAM = True
+# 使用影像前處理
+use_preprocessed_image= config['use_preprocessed_image']
 
 matplotlib.use('Agg')
 
@@ -155,23 +158,50 @@ def process_image(image, label, test_id):
     os.makedirs(RM_save_path, exist_ok=True)
     os.makedirs(RM_CI_save_path, exist_ok=True)
 
-    if arch['args']['in_channels'] == 1:
-        torchvision.utils.save_image(image, save_path + f'origin_{test_id}.png')
-    else:
-        plt.imsave(save_path + f'origin_{test_id}.png', image.permute(1, 2, 0).detach().numpy())
-
-    segments = split(image.unsqueeze(0), kernel_size=arch['args']['Conv2d_kernel'][0],
-                     stride=(arch['args']['strides'][0], arch['args']['strides'][0]))[0]
 
     RM_CIs = {}
-
     RM_figs = {}
 
     RM_CI_figs = {}
 
-    origin_img = plot_map(segments.permute(1, 2, 3, 4, 0), path=save_path + f'origin_split_{test_id}.png')
-    RM_figs['Origin_Split'] = origin_img
-    RM_CI_figs['Origin_Split'] = origin_img
+    # 繪製原始圖片
+    fig_origin = plt.figure(figsize=(5, 5), facecolor="white")
+    plt.imshow(image.permute(1, 2, 0).detach().numpy())
+    plt.axis('off')
+    plt.savefig(save_path + f'origin_{test_id}.png', bbox_inches='tight', pad_inches=0)
+    origin_img = fig_origin
+    RM_CI_figs['Origin'] = origin_img
+
+    if use_preprocessed_image:
+        scaled_img, blurred_img, high_contrast_img, final_img = preprocess_retinal_tensor_image(image)
+        display_image_comparison(save_path= save_path + f'preprocess.png', origin_img=image,  final_img=final_img)
+        # 繪製前處理後圖片
+        fig_origin = plt.figure(figsize=(5, 5), facecolor="white")
+        plt.imshow(final_img.permute(1, 2, 0).detach().numpy())
+        plt.axis('off')
+        plt.savefig(save_path + f'preprocess_{test_id}.png', bbox_inches='tight', pad_inches=0)
+        origin_img = fig_origin
+
+        RM_CI_figs['Preprocess'] = origin_img
+
+    # 繪製灰階圖片
+    fig_gray = plt.figure(figsize=(5, 5), facecolor="white")
+    gray_image = model.gray_transform(image.unsqueeze(0))[0]  # 使用模型中的灰階轉換
+    plt.imshow(gray_image.squeeze().detach().numpy(), cmap='gray')
+    plt.axis('off')
+    plt.savefig(save_path + f'gray_{test_id}.png', bbox_inches='tight', pad_inches=0)
+    gray_img = fig_gray
+
+    segments = split(image.unsqueeze(0), kernel_size=arch['args']['Conv2d_kernel'][0],
+                     stride=(arch['args']['strides'][0], arch['args']['strides'][0]))[0]
+
+
+
+    origin_split_img = plot_map(segments.permute(1, 2, 3, 4, 0), path=save_path + f'origin_split_{test_id}.png')
+    RM_figs['Origin_Split'] = origin_split_img
+
+
+    RM_CI_figs['Origin_Split'] = origin_split_img
 
     if arch['args']['in_channels'] == 1:
         # Layer 0
@@ -325,6 +355,9 @@ def process_image(image, label, test_id):
         RM_figs[layer_num] = fig
 
         ################################### Gray ###################################
+
+        RM_CI_figs['Gray'] = gray_img
+
         ### Gray_convs_0 ###
         # 跑完響應模組，SFM 合併前
         layer_num = 'Gray_convs_0'
@@ -415,7 +448,7 @@ def process_image(image, label, test_id):
                     model=model,          # 模型
                     label=label.argmax().item(),  # 預測標籤
                     image=image,          # 輸入圖像
-                    origin_img=origin_img,  # 原始圖像
+                    origin_img=origin_split_img,  # 原始圖像
                     RM_CIs=RM_CIs,         # RM-CI 數據
                     save_path=RM_CI_save_path,  # 保存路徑
                     method=method         # CAM 方法

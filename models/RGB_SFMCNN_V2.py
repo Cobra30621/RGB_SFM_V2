@@ -330,7 +330,7 @@ class RGB_Conv2d(nn.Module):
 
         self.weights = torch.Tensor(weights).to(device=device, dtype=dtype)
         self.weights = self.weights / 255
-        self.weights = nn.Parameter(self.weights, requires_grad=False)
+        self.weights = nn.Parameter(self.weights, requires_grad=True)
 
         self.out_channels = out_channels
         self.kernel_size = kernel_size
@@ -885,28 +885,28 @@ class SFM(nn.Module):
         self.method = method
         
         # 新增可訓練的卷積權重參數
-        if method == "conv":
-            self.conv_weight = nn.Parameter(
-                torch.empty(1, 1, *self.filter).uniform_(-0.1, 0.1)
-            )
-        else:
-            self.register_buffer("conv_weight", torch.zeros(1, 1, *self.filter))
+        # if method == "conv":
+        #     self.conv_weight = nn.Parameter(
+        #         torch.empty(1, 1, *self.filter).uniform_(-0.1, 0.1)
+        #     )
+        # else:
+        #     self.register_buffer("conv_weight", torch.zeros(1, 1, *self.filter))
 
     def forward(self, input: Tensor) -> Tensor:
         batch_num, channels, height, width = input.shape
         
-        if self.method == "conv":
-            # 將權重擴展到對應的通道數
-            expanded_weight = self.conv_weight.repeat(channels, 1, 1, 1)
-            
-            # 進行卷積操作
-            output = F.conv2d(
-                input=input,
-                weight=expanded_weight,
-                stride=self.filter,  # 使用 filter 作為 stride
-                groups=channels  # 每個通道獨立卷積
-            )
-            return output
+        # if self.method == "conv":
+        #     # 將權重擴展到對應的通道數
+        #     expanded_weight = self.conv_weight.repeat(channels, 1, 1, 1)
+        #
+        #     # 進行卷積操作
+        #     output = F.conv2d(
+        #         input=input,
+        #         weight=expanded_weight,
+        #         stride=self.filter,  # 使用 filter 作為 stride
+        #         groups=channels  # 每個通道獨立卷積
+        #     )
+        #     return output
             
         # 其他方法保持不變
         alpha_pows = self.alpha.repeat(input.shape[1], 1, 1).to(self.device)

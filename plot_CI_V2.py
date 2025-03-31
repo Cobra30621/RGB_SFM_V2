@@ -1,4 +1,4 @@
-
+from diabetic_retinopathy_handler import preprocess_retinal_tensor_batch
 from load_tools import load_model_and_data
 from utils import *
 
@@ -48,6 +48,14 @@ else:
     FMs['Gray_convs_2'] = model.Gray_convs[3][0].weight.reshape(-1, int(model.Gray_convs[3][0].weight.shape[1] ** 0.5),
                                                                 int(model.Gray_convs[3][0].weight.shape[1] ** 0.5), 1)
     print(f'FM[Gray_convs_2] shape: {FMs["Gray_convs_2"].shape}')
+
+# 使用影像前處理
+use_preprocessed_image= config['use_preprocessed_image']
+if use_preprocessed_image:
+    print(f"image {images.shape}")
+    preprocessed_images = preprocess_retinal_tensor_batch(images, final_size=config['input_shape'])
+    images = preprocessed_images
+    print(f"preprocessed_images {preprocessed_images.shape}")
 
 # 讀取每一層架構(為後面的CI做準備)
 layers = get_layers(model)

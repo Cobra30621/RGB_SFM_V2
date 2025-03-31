@@ -3,6 +3,7 @@ from medmnist import INFO, Evaluator, PathMNIST
 
 from torch.utils.data import DataLoader
 
+from .APROS_2019 import APROS_2019Dataset
 from .CustomerMedMNIST import CustomerMedMNIST, CustomerDermaMNIST, CustomerPathMNIST, CustomerRetinaMNIST, \
     CustomerBloodMNIST, CustomerRetinaMNIST_224
 from .HeartCalcification import *
@@ -11,6 +12,7 @@ from .MNISTWeight import MNISTWeightDataset
 from .MultiColorShapes import MultiColorShapesDataset
 from .FaceDataset import FaceDataset
 from .Malaria import MalariaCellDataset
+from .PreprocessedRetinaMNIST224 import PreprocessedRetinaMNIST224
 from .RGB_circle import RGBCircle
 from .MultiGrayShapes import MultiGrayShapesDataset
 from .MultiEdgeShapes import MultiEdgeShapesDataset
@@ -43,7 +45,9 @@ dataset_classes = {
     "DermaMNIST" : CustomerDermaMNIST,
     "RetinaMNIST" : CustomerRetinaMNIST,
     "RetinaMNIST_224" : CustomerRetinaMNIST_224,
-    "BloodMNIST" :  CustomerBloodMNIST
+    "BloodMNIST" :  CustomerBloodMNIST,
+    'APROS_2019' : APROS_2019Dataset,
+    'PreprocessedRetinaMNIST224' : PreprocessedRetinaMNIST224
 }
 
 
@@ -61,7 +65,9 @@ def get_dataloader(dataset, root: str = '.', batch_size=32, input_size: tuple = 
             transforms.ToTensor(),
             transforms.ConvertImageDtype(torch.float),
         ])
-        
+
+        print(dataset_classes[dataset])
+
         train_dataset = dataset_classes[dataset](root, train = True, transform = train_transform)
         test_dataset = dataset_classes[dataset](root, train = False, transform = test_transform)
 

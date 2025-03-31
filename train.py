@@ -9,6 +9,7 @@ from torchsummary import summary
 from dataloader import get_dataloader
 from config import *
 import models
+from diabetic_retinopathy_handler import preprocess_retinal_tensor_image, preprocess_retinal_tensor_batch
 from file_tools import increment_path
 from loss.loss_function import get_loss_function, MetricBaseLoss
 from monitor.monitor_method import get_all_layers_stats
@@ -21,6 +22,8 @@ def train(train_dataloader: DataLoader, valid_dataloader: DataLoader, model: nn.
     best_valid_acc = 0
     count = 0
     patience = config['patience']
+    # 使用影像前處理
+    use_preprocessed_image= config['use_preprocessed_image']
     checkpoint = {}
 
     layers = get_layers(model)
@@ -38,13 +41,16 @@ def train(train_dataloader: DataLoader, valid_dataloader: DataLoader, model: nn.
             for batch, (X, y) in progress:
                 X = X.to(device); y= y.to(device)
 
+                # 使用影像愈處理
+                if use_preprocessed_image:
+                    X = preprocess_retinal_tensor_batch(X, final_size=config['input_shape'])
 
                 pred = model(X)
                 # 判斷是否使用 metric-based loss
                 if use_metric_based_loss:
                     loss = training_loss_fn(pred, y, model, layers, layers_infos, X)
                 else:
-                    loss = training_loss_fn(pred, y)
+                    loss = eval_loss_fn(pred, y)
 
                 # 反向传播
                 loss.backward()
@@ -63,7 +69,7 @@ def train(train_dataloader: DataLoader, valid_dataloader: DataLoader, model: nn.
                 train_acc = correct/size
                 progress.set_description("Loss: {:.7f}, Accuracy: {:.7f}".format(train_loss, train_acc))
 
-            valid_acc, valid_loss, _ = eval(valid_dataloader, model, eval_loss_fn, False, device = device)
+            valid_acc, valid_loss, _ = eval(valid_dataloader, model, eval_loss_fn, False, device = device, use_preprocessed_image=use_preprocessed_image)
             print(f"Test Loss: {valid_loss}, Test Accuracy: {valid_acc}")
 
 
@@ -130,7 +136,7 @@ def train(train_dataloader: DataLoader, valid_dataloader: DataLoader, model: nn.
 
     return cur_train_loss, cur_train_acc, best_valid_loss, best_valid_acc, checkpoint
 
-def eval(dataloader: DataLoader, model: nn.Module, loss_fn, need_table = True, device=None):
+def eval(dataloader: DataLoader, model: nn.Module, loss_fn, need_table = True, device=None, use_preprocessed_image = False):
     progress = tqdm(enumerate(dataloader), desc="Loss: ", total=len(dataloader))
     model.eval()
     losses = 0
@@ -140,6 +146,11 @@ def eval(dataloader: DataLoader, model: nn.Module, loss_fn, need_table = True, d
     with torch.no_grad():
         for batch, (X, y) in progress:
             X = X.to(device); y= y.to(device)
+
+            # 使用影像愈處理
+            if use_preprocessed_image:
+                X = preprocess_retinal_tensor_batch(X, final_size=config['input_shape'])
+
             pred = model(X)
             loss = loss_fn(pred, y)
             
@@ -210,7 +221,7 @@ print("Valid: \n\tAccuracy: {}, Avg loss: {} \n".format(valid_acc, valid_loss))
 # Test model
 model.load_state_dict(checkpoint['model_weights'])
 model.to(device)
-test_acc, test_loss, test_table = eval(test_dataloader, model, eval_loss_fn, device = config['device'], need_table=False)
+test_acc, test_loss, test_table = eval(test_dataloader, model, eval_loss_fn, device = config['device'], need_table=False, use_preprocessed_image=config['use_preprocessed_image'])
 print("Test: \n\tAccuracy: {}, Avg loss: {} \n".format(test_acc, test_loss))
 
 # Record result into Wandb

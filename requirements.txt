@@ -7,3 +7,4 @@ shapely
 medmnist
 plotly
 grad-cam
+ipywidgets
