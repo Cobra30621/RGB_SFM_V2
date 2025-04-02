@@ -12,6 +12,7 @@ import models
 from diabetic_retinopathy_handler import preprocess_retinal_tensor_image, preprocess_retinal_tensor_batch
 from file_tools import increment_path
 from loss.loss_function import get_loss_function, MetricBaseLoss
+from models.RGB_SFMCNN_V2 import get_feature_extraction_layers
 from monitor.monitor_method import get_all_layers_stats
 
 
@@ -26,7 +27,8 @@ def train(train_dataloader: DataLoader, valid_dataloader: DataLoader, model: nn.
     use_preprocessed_image= config['use_preprocessed_image']
     checkpoint = {}
 
-    layers = get_layers(model)
+    layers = get_feature_extraction_layers(model)
+    print(layers)
     layers_infos = config['layers_infos']
 
     with torch.autograd.set_detect_anomaly(True):
@@ -119,8 +121,6 @@ def train(train_dataloader: DataLoader, valid_dataloader: DataLoader, model: nn.
     print(model)
     # Monitor
     # Prepare monitor
-    layers = get_layers(model)
-    layers_infos = config['layers_infos']
     images, labels = torch.tensor([]).to(device), torch.tensor([]).to(device)
     for batch in train_dataloader:
         imgs, lbls = batch

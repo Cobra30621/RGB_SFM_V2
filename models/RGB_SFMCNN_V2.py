@@ -16,68 +16,82 @@ import math
 來自 2025 陳俊宇的碩士論文:
 '''
 
+def get_feature_extraction_layers(model):
+    """
+    獲取模型中各層特徵圖的提取器（RGB 與灰階分支）
 
-'''
-    前處理Part(自由取用)
-'''
+    參數:
+        model: 要分析的模型
 
-class Renormalize(object):
-    def __call__(self, images):
-        batch, channel = images.shape[0], images.shape[1]
-        min_vals = images.view(batch, channel, -1).min(dim=-1, keepdim=True)[0].unsqueeze(-1)
-        max_vals = images.view(batch, channel, -1).max(dim=-1, keepdim=True)[0].unsqueeze(-1)
-        normalized_images = (images - min_vals) / (max_vals - min_vals)
-        result = torch.where(max_vals == min_vals, torch.zeros_like(images), normalized_images)
-        return result
-
-class NormalizeToRange(object):
-    def __call__(self, images):
-        """
-        将图像归一化到 [-1, 1] 区间
-        
-        Args:
-            images: 输入图像张量
-            
-        Returns:
-            归一化后的图像张量，范围在 [-1, 1] 之间
-        """
-        batch, channel = images.shape[0], images.shape[1]
-        min_vals = images.view(batch, channel, -1).min(dim=-1, keepdim=True)[0].unsqueeze(-1)
-        max_vals = images.view(batch, channel, -1).max(dim=-1, keepdim=True)[0].unsqueeze(-1)
-        
-        # 先归一化到 [0, 1]
-        normalized_images = (images - min_vals) / (max_vals - min_vals + 1e-8)
-        # 然后转换到 [-1, 1]
-        result = normalized_images * 2 - 1
-        
-        # 处理特殊情况：当 max_vals == min_vals 时，返回零张量
-        return torch.where(max_vals == min_vals, torch.zeros_like(images), result)
+    回傳:
+        (dict, dict): RGB 分支與灰階分支的特徵圖提取器字典
+    """
+    rgb_layers = extract_branch_layers(model.RGB_convs, "RGB_convs", CI_only=False)
+    gray_layers = extract_branch_layers(model.Gray_convs, "Gray_convs", CI_only=False)
+    return rgb_layers, gray_layers
 
 
-class AvoidAll0(object):
-    def __call__(self, images):
-        """
-        将图像轉到 [-1, 1] 区间，避免全黑圖片都是 0
+def get_CI_target_layers(model):
+    """
+    獲取用於 CI（Critical Input）分析所需的層（僅提取包含 activation 的部分）
 
-        Args:
-            images: 输入图像张量
+    參數:
+        model: 要分析的模型
 
-        Returns:
-            归一化后的图像张量，范围在 [-1, 1] 之间
-        """
+    回傳:
+        (dict, dict): RGB 分支與灰階分支的 CI 分析層字典
+    """
+    rgb_CI_layers = extract_branch_layers(model.RGB_convs, "RGB_convs", CI_only=True)
+    gray_CI_layers = extract_branch_layers(model.Gray_convs, "Gray_convs", CI_only=True)
+    return rgb_CI_layers, gray_CI_layers
 
-        # 然后转换到 [-1, 1]
-        result = images * 2 - 1
 
-        # 处理特殊情况：当 max_vals == min_vals 时，返回零张量
-        return result
+def extract_branch_layers(conv_blocks, branch_name, CI_only=False):
+    """
+    建立特定卷積分支（RGB 或 Gray）中各層的特徵提取模組。
+
+    參數:
+        conv_blocks: 該分支的 Sequential 卷積區塊（例如 model.RGB_convs）
+        branch_name: 層的命名前綴，例如 "RGB_convs"
+        CI_only: 若為 True，僅提取經過 activation 的層（供 CI 使用）
+
+    回傳:
+        dict: 層名對應的特徵提取模組
+    """
+    layer_extractors = {}
+
+    for i in range(len(conv_blocks)):
+        layer_prefix = f"{branch_name}_{i}"  # ex: RGB_convs_0
+
+        # 取得前 i 層 + 第 i 層的前兩個模組（通常是 conv + activation）
+        layer_extractors[f"{layer_prefix}"] = nn.Sequential(
+            *(list(conv_blocks[:i])) + list([conv_blocks[i][:2]])
+        )
+
+        # 若為完整特徵提取用途，則加入更多細部節點
+        if not CI_only:
+            # 卷積層輸出（不含 activation）
+            layer_extractors[f"{layer_prefix}_after_Conv"] = nn.Sequential(
+                *(list(conv_blocks[:i])) + list([conv_blocks[i][:1]])
+            )
+
+            # activation 輸出（通常是 conv + activation）
+            layer_extractors[f"{layer_prefix}_activation"] = nn.Sequential(
+                *(list(conv_blocks[:i])) + list([conv_blocks[i][:2]])
+            )
+
+            # 若存在 SFM（空間特徵融合）則包含該層
+            if len(conv_blocks[i]) >= 3:
+                layer_extractors[f"{layer_prefix}_SFM"] = nn.Sequential(
+                    *(list(conv_blocks[:i])) + list([conv_blocks[i][:3]])
+                )
+
+    return layer_extractors
 
 
 '''
     主模型Part
 '''
-
-
 class RGB_SFMCNN_V2(nn.Module):
     def __init__(self,
                  in_channels,
@@ -89,7 +103,7 @@ class RGB_SFMCNN_V2(nn.Module):
                  conv_method,
                  initial,
                  rbfs,
-                 SFM_method,
+                 SFM_methods,
                  paddings,
                  fc_input,
                  device,
@@ -105,34 +119,22 @@ class RGB_SFMCNN_V2(nn.Module):
         ])
 
         # 彩色卷積第一層
-        self.RGB_conv2d = self._make_RGBBlock(
-            3,
+        RGB_conv2d = self._make_RGBBlock(
+            in_channels,
             channels[0][0],
             Conv2d_kernel[0],
             stride=strides[0],
             padding=paddings[0],
             rbfs=rbfs[0][0],
             initial='uniform',
+            SFM_method= SFM_methods[0][0],
+            SFM_filters = SFM_filters[0],
             device=device,
             activate_param=activate_params[0][0])
 
-        # 輪廓卷積第一層
-        self.GRAY_conv2d = self._make_GrayBlock(
-            1,
-            channels[1][0],
-            Conv2d_kernel[0],
-            stride=strides[0],
-            padding=paddings[0],
-            rbfs=rbfs[1][0],
-            initial=initial[1][0],
-            device=device,
-            activate_param=activate_params[1][0],
-            conv_method=conv_method[1][0]
-        )
-
         #   彩色第二層以後的特徵傳遞區塊(色彩特徵傳遞區塊)
         rgb_basicBlocks = []
-        for i in range(1, len(Conv2d_kernel) - 1):
+        for i in range(1, len(Conv2d_kernel)):
             basicBlock = self._make_BasicBlock(
                 channels[0][i - 1],
                 channels[0][i],
@@ -141,7 +143,7 @@ class RGB_SFMCNN_V2(nn.Module):
                 padding=paddings[i],
                 filter=SFM_filters[i],
                 rbfs=rbfs[0][i],
-                SFM_method=SFM_method,
+                SFM_method=SFM_methods[0][i],
                 initial=initial[0][i],
                 device=device,
                 activate_param=activate_params[0][i],
@@ -151,25 +153,29 @@ class RGB_SFMCNN_V2(nn.Module):
 
         # 整個彩色部分
         self.RGB_convs = nn.Sequential(
-            self.RGB_conv2d,
-            SFM(filter=SFM_filters[0], device=device, method=SFM_method),
-            *rgb_basicBlocks,
-            self._make_ConvBlock(
-                channels[0][-2],
-                channels[0][-1],
-                Conv2d_kernel[-1],
-                stride=strides[-1],
-                padding=paddings[-1],
-                rbfs=rbfs[0][-1],
-                device=device,
-                activate_param=activate_params[0][-1],
-                conv_method=conv_method[0][-1]
-            )
+            RGB_conv2d,
+            *rgb_basicBlocks
+        )
+
+        # 輪廓卷積第一層
+        GRAY_conv2d = self._make_GrayBlock(
+            1,
+            channels[1][0],
+            Conv2d_kernel[0],
+            stride=strides[0],
+            padding=paddings[0],
+            rbfs=rbfs[1][0],
+            initial=initial[1][0],
+            SFM_method=SFM_methods[1][0],
+            SFM_filters=SFM_filters[0],
+            device=device,
+            activate_param=activate_params[1][0],
+            conv_method=conv_method[1][0]
         )
 
         #   灰階第二層以後的特徵傳遞區塊(輪廓特徵傳遞區塊)
         gray_basicBlocks = []
-        for i in range(1, len(Conv2d_kernel) - 1):
+        for i in range(1, len(Conv2d_kernel)):
             basicBlock = self._make_BasicBlock(
                 channels[1][i - 1],
                 channels[1][i],
@@ -178,7 +184,7 @@ class RGB_SFMCNN_V2(nn.Module):
                 padding=paddings[i],
                 filter=SFM_filters[i],
                 rbfs=rbfs[1][i],
-                SFM_method=SFM_method,
+                SFM_method=SFM_methods[1][i],
                 initial=initial[1][i],
                 device=device,
                 activate_param=activate_params[1][i],
@@ -188,21 +194,8 @@ class RGB_SFMCNN_V2(nn.Module):
 
         # 整個灰階部分
         self.Gray_convs = nn.Sequential(
-            self.GRAY_conv2d,
-            SFM(filter=SFM_filters[0], device=device, method=SFM_method),
+            GRAY_conv2d,
             *gray_basicBlocks,
-            self._make_ConvBlock(
-                channels[1][-2],
-                channels[1][-1],
-                Conv2d_kernel[-1],
-                stride=strides[-1],
-                padding=paddings[-1],
-                rbfs=rbfs[1][-1],
-                device=device,
-                initial=initial[1][-1],
-                activate_param=activate_params[1][-1],
-                conv_method=conv_method[1][-1]
-            )
         )
 
         self.fc1 = nn.Sequential(
@@ -223,52 +216,75 @@ class RGB_SFMCNN_V2(nn.Module):
     '''
 
     def _make_RGBBlock(self,
-                       in_channels: int,
-                       out_channels: int,
+                       in_channel: int,
+                       out_channels: tuple,
                        kernel_size: tuple,
                        stride: int = 1,
                        padding: int = 0,
-                       rbfs=['gauss', 'cReLU_percent'],
                        initial: str = "kaiming",
-                       device: str = "cuda",
-                       activate_param=[0, 0]):
-        layers = [RGB_Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride=stride, padding=padding,
-                             initial=initial, device=device)]
+                       rbfs=['gauss', 'cReLU_percent'],
+                       activate_param=[0, 0],
+                       SFM_method: str = "alpha_mean",
+                       SFM_filters: tuple = (1, 1),
+                       device: str = "cuda"):
+        # 基礎層
+        layers = []
 
+        # rgb 卷基層
+        out_channel = out_channels[0] * out_channels[1]
+        rgb_conv_layer = RGB_Conv2d(in_channel, out_channel, kernel_size=kernel_size, stride=stride, padding=padding,
+                             initial=initial, device=device)
         # 建立響應模組
-        for rbf in rbfs:
-            print(rbf)
-            layers.append(get_rbf(rbf, activate_param, device, required_grad=False))
+        rbf_layer = make_rbfs(rbfs, activate_param, device, required_grad=False)
+        # 建立空間合併模組
+        sfm_layer = SFM(filter=SFM_filters, device=device, method=SFM_method)
+
+        layers.append(rgb_conv_layer)
+        layers.append(rbf_layer)
+        layers.append(sfm_layer)
 
         return nn.Sequential(*layers)
+
+
+
 
     '''
         第一層灰階卷積Block(不含空間合併)
     '''
 
     def _make_GrayBlock(self,
-                        in_channels,
-                        out_channels,
+                        in_channel : int,
+                        out_channels: tuple,
                         kernel_size,
                         stride: int = 1,
                         padding: int = 0,
-                        initial: str = "kaiming",
                         conv_method: str = "cdist",
+                        initial: str = "kaiming",
                         rbfs=['gauss', 'cReLU_percent'],
-                        device: str = "cuda",
-                        activate_param=[0, 0]):
-        layers = [Gray_Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride=stride, padding=padding,
-                            initial=initial, conv_method=conv_method, device=device)]
-
+                        activate_param=[0, 0],
+                        SFM_method: str = "alpha_mean",
+                        SFM_filters: tuple = (1, 1),
+                        device: str = "cuda"):
+        # 基礎層
+        layers = []
+        # gray 卷基層
+        out_channel = out_channels[0] * out_channels[1]
+        rgb_conv_layer = Gray_Conv2d(in_channel, out_channel, kernel_size=kernel_size, stride=stride, padding=padding,
+                            initial=initial, conv_method=conv_method, device=device)
         # 建立響應模組
-        for rbf in rbfs:
-            layers.append(get_rbf(rbf, activate_param, device))
+        rbf_layer = make_rbfs(rbfs, activate_param, device, required_grad=False)
+        # 建立空間合併模組
+        sfm_layer = SFM(filter=SFM_filters, device=device, method=SFM_method)
+
+        layers.append(rgb_conv_layer)
+        layers.append(rbf_layer)
+        layers.append(sfm_layer)
 
         return nn.Sequential(*layers)
 
     def _make_BasicBlock(self,
-                         in_channels: int,
-                         out_channels: int,
+                         in_channels: tuple,
+                         out_channels: tuple,
                          kernel_size: tuple,
                          stride: int = 1,
                          padding: int = 0,
@@ -279,39 +295,26 @@ class RGB_SFMCNN_V2(nn.Module):
                          device: str = "cuda",
                          activate_param=[0, 0],
                          conv_method: str = "cdist"):
-
-        layers = [RBF_Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride=stride, padding=padding,
-                           initial=initial,  conv_method=conv_method, device=device)]
-
+        # 基礎層
+        layers = []
+        # rbf 卷基層
+        in_channel = in_channels[0] * in_channels[1]
+        out_channel = out_channels[0] * out_channels[1]
+        rgf_conv_layer = RBF_Conv2d(in_channel, out_channel, kernel_size=kernel_size, stride=stride, padding=padding,
+                           initial=initial,  conv_method=conv_method, device=device)
         # 建立響應模組
-        for rbf in rbfs:
-            layers.append(get_rbf(rbf, activate_param, device))
+        rbf_layer = make_rbfs(rbfs, activate_param, device, required_grad=False)
 
-        layers.append(SFM(filter=filter, device=device, method = SFM_method))
+        layers.append(rgf_conv_layer)
+        layers.append(rbf_layer)
+
+        # 建立空間合併模組
+        if SFM_method != "none":
+            sfm_layer = SFM(filter=filter, device=device, method=SFM_method)
+            layers.append(sfm_layer)
 
         return nn.Sequential(*layers)
 
-
-    def _make_ConvBlock(self,
-                        in_channels,
-                        out_channels,
-                        kernel_size,
-                        stride: int = 1,
-                        padding: int = 0,
-                        initial: str = "kaiming",
-                        rbfs=['gauss', 'cReLU_percent'],
-                        device: str = "cuda",
-                        activate_param=[0, 0],
-                        conv_method: str = "cdist"):
-        layers = [RBF_Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride=stride, padding=padding,
-                             initial=initial, conv_method=conv_method, device=device)]
-
-        # 建立響應模組
-        for rbf in rbfs:
-            layers.append(get_rbf(rbf, activate_param, device))
-
-
-        return nn.Sequential(*layers)
 
 
 
@@ -347,9 +350,9 @@ class RGB_Conv2d(nn.Module):
                    [42, 46, 71], [216, 129, 199], [214, 67, 205], [147, 107, 128], [136, 48, 133], [0, 0, 0]]
         
 
-        self.weights = torch.Tensor(weights).to(device=device, dtype=dtype)
-        self.weights = self.weights / 255
-        self.weights = nn.Parameter(self.weights, requires_grad=True)
+        self.weight = torch.Tensor(weights).to(device=device, dtype=dtype)
+        self.weight = self.weight / 255
+        self.weight = nn.Parameter(self.weight, requires_grad=True)
 
         self.out_channels = out_channels
         self.kernel_size = kernel_size
@@ -363,7 +366,7 @@ class RGB_Conv2d(nn.Module):
 
     def forward(self, input_tensor):
 
-        weights = self.weights.unsqueeze(-1).unsqueeze(-1).expand(-1, -1, 5, 5)  # 變成 (30, 3, 5, 5)
+        weights = self.weight.unsqueeze(-1).unsqueeze(-1).expand(-1, -1, 5, 5)  # 變成 (30, 3, 5, 5)
 
         # print(  f"input_tensor {input_tensor.shape}") # ([2, 3, 224, 224])
         # 使用 unfold 取得 5x5 的卷積區域 (展開操作)
@@ -459,10 +462,10 @@ class RGB_Conv2d(nn.Module):
         return result
 
     def transform_weights(self):
-        return self.weights
+        return self.weight
 
     def extra_repr(self) -> str:
-        return f"initial = {self.initial}, weight shape = {self.weights.shape}, cal_dist = LAB"
+        return f"initial = {self.initial}, weight shape = {self.weight.shape}, cal_dist = LAB"
 
     def rgb_to_hsv(self, RGB):
         r, g, b = RGB
@@ -749,13 +752,79 @@ class RBF_Conv2d(nn.Module):
         return f"initial = {self.initial}, weight shape = {(self.out_channels, self.in_channels, *self.kernel_size)}"
 
 
+'''
+    前處理Part(自由取用)
+'''
 
+
+class Renormalize(object):
+    def __call__(self, images):
+        batch, channel = images.shape[0], images.shape[1]
+        min_vals = images.view(batch, channel, -1).min(dim=-1, keepdim=True)[0].unsqueeze(-1)
+        max_vals = images.view(batch, channel, -1).max(dim=-1, keepdim=True)[0].unsqueeze(-1)
+        normalized_images = (images - min_vals) / (max_vals - min_vals)
+        result = torch.where(max_vals == min_vals, torch.zeros_like(images), normalized_images)
+        return result
+
+
+class NormalizeToRange(object):
+    def __call__(self, images):
+        """
+        将图像归一化到 [-1, 1] 区间
+
+        Args:
+            images: 输入图像张量
+
+        Returns:
+            归一化后的图像张量，范围在 [-1, 1] 之间
+        """
+        batch, channel = images.shape[0], images.shape[1]
+        min_vals = images.view(batch, channel, -1).min(dim=-1, keepdim=True)[0].unsqueeze(-1)
+        max_vals = images.view(batch, channel, -1).max(dim=-1, keepdim=True)[0].unsqueeze(-1)
+
+        # 先归一化到 [0, 1]
+        normalized_images = (images - min_vals) / (max_vals - min_vals + 1e-8)
+        # 然后转换到 [-1, 1]
+        result = normalized_images * 2 - 1
+
+        # 处理特殊情况：当 max_vals == min_vals 时，返回零张量
+        return torch.where(max_vals == min_vals, torch.zeros_like(images), result)
+
+
+class AvoidAll0(object):
+    def __call__(self, images):
+        """
+        将图像轉到 [-1, 1] 区间，避免全黑圖片都是 0
+
+        Args:
+            images: 输入图像张量
+
+        Returns:
+            归一化后的图像张量，范围在 [-1, 1] 之间
+        """
+
+        # 然后转换到 [-1, 1]
+        result = images * 2 - 1
+
+        # 处理特殊情况：当 max_vals == min_vals 时，返回零张量
+        return result
+
+
+'''
+    響應過濾模組(輸入陣列)
+'''
+def make_rbfs(rbfs, activate_param, device, required_grad=True):
+    # 建立響應模組
+    rbf_layers = []
+    for rbf in rbfs:
+        print(rbf)
+        rbf_layers.append(get_rbf(rbf, activate_param, device, required_grad=required_grad))
+    return nn.Sequential(*rbf_layers)
 
 
 '''
     響應過濾模組(所有可能性)
 '''
-
 def get_rbf(rbf, activate_param, device, required_grad = True):
     if rbf == "triangle":
         return triangle(w=activate_param[0], requires_grad=required_grad, device=device)
@@ -773,9 +842,6 @@ def get_rbf(rbf, activate_param, device, required_grad = True):
         return MeanVarianceRegularization()
     else:
         raise ValueError(f"Unknown RBF type: {rbf}")
-
-
-
 
 
 class triangle(nn.Module):

@@ -32,6 +32,28 @@ def read_Image(path = 'D:/Project/paper/RGB_SFM/showout/Colored_MNIST_0610_RGB_S
 
 
 def plot_map(rm, grid_size=None, rowspan=None, colspan=None, path=None, **kwargs):
+    """
+    繪製濾波器圖像的網格視覺化。
+
+    參數:
+        rm (torch.Tensor 或 numpy.ndarray): 五維張量，shape = (num_filter_rows, num_filter_cols, filter_height, filter_width, num_channels)
+
+            - num_filter_rows: 濾波器排列的行數（可視為 filter map 的排版高度）
+            - num_filter_cols: 濾波器排列的列數（可視為 filter map 的排版寬度）
+            - filter_height:   每個濾波器圖像的實際高度（像素）
+            - filter_width:    每個濾波器圖像的實際寬度（像素）
+            - num_channels:    通道數（1 表示灰階，3 表示 RGB 彩色）
+
+        grid_size (tuple): matplotlib subplot 的總 grid 尺寸。
+        rowspan (int): 單個圖佔用的 grid row 數。
+        colspan (int): 單個圖佔用的 grid col 數。
+        path (str): 若指定路徑，則儲存圖片至該路徑；否則顯示圖片。
+        **kwargs: 傳給 imshow() 的額外參數，如 cmap。
+
+    回傳:
+        fig: matplotlib 的 figure 物件。
+    """
+
     # 新增：計算 rm 的全局最大值和最小值
     global_max = rm.max()
     global_min = rm.min()
@@ -197,7 +219,7 @@ def split(input, kernel_size = (5, 5), stride = (5,5)):
     batch, channel, h, w = input.shape
     output_height = math.floor((h  - (kernel_size[0] - 1) - 1) / stride[0] + 1)
     output_width = math.floor((w  - (kernel_size[1] - 1) - 1) / stride[1] + 1)
-    input = torch.tensor(input)
+    input = input.clone().detach()
     segments = F.unfold(input, kernel_size=kernel_size, stride=stride).reshape(batch, channel, *kernel_size, -1).permute(0,1,4,2,3)
     segments = segments.reshape(batch, channel, output_height, output_width, *kernel_size) 
     return segments
@@ -205,59 +227,33 @@ def split(input, kernel_size = (5, 5), stride = (5,5)):
 
 
 
-def get_CIs(model, layers, images):\
-    # 將圖片轉成灰階
-    gray_transform = torchvision.transforms.Compose([
-        torchvision.transforms.Grayscale(),
-        # Sobel_Conv2d(),
-        # Renormalize(),
-        # NormalizeToRange(),
-    ])
-
+def get_CIs(model, rgb_feature_layers, gray_feature_layers, images):
     # 獲得每一層的CI
     CIs = {}
     CI_values = {}
     kernel_size = arch['args']['Conv2d_kernel'][0]
     stride = (arch['args']['strides'][0], arch['args']['strides'][0])
-    if arch['args']['in_channels'] == 1:
-        CIs[0], CI_idx, CI_values = get_ci(images, layers[0], kernel_size=kernel_size, stride=stride)
-        CIs[1], CI_idx, CI_values = get_ci(images, layers[1], kernel_size=kernel_size, stride=stride,
-                                           sfm_filter=torch.prod(torch.tensor(arch['args']['SFM_filters'][:1]), dim=0))
-        CIs[2], CI_idx, CI_values = get_ci(images, layers[2], kernel_size=kernel_size, stride=stride,
-                                           sfm_filter=torch.prod(torch.tensor(arch['args']['SFM_filters'][:2]), dim=0))
-        CIs[3], CI_idx, CI_values = get_ci(images, layers[3], kernel_size=kernel_size, stride=stride,
-                                           sfm_filter=torch.prod(torch.tensor(arch['args']['SFM_filters'][:3]), dim=0))
-    else:
-        CIs["RGB_convs_0"], CI_idx, CI_values["RGB_convs_0"] = get_ci(images, layers['RGB_convs_0'], kernel_size,
-                                                                      stride=stride)
-        CIs["RGB_convs_1"], CI_idx, CI_values["RGB_convs_1"] = get_ci(images, layers["RGB_convs_1"],
-                                                                      kernel_size=kernel_size,
-                                                                      stride=stride,
-                                                                      sfm_filter=torch.prod(
-                                                                          torch.tensor(arch['args']['SFM_filters'][:1]),
-                                                                          dim=0))
-        CIs["RGB_convs_2"], CI_idx, CI_values["RGB_convs_2"] = get_ci(images, layers["RGB_convs_2"],
-                                                                      kernel_size=kernel_size,
-                                                                      stride=stride,
-                                                                      sfm_filter=torch.prod(
-                                                                          torch.tensor(arch['args']['SFM_filters'][:2]),
-                                                                          dim=0))
 
-        CIs["Gray_convs_0"], CI_idx, CI_values["Gray_convs_0"] = get_ci(model.gray_transform(images),
-                                                                        layers['Gray_convs_0'], kernel_size,
-                                                                        stride=stride)
-        CIs["Gray_convs_1"], CI_idx, CI_values["Gray_convs_1"] = get_ci(model.gray_transform(images),
-                                                                        layers["Gray_convs_1"],
-                                                                        kernel_size=kernel_size, stride=stride,
-                                                                        sfm_filter=torch.prod(torch.tensor(
-                                                                            arch['args']['SFM_filters'][:1]),
-                                                                                              dim=0))
-        CIs["Gray_convs_2"], CI_idx, CI_values["Gray_convs_2"] = get_ci(model.gray_transform(images),
-                                                                        layers["Gray_convs_2"],
-                                                                        kernel_size=kernel_size, stride=stride,
-                                                                        sfm_filter=torch.prod(torch.tensor(
-                                                                            arch['args']['SFM_filters'][:2]),
-                                                                                              dim=0))
+    for layer_index in range(len(rgb_feature_layers)):
+        # 取經過激活函數的那一層
+        layer_name = f"RGB_convs_{layer_index}"
+        layer = rgb_feature_layers[layer_name]
+
+        sfm_filter = torch.prod(torch.tensor(arch['args']['SFM_filters'][:layer_index]),
+                                                                      dim=0) if layer_index > 0 else (1,1)
+        CIs[layer_name], CI_idx, CI_values[layer_name] = (
+            get_ci(images, layer, kernel_size, stride=stride, sfm_filter=sfm_filter))
+
+    for layer_index in range(len(gray_feature_layers)):
+        # 取經過激活函數的那一層
+        layer_name = f"Gray_convs_{layer_index}"
+        layer = gray_feature_layers[layer_name]
+
+        sfm_filter = torch.prod(torch.tensor(arch['args']['SFM_filters'][:layer_index]),
+                                dim=0) if layer_index > 0 else (1, 1)
+        CIs[layer_name], CI_idx, CI_values[layer_name] = (
+            get_ci(model.gray_transform(images), layer, kernel_size, stride=stride, sfm_filter=sfm_filter))
+
 
     return CIs, CI_values
 
@@ -269,7 +265,8 @@ def get_ci(input, layer, kernel_size = (5,5), stride= (5,5), sfm_filter = (1,1))
     segments = segments.permute(0, 2, 4, 3, 6, 5, 7, 1)
     segments = segments.reshape(-1, ci_h, ci_w, input.shape[1])
     print(f"segments shape: {segments.shape}")
-    
+    print(f"input shape: {input.shape}")
+
     with torch.no_grad():
         outputs = layer(input)
         n_filters = outputs.shape[1]

@@ -62,7 +62,7 @@ if arch['args']['in_channels'] == 1:
 else:
 	# 平行架構
 	kernel_size = arch['args']['Conv2d_kernel'][0]
-	weights = torch.concat([model.RGB_convs[0][0].weights, model.RGB_convs[0][0].black_block, model.RGB_convs[0][0].white_block])
+	weights = torch.concat([model.RGB_convs[0][0].weight, model.RGB_convs[0][0].black_block, model.RGB_convs[0][0].white_block])
 	weights = weights.reshape(arch['args']['channels'][0][0],arch['args']['in_channels'],1,1)
 	weights = weights.repeat(1,1,*kernel_size)
 	FMs['RGB_convs_0'] = weights
