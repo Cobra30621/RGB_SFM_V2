@@ -1,4 +1,4 @@
-from diabetic_retinopathy_handler import preprocess_retinal_tensor_batch
+from diabetic_retinopathy_handler import preprocess_retinal_tensor_batch, check_then_preprocess_images
 from load_tools import load_model_and_data
 from utils import *
 
@@ -49,51 +49,15 @@ else:
                                                                 int(model.Gray_convs[3][0].weight.shape[1] ** 0.5), 1)
     print(f'FM[Gray_convs_2] shape: {FMs["Gray_convs_2"].shape}')
 
-# 使用影像前處理
-use_preprocessed_image= config['use_preprocessed_image']
-if use_preprocessed_image:
-    print(f"image {images.shape}")
-    preprocessed_images = preprocess_retinal_tensor_batch(images, final_size=config['input_shape'])
-    images = preprocessed_images
-    print(f"preprocessed_images {preprocessed_images.shape}")
 
 # 讀取每一層架構(為後面的CI做準備)
 layers = get_layers(model)
 
-# 獲得每一層的CI
-CIs = {}
-CI_values = {}
-kernel_size = arch['args']['Conv2d_kernel'][0]
-stride = (arch['args']['strides'][0], arch['args']['strides'][0])
-if arch['args']['in_channels'] == 1:
-    CIs[0], CI_idx, CI_values = get_ci(images, layers[0], kernel_size=kernel_size, stride=stride)
-    CIs[1], CI_idx, CI_values = get_ci(images, layers[1], kernel_size=kernel_size, stride=stride,
-                                       sfm_filter=torch.prod(torch.tensor(arch['args']['SFM_filters'][:1]), dim=0))
-    CIs[2], CI_idx, CI_values = get_ci(images, layers[2], kernel_size=kernel_size, stride=stride,
-                                       sfm_filter=torch.prod(torch.tensor(arch['args']['SFM_filters'][:2]), dim=0))
-    CIs[3], CI_idx, CI_values = get_ci(images, layers[3], kernel_size=kernel_size, stride=stride,
-                                       sfm_filter=torch.prod(torch.tensor(arch['args']['SFM_filters'][:3]), dim=0))
-else:
-    CIs["RGB_convs_0"], CI_idx, CI_values["RGB_convs_0"] = get_ci(images, layers['RGB_convs_0'], kernel_size, stride=stride)
-    CIs["RGB_convs_1"], CI_idx, CI_values["RGB_convs_1"] = get_ci(images, layers["RGB_convs_1"], kernel_size=kernel_size,
-                                                   stride=stride,
-                                                   sfm_filter=torch.prod(torch.tensor(arch['args']['SFM_filters'][:1]),
-                                                                         dim=0))
-    CIs["RGB_convs_2"], CI_idx, CI_values["RGB_convs_2"] = get_ci(images, layers["RGB_convs_2"], kernel_size=kernel_size,
-                                                   stride=stride,
-                                                   sfm_filter=torch.prod(torch.tensor(arch['args']['SFM_filters'][:2]),
-                                                                         dim=0))
+# 使用影像前處理，如果有需要(視網膜資料集)
+images = check_then_preprocess_images(images)
 
-    CIs["Gray_convs_0"], CI_idx, CI_values["Gray_convs_0"] = get_ci(model.gray_transform(images), layers['Gray_convs_0'], kernel_size,
-                                                    stride=stride)
-    CIs["Gray_convs_1"], CI_idx, CI_values["Gray_convs_1"] = get_ci(model.gray_transform(images), layers["Gray_convs_1"],
-                                                    kernel_size=kernel_size, stride=stride,
-                                                    sfm_filter=torch.prod(torch.tensor(arch['args']['SFM_filters'][:1]),
-                                                                          dim=0))
-    CIs["Gray_convs_2"], CI_idx, CI_values["Gray_convs_2"] = get_ci(model.gray_transform(images), layers["Gray_convs_2"],
-                                                    kernel_size=kernel_size, stride=stride,
-                                                    sfm_filter=torch.prod(torch.tensor(arch['args']['SFM_filters'][:2]),
-                                                                          dim=0))
+# 獲得每一層的CIs
+CIs, CI_values = get_CIs(model, layers, images)
 
 save_path = f'./detect/{config["dataset"]}_{checkpoint_filename}/'
 

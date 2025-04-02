@@ -3,51 +3,7 @@ import numpy as np
 import cv2
 import matplotlib.pyplot as plt
 
-
-def display_image_comparison(save_path=None, **images_dict):
-    """
-    顯示多張圖片的比較，使用變數名稱作為標題
-    Args:
-        save_path: 圖片保存路徑，如果提供則保存圖片
-        **images_dict: 圖片變數，例如 original=img1, enhanced=img2 等
-    """
-    image_list = list(images_dict.values())
-    title_list = list(images_dict.keys())
-    num_images = len(image_list)
-
-    fig, axes = plt.subplots(1, num_images, figsize=(3 * num_images, 6))
-
-    for idx in range(num_images):
-        img = image_list[idx]
-
-        # 將 PyTorch tensor 轉換為 numpy 並調整通道
-        if torch.is_tensor(img):
-            if img.shape[0] == 1:  # 灰階圖片
-                img = img.squeeze(0).cpu().numpy()
-            else:  # RGB 圖片
-                img = img.permute(1, 2, 0).cpu().numpy()
-            if img.max() <= 1.0:
-                img = (img * 255).astype(np.uint8)
-
-        # 使用 cmap='gray' 顯示灰階圖片
-        if len(img.shape) == 2 or (len(img.shape) == 3 and img.shape[2] == 1):
-            axes[idx].imshow(img, cmap='gray')
-        else:
-            axes[idx].imshow(img)
-            
-        axes[idx].set_title(title_list[idx])
-        axes[idx].axis('off')
-
-    plt.tight_layout()
-    
-    # 如果提供保存路徑，則保存圖片
-    if save_path:
-        plt.savefig(save_path, bbox_inches='tight', dpi=300)
-    
-    plt.show()
-
-
-
+from config import config
 
 
 def preprocess_retinal_tensor_image(image_tensor, target_radius=224, final_size=(225, 225)):
@@ -163,4 +119,57 @@ def preprocess_retinal_tensor_batch(image_tensors, target_radius=224, final_size
 
     return torch.stack(final_images)
 
+
+def display_image_comparison(save_path=None, **images_dict):
+    """
+    顯示多張圖片的比較，使用變數名稱作為標題
+    Args:
+        save_path: 圖片保存路徑，如果提供則保存圖片
+        **images_dict: 圖片變數，例如 original=img1, enhanced=img2 等
+    """
+    image_list = list(images_dict.values())
+    title_list = list(images_dict.keys())
+    num_images = len(image_list)
+
+    fig, axes = plt.subplots(1, num_images, figsize=(3 * num_images, 6))
+
+    for idx in range(num_images):
+        img = image_list[idx]
+
+        # 將 PyTorch tensor 轉換為 numpy 並調整通道
+        if torch.is_tensor(img):
+            if img.shape[0] == 1:  # 灰階圖片
+                img = img.squeeze(0).cpu().numpy()
+            else:  # RGB 圖片
+                img = img.permute(1, 2, 0).cpu().numpy()
+            if img.max() <= 1.0:
+                img = (img * 255).astype(np.uint8)
+
+        # 使用 cmap='gray' 顯示灰階圖片
+        if len(img.shape) == 2 or (len(img.shape) == 3 and img.shape[2] == 1):
+            axes[idx].imshow(img, cmap='gray')
+        else:
+            axes[idx].imshow(img)
+
+        axes[idx].set_title(title_list[idx])
+        axes[idx].axis('off')
+
+    plt.tight_layout()
+
+    # 如果提供保存路徑，則保存圖片
+    if save_path:
+        plt.savefig(save_path, bbox_inches='tight', dpi=300)
+
+    plt.show()
+
+
+def check_then_preprocess_images(images):
+    # 使用影像前處理
+    use_preprocessed_image = config['use_preprocessed_image']
+    if use_preprocessed_image:
+        images = preprocess_retinal_tensor_batch(images, final_size=config['input_shape'])
+        print("使用影像前處理，如果不是視網膜資料集請關閉")
+
+
+    return images
 

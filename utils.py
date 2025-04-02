@@ -202,6 +202,66 @@ def split(input, kernel_size = (5, 5), stride = (5,5)):
     segments = segments.reshape(batch, channel, output_height, output_width, *kernel_size) 
     return segments
 
+
+
+
+def get_CIs(model, layers, images):\
+    # 將圖片轉成灰階
+    gray_transform = torchvision.transforms.Compose([
+        torchvision.transforms.Grayscale(),
+        # Sobel_Conv2d(),
+        # Renormalize(),
+        # NormalizeToRange(),
+    ])
+
+    # 獲得每一層的CI
+    CIs = {}
+    CI_values = {}
+    kernel_size = arch['args']['Conv2d_kernel'][0]
+    stride = (arch['args']['strides'][0], arch['args']['strides'][0])
+    if arch['args']['in_channels'] == 1:
+        CIs[0], CI_idx, CI_values = get_ci(images, layers[0], kernel_size=kernel_size, stride=stride)
+        CIs[1], CI_idx, CI_values = get_ci(images, layers[1], kernel_size=kernel_size, stride=stride,
+                                           sfm_filter=torch.prod(torch.tensor(arch['args']['SFM_filters'][:1]), dim=0))
+        CIs[2], CI_idx, CI_values = get_ci(images, layers[2], kernel_size=kernel_size, stride=stride,
+                                           sfm_filter=torch.prod(torch.tensor(arch['args']['SFM_filters'][:2]), dim=0))
+        CIs[3], CI_idx, CI_values = get_ci(images, layers[3], kernel_size=kernel_size, stride=stride,
+                                           sfm_filter=torch.prod(torch.tensor(arch['args']['SFM_filters'][:3]), dim=0))
+    else:
+        CIs["RGB_convs_0"], CI_idx, CI_values["RGB_convs_0"] = get_ci(images, layers['RGB_convs_0'], kernel_size,
+                                                                      stride=stride)
+        CIs["RGB_convs_1"], CI_idx, CI_values["RGB_convs_1"] = get_ci(images, layers["RGB_convs_1"],
+                                                                      kernel_size=kernel_size,
+                                                                      stride=stride,
+                                                                      sfm_filter=torch.prod(
+                                                                          torch.tensor(arch['args']['SFM_filters'][:1]),
+                                                                          dim=0))
+        CIs["RGB_convs_2"], CI_idx, CI_values["RGB_convs_2"] = get_ci(images, layers["RGB_convs_2"],
+                                                                      kernel_size=kernel_size,
+                                                                      stride=stride,
+                                                                      sfm_filter=torch.prod(
+                                                                          torch.tensor(arch['args']['SFM_filters'][:2]),
+                                                                          dim=0))
+
+        CIs["Gray_convs_0"], CI_idx, CI_values["Gray_convs_0"] = get_ci(model.gray_transform(images),
+                                                                        layers['Gray_convs_0'], kernel_size,
+                                                                        stride=stride)
+        CIs["Gray_convs_1"], CI_idx, CI_values["Gray_convs_1"] = get_ci(model.gray_transform(images),
+                                                                        layers["Gray_convs_1"],
+                                                                        kernel_size=kernel_size, stride=stride,
+                                                                        sfm_filter=torch.prod(torch.tensor(
+                                                                            arch['args']['SFM_filters'][:1]),
+                                                                                              dim=0))
+        CIs["Gray_convs_2"], CI_idx, CI_values["Gray_convs_2"] = get_ci(model.gray_transform(images),
+                                                                        layers["Gray_convs_2"],
+                                                                        kernel_size=kernel_size, stride=stride,
+                                                                        sfm_filter=torch.prod(torch.tensor(
+                                                                            arch['args']['SFM_filters'][:2]),
+                                                                                              dim=0))
+
+    return CIs, CI_values
+
+
 def get_ci(input, layer, kernel_size = (5,5), stride= (5,5), sfm_filter = (1,1)):
     segments = split(input, kernel_size, stride)
     combine_h, combine_w, ci_h, ci_w = (int(segments.shape[2]/sfm_filter[0]), int(segments.shape[3]/sfm_filter[1]), int(segments.shape[4]*sfm_filter[0]), int(segments.shape[5]*sfm_filter[1]))

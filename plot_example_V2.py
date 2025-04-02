@@ -2,7 +2,8 @@ from pytorch_grad_cam import ( GradCAM, HiResCAM, GradCAMPlusPlus,
                               GradCAMElementWise, XGradCAM, AblationCAM, ScoreCAM, EigenCAM, EigenGradCAM,
                               LayerCAM, KPCA_CAM)
 
-from diabetic_retinopathy_handler import preprocess_retinal_tensor_image, display_image_comparison
+from diabetic_retinopathy_handler import preprocess_retinal_tensor_image, display_image_comparison, \
+    check_then_preprocess_images
 from load_tools import load_model_and_data
 from plot_cam import  generate_cam_visualizations
 from utils import *
@@ -63,39 +64,11 @@ else:
 
 layers = get_layers(model)
 
-CIs = {}
-kernel_size = arch['args']['Conv2d_kernel'][0]
-stride = (arch['args']['strides'][0], arch['args']['strides'][0])
-if arch['args']['in_channels'] == 1:
-    CIs[0], CI_idx, CI_values = get_ci(images, layers[0], kernel_size=kernel_size, stride=stride)
-    CIs[1], CI_idx, CI_values = get_ci(images, layers[1], kernel_size=kernel_size, stride=stride,
-                                       sfm_filter=torch.prod(torch.tensor(arch['args']['SFM_filters'][:1]), dim=0))
-    CIs[2], CI_idx, CI_values = get_ci(images, layers[2], kernel_size=kernel_size, stride=stride,
-                                       sfm_filter=torch.prod(torch.tensor(arch['args']['SFM_filters'][:2]), dim=0))
-    CIs[3], CI_idx, CI_values = get_ci(images, layers[3], kernel_size=kernel_size, stride=stride,
-                                       sfm_filter=torch.prod(torch.tensor(arch['args']['SFM_filters'][:3]), dim=0))
-else:
+# 使用影像前處理，如果有需要(視網膜資料集)
+preprocess_images = check_then_preprocess_images(images)
 
-    CIs["RGB_convs_0"], CI_idx, CI_values = get_ci(images, layers['RGB_convs_0'], kernel_size, stride=stride)
-    CIs["RGB_convs_1"], CI_idx, CI_values = get_ci(images, layers["RGB_convs_1"], kernel_size=kernel_size,
-                                                   stride=stride,
-                                                   sfm_filter=torch.prod(torch.tensor(arch['args']['SFM_filters'][:1]),
-                                                                         dim=0))
-    CIs["RGB_convs_2"], CI_idx, CI_values = get_ci(images, layers["RGB_convs_2"], kernel_size=kernel_size,
-                                                   stride=stride,
-                                                   sfm_filter=torch.prod(torch.tensor(arch['args']['SFM_filters'][:2]),
-                                                                         dim=0))
-
-    CIs["Gray_convs_0"], CI_idx, CI_values = get_ci(model.gray_transform(images), layers['Gray_convs_0'], kernel_size,
-                                                    stride=stride)
-    CIs["Gray_convs_1"], CI_idx, CI_values = get_ci(model.gray_transform(images), layers["Gray_convs_1"],
-                                                    kernel_size=kernel_size, stride=stride,
-                                                    sfm_filter=torch.prod(torch.tensor(arch['args']['SFM_filters'][:1]),
-                                                                          dim=0))
-    CIs["Gray_convs_2"], CI_idx, CI_values = get_ci(model.gray_transform(images), layers["Gray_convs_2"],
-                                                    kernel_size=kernel_size, stride=stride,
-                                                    sfm_filter=torch.prod(torch.tensor(arch['args']['SFM_filters'][:2]),
-                                                                          dim=0))
+# 獲得每一層的CIs
+CIs, CI_values = get_CIs(model, layers, preprocess_images)
 
 if config['dataset'] == 'Colored_MNIST' or config['dataset'] == 'Colored_FashionMNIST':
     label_to_idx = {}
@@ -150,6 +123,13 @@ if os.path.exists(save_path):
     os.makedirs(save_path)  # 重新建立資料夾
 
 
+gray_transform = torchvision.transforms.Compose([
+        torchvision.transforms.Grayscale(),
+        # Sobel_Conv2d(),
+        # Renormalize(),
+        # NormalizeToRange(),
+    ])
+
 def process_image(image, label, test_id):
     print(test_id)
     save_path = f'./detect/{config["dataset"]}_{checkpoint_filename}/example/{label.argmax().item()}/example_{test_id}/'
@@ -183,10 +163,11 @@ def process_image(image, label, test_id):
         origin_img = fig_origin
 
         RM_CI_figs['Preprocess'] = origin_img
+        image = final_img
 
     # 繪製灰階圖片
     fig_gray = plt.figure(figsize=(5, 5), facecolor="white")
-    gray_image = model.gray_transform(image.unsqueeze(0))[0]  # 使用模型中的灰階轉換
+    gray_image = gray_transform(image.unsqueeze(0))[0]  # 使用模型中的灰階轉換
     plt.imshow(gray_image.squeeze().detach().numpy(), cmap='gray')
     plt.axis('off')
     plt.savefig(save_path + f'gray_{test_id}.png', bbox_inches='tight', pad_inches=0)
@@ -199,9 +180,7 @@ def process_image(image, label, test_id):
 
     origin_split_img = plot_map(segments.permute(1, 2, 3, 4, 0), path=save_path + f'origin_split_{test_id}.png')
     RM_figs['Origin_Split'] = origin_split_img
-
-
-    RM_CI_figs['Origin_Split'] = origin_split_img
+    # RM_CI_figs['Origin_Split'] = origin_split_img
 
     if arch['args']['in_channels'] == 1:
         # Layer 0

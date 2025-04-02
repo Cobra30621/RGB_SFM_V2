@@ -54,6 +54,25 @@ class NormalizeToRange(object):
         return torch.where(max_vals == min_vals, torch.zeros_like(images), result)
 
 
+class AvoidAll0(object):
+    def __call__(self, images):
+        """
+        将图像轉到 [-1, 1] 区间，避免全黑圖片都是 0
+
+        Args:
+            images: 输入图像张量
+
+        Returns:
+            归一化后的图像张量，范围在 [-1, 1] 之间
+        """
+
+        # 然后转换到 [-1, 1]
+        result = images * 2 - 1
+
+        # 处理特殊情况：当 max_vals == min_vals 时，返回零张量
+        return result
+
+
 '''
     主模型Part
 '''
