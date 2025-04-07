@@ -4,6 +4,9 @@ import torch.nn.functional as F
 
 from config import *
 import numpy as np
+
+from models.RGB_SFMCNN_V2 import get_CI_target_layers
+
 '''
     將 image 按照 kernel size 進行切割
 '''
@@ -227,7 +230,10 @@ def split(input, kernel_size = (5, 5), stride = (5,5)):
 
 
 
-def get_CIs(model, rgb_feature_layers, gray_feature_layers, images):
+def get_CIs(model,  images):
+    # 6️擷取用於 CI 的模型層（經 activation）
+    rgb_feature_layers, gray_feature_layers = get_CI_target_layers(model)
+
     # 獲得每一層的CI
     CIs = {}
     CI_values = {}

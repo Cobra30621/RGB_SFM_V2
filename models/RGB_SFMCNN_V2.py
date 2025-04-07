@@ -323,6 +323,9 @@ class RGB_SFMCNN_V2(nn.Module):
     return output shape = (batches, channels, height, width)
 '''
 
+import torch
+import torch.nn as nn
+
 
 class RGB_Conv2d(nn.Module):
     def __init__(self,
@@ -334,58 +337,49 @@ class RGB_Conv2d(nn.Module):
                  initial: str = "kaiming",
                  device=None,
                  dtype=None) -> None:
-        super().__init__()  # TODO RGB_Conv2d function
-        # 30 個濾波器
-        # color_weights = [[255, 255, 255], [219, 178, 187], [210, 144, 98], [230, 79, 56], [207, 62, 108], [130, 44, 28], [91, 31, 58], [209, 215, 63], [194, 202, 119], [224, 148, 36], [105, 147, 29], [131, 104, 50], [115, 233, 72], [189, 211, 189], [109, 215, 133], [72, 131, 77], [69, 81, 65], [77, 212, 193], [101, 159, 190], [120, 142, 215], [121, 102, 215], [111, 42, 240], [75, 42, 185], [57, 41, 119], [42, 46, 71], [216, 129, 199], [214, 67, 205], [147, 107, 128], [136, 48, 133], [0, 0, 0]]
+        super().__init__()
 
-        # self.color_weights = torch.Tensor(color_weights).to(device=device, dtype=dtype)
-        # self.color_weights = self.color_weights / 255
-        # self.color_weights =  nn.Parameter(self.color_weights, requires_grad=False)
-
-        # 30 個濾波器
         weights = [[255, 255, 255], [219, 178, 187], [210, 144, 98], [230, 79, 56], [207, 62, 108], [130, 44, 28],
                    [91, 31, 58], [209, 215, 63], [194, 202, 119], [224, 148, 36], [105, 147, 29], [131, 104, 50],
                    [115, 233, 72], [189, 211, 189], [109, 215, 133], [72, 131, 77], [69, 81, 65], [77, 212, 193],
                    [101, 159, 190], [120, 142, 215], [121, 102, 215], [111, 42, 240], [75, 42, 185], [57, 41, 119],
                    [42, 46, 71], [216, 129, 199], [214, 67, 205], [147, 107, 128], [136, 48, 133], [0, 0, 0]]
-        
 
-        self.weight = torch.Tensor(weights).to(device=device, dtype=dtype)
-        self.weight = self.weight / 255
-        self.weight = nn.Parameter(self.weight, requires_grad=True)
+        kernel_h, kernel_w = kernel_size
+
+        # 轉成 tensor 並正規化，shape: (30, 3)
+        weight_tensor = torch.tensor(weights, dtype=dtype, device=device) / 255.0
+
+        # 變成 shape: (30, 3, 1, 1)
+        weight_tensor = weight_tensor.unsqueeze(-1).unsqueeze(-1)
+
+        # 擴展成 shape: (30, 3, kernel_h, kernel_w)
+        weight_tensor = weight_tensor.repeat(1, 1, kernel_h, kernel_w)
+
+        # 註冊為可訓練參數
+        self.weight = nn.Parameter(weight_tensor, requires_grad=True)
 
         self.out_channels = out_channels
         self.kernel_size = kernel_size
         self.stride = stride
         self.padding = padding
         self.initial = initial
-
         self.use_average = True
 
-
-
     def forward(self, input_tensor):
-
-        weights = self.weight.unsqueeze(-1).unsqueeze(-1).expand(-1, -1, 5, 5)  # 變成 (30, 3, 5, 5)
-
-        # print(  f"input_tensor {input_tensor.shape}") # ([2, 3, 224, 224])
-        # 使用 unfold 取得 5x5 的卷積區域 (展開操作)
+        # input_tensor shape: (B, 3, H, W)
         unfold = torch.nn.Unfold(kernel_size=self.kernel_size, stride=self.stride)
-
         input_unfolded = unfold(input_tensor)
 
-        # 重新塑形成適合計算的格式
         height, width = int(input_unfolded.shape[2] ** 0.5), int(input_unfolded.shape[2] ** 0.5)
-        input_unfolded = input_unfolded.view(-1, 3, self.kernel_size[0], self.kernel_size[1], height, width)  # (1000, 3, 5, 5, height, width)
-        input_unfolded = input_unfolded.permute(0, 4, 5, 1, 2, 3)  # (1000, height, width, 3, 5, 5)
+        input_unfolded = input_unfolded.view(-1, 3, self.kernel_size[0], self.kernel_size[1], height, width)
+        input_unfolded = input_unfolded.permute(0, 4, 5, 1, 2, 3)
 
-
-
-        # 計算顏色相似度 (可以選擇不同公式)
-        distances = self. batched_LAB_distance(input_unfolded.unsqueeze(1), weights.unsqueeze(0).unsqueeze(2).unsqueeze(3))
-        # distances shape = (1000, 30, 6, 6)
-        # print("Output shape:", distances.shape)
-
+        # weights shape: (30, 3, kernel_h, kernel_w)
+        distances = self.batched_LAB_distance(
+            input_unfolded.unsqueeze(1),
+            self.weight.unsqueeze(0).unsqueeze(2).unsqueeze(3)
+        )
         return distances
 
 

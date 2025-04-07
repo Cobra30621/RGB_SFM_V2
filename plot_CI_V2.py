@@ -12,7 +12,7 @@ import matplotlib
 """
 
 # 1️⃣ 讀取模型與資料
-checkpoint_filename = 'RGB_SFMCNN_V2_best'
+checkpoint_filename = config["load_model_name"]
 model, train_dataloader, test_dataloader, images, labels = load_model_and_data(checkpoint_filename)
 
 # 2️⃣ 建立儲存目錄
@@ -82,19 +82,16 @@ print('FM saving ...')
 channels = arch['args']['channels']                # [RGB通道設定, Gray通道設定]
 kernel_size = arch['args']['Conv2d_kernel'][0]     # 第一層 Gray 的 num_filter (如 70)
 
-plot_FM_branch(model.RGB_convs, (1, 1), channels[0], "RGB_convs", FMs_save_path, is_rgb=True)
+plot_FM_branch(model.RGB_convs,  kernel_size, channels[0], "RGB_convs", FMs_save_path, is_rgb=True)
 plot_FM_branch(model.Gray_convs, kernel_size, channels[1], "Gray_convs", FMs_save_path)
 print('FM saved.')
 
-# 6️⃣ 擷取用於 CI 的模型層（經 activation）
-rgb_layers, gray_layers = get_CI_target_layers(model)
-print(f"rgb_layers {rgb_layers}")
 
 # 7️⃣ 根據資料集決定是否進行預處理（如視網膜影像）
 images = check_then_preprocess_images(images)
 
 # 8️⃣ 計算各層的 CI 與對應值
-CIs, CI_values = get_CIs(model, rgb_layers, gray_layers, images)
+CIs, CI_values = get_CIs(model, images)
 
 # 9️⃣ 定義：繪製單層 CI
 def plot_CI(
