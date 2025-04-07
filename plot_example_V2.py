@@ -121,8 +121,6 @@ def process_layer(
     # 得到該層的 RM（Response Map）
     RM = layers[layer_name](input_image)[0]
     RM_H, RM_W = RM.shape[1], RM.shape[2]
-    # plot_shape = (int(RM.shape[0] ** 0.5), int(RM.shape[0] ** 0.5))
-    print(RM.shape)
 
     # 繪製 RM 圖
     fig_rm = plot_map(
@@ -186,7 +184,7 @@ def process_image(image, label, test_id):
     channels = arch['args']['channels']
 
     # 處理 RGB 分支所有層
-    for i in range(3):
+    for i in range(len(model.RGB_convs)):
         layer_name = f'RGB_convs_{i}'
         plot_shape = channels[0][i]
         process_layer(image, layer_name, use_gray=False, model=model, layers=rgb_layers, plot_shape= plot_shape,CIs=CIs,
@@ -194,7 +192,7 @@ def process_image(image, label, test_id):
                       RM_figs=RM_figs, RM_CI_figs=RM_CI_figs)
 
     # 處理 Gray 分支所有層
-    for i in range(3):
+    for i in range(len(model.Gray_convs)):
         layer_name = f'Gray_convs_{i}'
         plot_shape = channels[1][i]
         process_layer(image, layer_name, use_gray=True, model=model, layers=gray_layers, plot_shape= plot_shape, CIs=CIs,
