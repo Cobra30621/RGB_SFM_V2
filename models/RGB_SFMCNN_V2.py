@@ -353,11 +353,14 @@ class RGB_Conv2d(nn.Module):
         # 變成 shape: (30, 3, 1, 1)
         weight_tensor = weight_tensor.unsqueeze(-1).unsqueeze(-1)
 
-        # 擴展成 shape: (30, 3, kernel_h, kernel_w)
-        weight_tensor = weight_tensor.repeat(1, 1, kernel_h, kernel_w)
+        # 轉成 shape: (30, 1, 1, 3)
+        weight_tensor = weight_tensor.permute(0, 2, 3, 1)
+
+        # 擴展成 shape: (30, kernel_h, kernel_w, 3)
+        weight_tensor = weight_tensor.repeat(1, kernel_h, kernel_w, 1)
 
         # 註冊為可訓練參數
-        self.weight = nn.Parameter(weight_tensor, requires_grad=True)
+        self.weight = nn.Parameter(weight_tensor, requires_grad=False)
 
         self.out_channels = out_channels
         self.kernel_size = kernel_size
@@ -375,10 +378,12 @@ class RGB_Conv2d(nn.Module):
         input_unfolded = input_unfolded.view(-1, 3, self.kernel_size[0], self.kernel_size[1], height, width)
         input_unfolded = input_unfolded.permute(0, 4, 5, 1, 2, 3)
 
+
+        permute_weight = self.weight.permute(0, 3, 1, 2)
         # weights shape: (30, 3, kernel_h, kernel_w)
         distances = self.batched_LAB_distance(
             input_unfolded.unsqueeze(1),
-            self.weight.unsqueeze(0).unsqueeze(2).unsqueeze(3)
+            permute_weight.unsqueeze(0).unsqueeze(2).unsqueeze(3)
         )
         return distances
 
