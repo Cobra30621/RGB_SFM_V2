@@ -1,5 +1,5 @@
 from config import *
-from utils import *
+from ci_getter import *
 from models.SFMCNN import SFMCNN
 from models.RGB_SFMCNN import RGB_SFMCNN
 from dataloader import get_dataloader

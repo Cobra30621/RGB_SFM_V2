@@ -1,9 +1,9 @@
 # 匯入所需模組與工具函式
-from diabetic_retinopathy_handler import preprocess_retinal_tensor_batch, check_then_preprocess_images
+from diabetic_retinopathy_handler import check_then_preprocess_images
 from load_tools import load_model_and_data
-from models.RGB_SFMCNN_V2 import get_CI_target_layers
-from utils import *
-from typing import Tuple, List, Dict, Union
+from plot_graph import plot_combine_images, plot_heatmap
+from ci_getter import *
+from typing import Tuple, List, Dict
 import torch
 import matplotlib
 
@@ -42,7 +42,7 @@ def plot_FM(
         path: 輸出圖片儲存資料夾
         layer_name: 圖片檔名用的層名稱
     """
-
+    print(f"conv.weight: {conv.weight.shape}")
     rm = conv.weight.view(*num_filter, *filter_shape, channel).detach().numpy()
     print(f"plot FM {layer_name}, shape: {rm.shape}")
     plot_map(rm, path=path + f'/FMs_{layer_name}')
@@ -82,9 +82,11 @@ print('FM saving ...')
 channels = arch['args']['channels']                # [RGB通道設定, Gray通道設定]
 kernel_size = arch['args']['Conv2d_kernel'][0]     # 第一層 Gray 的 num_filter (如 70)
 
-plot_FM_branch(model.RGB_convs,  kernel_size, channels[0], "RGB_convs", FMs_save_path, is_rgb=True)
-plot_FM_branch(model.Gray_convs, kernel_size, channels[1], "Gray_convs", FMs_save_path)
-print('FM saved.')
+
+# FM 只有在第一層後 kernal 都是 1 ，才能運作
+# plot_FM_branch(model.RGB_convs,  kernel_size, channels[0], "RGB_convs", FMs_save_path, is_rgb=True)
+# plot_FM_branch(model.Gray_convs, kernel_size, channels[1], "Gray_convs", FMs_save_path)
+# print('FM saved.')
 
 
 # 7️⃣ 根據資料集決定是否進行預處理（如視網膜影像）

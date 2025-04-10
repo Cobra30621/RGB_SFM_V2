@@ -1,7 +1,7 @@
 
 from torchsummary import summary
 
-from utils import *
+from ci_getter import *
 from models.SFMCNN import SFMCNN
 from models.RGB_SFMCNN import RGB_SFMCNN
 from models.RGB_SFMCNN_V2 import RGB_SFMCNN_V2

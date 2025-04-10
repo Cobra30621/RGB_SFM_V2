@@ -7,8 +7,9 @@ from diabetic_retinopathy_handler import preprocess_retinal_tensor_image, displa
 from load_tools import load_model_and_data
 from models.RGB_SFMCNN_V2 import get_feature_extraction_layers
 from plot_cam import  generate_cam_visualizations
-from utils import *
-
+from plot_graph import plot_combine_images, plot_combine_images_vertical
+from ci_getter import *
+import time
 import matplotlib
 
 
@@ -114,29 +115,39 @@ def process_layer(
     處理單層的 RM, FM, CI 可視化並儲存圖檔。
     """
     print(f"Processing {layer_name}...")
+    t0 = time.time()
 
     in_channels = 1 if use_gray else arch_args['in_channels']
     input_image = model.gray_transform(image.unsqueeze(0)) if use_gray else image.unsqueeze(0)
 
-    # 得到該層的 RM（Response Map）
     RM = layers[layer_name](input_image)[0]
     RM_H, RM_W = RM.shape[1], RM.shape[2]
 
-    # 繪製 RM 圖
+    t1 = time.time()
+    print(f"Complete RM calculate - time: {t1 - t0:.3f} sec")
+
     fig_rm = plot_map(
         RM.permute(1, 2, 0).reshape(RM_H, RM_W, *plot_shape, 1).detach().numpy(),
         path=f'{RM_save_path}/{layer_name}_RM'
     )
     RM_figs[layer_name] = fig_rm
 
-    # Top-1 index 取出對應的 CI
+
+    t2 = time.time()
+    print(f"Complete plot RM - time: {t2 - t1:.3f} sec")
+
     top_idx = torch.topk(RM, k=1, dim=0, largest=True).indices.flatten()
     CI_H, CI_W = CIs[layer_name].shape[2], CIs[layer_name].shape[3]
     RM_CI = CIs[layer_name][top_idx].reshape(RM_H, RM_W, CI_H, CI_W, in_channels)
+
+    t3 = time.time()
+    print(f"Complete calculate RM_CI - time: {t3 - t2:.3f} sec")
+
     RM_CI_figs[layer_name] = plot_map(RM_CI, path=f'{RM_CI_save_path}/{layer_name}_RM_CI', cmap='gray' if use_gray else None)
 
+    t4 = time.time()
+    print(f"Finished {layer_name} - time: {t4 - t3:.3f} sec")
 
-    print(f"Finished {layer_name}.")
 
 
 def process_image(image, label, test_id):
@@ -151,7 +162,6 @@ def process_image(image, label, test_id):
     RM_figs = {}
     RM_CI_figs = {}
 
-    # 原始圖
     fig_origin = plt.figure(figsize=(5, 5), facecolor="white")
     plt.imshow(image.permute(1, 2, 0).detach().numpy())
     plt.axis('off')

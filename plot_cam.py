@@ -3,7 +3,7 @@ import os
 import warnings
 
 from Code.runs.train.exp.config import layers_infos
-from utils import plot_combine_images, plot_map
+from plot_graph import plot_map, plot_combine_images
 
 warnings.filterwarnings('ignore')
 from torchvision import transforms

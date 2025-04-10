@@ -1,19 +1,10 @@
-import torch
-import torchvision
-import random
-import torch.nn.functional as F
-import numpy as np
-
 from torchsummary import summary
-from torch import nn
 
-from config import *
-from utils import *
+from ci_getter import *
 from models.SFMCNN import SFMCNN
 from models.RGB_SFMCNN import RGB_SFMCNN
 from dataloader import get_dataloader
 
-import matplotlib
 # matplotlib.use('Agg')
 
 '''
