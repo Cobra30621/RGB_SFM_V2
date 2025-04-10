@@ -9,58 +9,35 @@ from diabetic_retinopathy_handler import preprocess_retinal_tensor_image, displa
 from load_tools import load_model_and_data
 from models.RGB_SFMCNN_V2 import get_feature_extraction_layers
 from plot_cam import  generate_cam_visualizations
-from plot_graph import plot_combine_images, plot_combine_images_vertical, plot_map
+from plot_grap_method import plot_combine_images, plot_combine_images_vertical, plot_map, tensor_to_numpy_image
 from ci_getter import *
 import time
 import matplotlib
 
 
+# 設定是否繪製 CAM
 PLOT_CAM = False
-# PLOT_CAM = True
-# 使用影像前處理
-use_preprocessed_image= config['use_preprocessed_image']
 
+# 設定是否使用預處理後的影像
+use_preprocessed_image = config['use_preprocessed_image']
+
+# 使用 non-interactive 的後端以支援儲存圖片
 matplotlib.use('Agg')
 
-'''
-	對某個資料集產生RM，RM-CI
-'''
-
+# 載入模型與資料集
 checkpoint_filename = config["load_model_name"]
 model, train_dataloader, test_dataloader, images, labels = load_model_and_data(checkpoint_filename)
 
-
+# 提取 RGB 與 Gray 分支的 feature extraction 層
 rgb_layers, gray_layers = get_feature_extraction_layers(model)
-layers = rgb_layers
 
-# 使用影像前處理，如果有需要(視網膜資料集)
+# 視情況進行視網膜影像預處理
 preprocess_images = check_then_preprocess_images(images)
 
-# 獲得每一層的CIs
+# 取得所有層的 Critical Inputs
 CIs, CI_values = get_CIs(model, preprocess_images)
 
-if config['dataset'] == 'Colored_MNIST' or config['dataset'] == 'Colored_FashionMNIST':
-    label_to_idx = {}
-    i = 0
-    for c in ['red', 'green', 'blue']:
-        for n in range(10):
-            label_to_idx[c + '_' + str(n)] = i
-            i += 1
-    idx_to_label = {value: key for key, value in label_to_idx.items()}
-elif config['dataset'] == 'AnotherColored_MNIST' or config['dataset'] == 'AnotherColored_FashionMNIST':
-    label_to_idx = {}
-    colors = {
-        'brown': [151, 74, 0],
-        'light_blue': [121, 196, 208],
-        'light_pink': [221, 180, 212]
-    }
-    i = 0
-    for c in colors.keys():
-        for n in range(10):
-            label_to_idx[c + '_' + str(n)] = i
-            i += 1
-    idx_to_label = {value: key for key, value in label_to_idx.items()}
-
+# 設定需處理的資料筆數
 example_num = 450
 
 
@@ -74,30 +51,7 @@ if os.path.exists(save_path):
 
 gray_transform = torchvision.transforms.Compose([
         torchvision.transforms.Grayscale(),
-        # Sobel_Conv2d(),
-        # Renormalize(),
-        # NormalizeToRange(),
     ])
-def plot_RM_then_save(layer_num, plot_shape, img, save_path, is_gray = False, figs = None):
-    fig = plot_RM_map(layer_num, plot_shape, img, save_path, is_gray)
-
-    if figs is not None:
-        figs[layer_num] = fig
-
-# 繪製反應 RM 圖
-def plot_RM_map(layer_num, plot_shape, img, save_path, is_gray = False):
-
-    if is_gray:
-        RM = layers[layer_num](model.gray_transform(img.unsqueeze(0)))[0]
-    else:
-        RM = layers[layer_num](img.unsqueeze(0))[0]
-
-    # print(f"Layer{layer_num}_RM: {RM.shape}")
-
-    RM_H, RM_W = RM.shape[1], RM.shape[2]
-    return plot_map(RM.permute(1, 2, 0).reshape(RM_H, RM_W, *plot_shape, 1).detach().numpy(),
-             path=save_path + f'{layer_num}_RM')
-
 
 def process_layer(
     image: torch.Tensor,
@@ -148,12 +102,17 @@ def process_layer(
     RM_CI_figs[layer_name] = plot_map(RM_CI, path=f'{RM_CI_save_path}/{layer_name}_RM_CI', cmap='gray' if use_gray else None)
 
     t4 = time.time()
-    print(f"Finished {layer_name} - time: {t4 - t3:.3f} sec")
+    print(f"Complete plot RM_CI - time: {t4 - t3:.3f} sec")
+    print(f"Finished {layer_name} - time: {t4 - t0:.3f} sec")
 
 
 
 def process_image(image, label, test_id):
-    print(test_id)
+    """
+    處理單一圖像的 RM, RM-CI 生成與儲存
+    """
+    print(f"處理編號: {test_id}")
+
     save_path = f'./detect/{config["dataset"]}_{checkpoint_filename}/example/{label.argmax().item()}/example_{test_id}/'
     RM_save_path = f'{save_path}/RMs/'
     RM_CI_save_path = f'{save_path}/RM_CIs/'
@@ -170,6 +129,7 @@ def process_image(image, label, test_id):
     plt.savefig(save_path + f'origin_{test_id}.png', bbox_inches='tight', pad_inches=0)
     RM_CI_figs['Origin'] = fig_origin
 
+    # 若啟用預處理，進行視網膜圖像強化
     if use_preprocessed_image:
         scaled_img, blurred_img, high_contrast_img, final_img = preprocess_retinal_tensor_image(image)
         display_image_comparison(save_path=save_path + f'preprocess.png', origin_img=image, final_img=final_img)
@@ -188,7 +148,7 @@ def process_image(image, label, test_id):
     plt.savefig(save_path + f'gray_{test_id}.png', bbox_inches='tight', pad_inches=0)
     RM_CI_figs['Gray'] = fig_gray
 
-    # 原圖切割視覺化
+    # 切割原圖，並顯示其分區反應
     segments = split(image.unsqueeze(0), kernel_size=arch['args']['Conv2d_kernel'][0], stride=(arch['args']['strides'][0], arch['args']['strides'][0]))[0]
     origin_split_img = plot_map(segments.permute(1, 2, 3, 4, 0), path=save_path + f'origin_split_{test_id}.png')
     RM_figs['Origin_Split'] = origin_split_img
@@ -215,6 +175,7 @@ def process_image(image, label, test_id):
     plot_combine_images(RM_figs, RM_save_path + f'RGB_combine')
     RM_CI_combine_fig = plot_combine_images(RM_CI_figs, RM_CI_save_path + f'combine')
 
+    # 如果啟用 CAM，則繪製所有 CAM 方法的對應圖像
     if PLOT_CAM:
         cam_methods = [GradCAM, HiResCAM, GradCAMPlusPlus, GradCAMElementWise, XGradCAM, AblationCAM,
                        ScoreCAM, EigenCAM, EigenGradCAM, LayerCAM, KPCA_CAM]

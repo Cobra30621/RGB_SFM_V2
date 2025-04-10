@@ -1,8 +1,54 @@
 import numpy as np
 from matplotlib import pyplot as plt
+import torch
+from matplotlib.backends.backend_agg import FigureCanvasAgg
+from PIL import Image
+import io
 
 
-def plot_map(rm, grid_size=None, rowspan=None, colspan=None, path=None, **kwargs):
+def tensor_to_numpy_image(tensor, save_path=None):
+    """
+    將形狀為 (C, H, W) 的 PyTorch tensor 轉成 numpy 圖片 (H, W, C)，支援儲存。
+    若為灰階 (C=1)，自動 squeeze 成 (H, W)。
+    """
+    tensor = tensor.detach().cpu()
+    if tensor.shape[0] == 1:  # 灰階
+        np_img = tensor.squeeze().numpy() * 255
+        mode = 'L'
+    else:  # RGB
+        np_img = tensor.permute(1, 2, 0).numpy() * 255
+        mode = 'RGBA' if np_img.shape[2] == 4 else 'RGB'
+
+    np_img = np.clip(np_img, 0, 255).astype(np.uint8)
+    pil_img = Image.fromarray(np_img, mode=mode)
+
+    if save_path:
+        pil_img.save(save_path)
+
+    return np.array(pil_img)  # 傳回 numpy 格式給 combine 使用
+
+def plot_RM_then_save(layers, model, layer_num, plot_shape, img, save_path, is_gray = False, figs = None):
+    fig = plot_RM_map(layers, model, layer_num, plot_shape, img, save_path, is_gray)
+
+    if figs is not None:
+        figs[layer_num] = fig
+
+# 繪製反應 RM 圖
+def plot_RM_map(layers,model,layer_num, plot_shape, img, save_path, is_gray = False):
+
+    if is_gray:
+        RM = layers[layer_num](model.gray_transform(img.unsqueeze(0)))[0]
+    else:
+        RM = layers[layer_num](img.unsqueeze(0))[0]
+
+    # print(f"Layer{layer_num}_RM: {RM.shape}")
+
+    RM_H, RM_W = RM.shape[1], RM.shape[2]
+    return plot_map(RM.permute(1, 2, 0).reshape(RM_H, RM_W, *plot_shape, 1).detach().numpy(),
+             path=save_path + f'{layer_num}_RM')
+
+
+def plot_map(rm, path=None, padding=2, pad_value=0.0, return_type="image", **kwargs):
     """
     繪製濾波器圖像的網格視覺化。
 
@@ -24,42 +70,49 @@ def plot_map(rm, grid_size=None, rowspan=None, colspan=None, path=None, **kwargs
     回傳:
         fig: matplotlib 的 figure 物件。
     """
+    dip = 200
 
-    # 新增：計算 rm 的全局最大值和最小值
-    global_max = rm.max()
+    if isinstance(rm, torch.Tensor):
+        rm = rm.cpu().numpy()
+
+    rows, cols, h, w, c = rm.shape
     global_min = rm.min()
+    global_max = rm.max()
 
-    rows, cols, e_h, e_w, _ = rm.shape
-    rowspan = rowspan or max(e_h // min(e_h, e_w), 1)
-    colspan = colspan or max(e_w // min(e_h, e_w), 1)
-    grid_size = grid_size or (rows * rowspan, cols * colspan)
+    # 計算整張大圖的尺寸（包含 padding）
+    H = rows * h + (rows - 1) * padding
+    W = cols * w + (cols - 1) * padding
 
-    char_space = cols * 0.4
-    fig = plt.figure(figsize=(grid_size[1] + char_space, grid_size[0]), facecolor="white")
+    # 建立白色背景的大畫布
+    if c == 1:
+        canvas = np.ones((H, W), dtype=rm.dtype)
+        for row in range(rows):
+            for col in range(cols):
+                top = row * (h + padding)
+                left = col * (w + padding)
+                canvas[top:top + h, left:left + w] = rm[row, col, :, :, 0]
+    else:
+        canvas = np.ones((H, W, c), dtype=rm.dtype)
+        for row in range(rows):
+            for col in range(cols):
+                top = row * (h + padding)
+                left = col * (w + padding)
+                canvas[top:top + h, left:left + w, :] = rm[row, col]
 
-    # 繪製圖像
-    for row in range(rows):
-        for col in range(cols):
-            ax = plt.subplot2grid(grid_size, (row * rowspan, col * colspan), rowspan=rowspan, colspan=colspan)
-            im = ax.imshow(rm[row][col], vmin=global_min, vmax=global_max, **kwargs)  # 使用全局最大值和最小值
-            ax.axis('off')
+    # 根據圖片大小計算合適的色條文字大小
+    label_fontsize = max(6, int(min(H, W) / 30))
 
-    # 新增：調整 subplot 位置，讓每個 subplot 靠左
-    plt.subplots_adjust(left=0, right=0.7, top=0.95, bottom=0.05, wspace=0.1, hspace=0.1)  # 調整邊距
-
-    # 添加色彩對應數值的長條圖，與整張圖片等高
-    cbar_ax = fig.add_axes([0.75, 0.1, 0.02, 0.8])  # 自定義長條圖的位置和大小
-    cbar = plt.colorbar(im, cax=cbar_ax)  # 使用自定義的長條圖軸
-    cbar.ax.tick_params(labelsize=2 * rows)  # 調整長條圖文字大小
+    fig, ax = plt.subplots(figsize=(W / 40, H / 40), facecolor="white", dpi=dip)
+    im = ax.imshow(canvas, vmin=global_min, vmax=global_max, **kwargs)
+    ax.axis('off')
+    cbar = plt.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
+    cbar.ax.tick_params(labelsize=label_fontsize)
 
     if path:
-        plt.savefig(path, dpi=300, bbox_inches='tight')
-    else:
-        plt.show()
+        plt.savefig(path, dpi=dip, bbox_inches='tight')
 
     plt.close(fig)
-
-    return fig  # 回傳繪製的圖像
+    return fig
 
 
 def plot_combine_images(figs, save_path=None, spacing=0.05, fixed_width=5, fixed_height=5, show=False, title="Combined Images"):
@@ -81,7 +134,9 @@ def plot_combine_images(figs, save_path=None, spacing=0.05, fixed_width=5, fixed
 
     for i, ((key, fig_source), ax) in enumerate(zip(figs.items(), axes)):
         # 將 `fig_source` 等比例縮小 90%
-        fig_source.set_size_inches(fig_source.get_size_inches() * 0.8)
+        print("plt figure size (inches):", fig_source.get_size_inches())
+        print("plt figure size (pixels):", fig_source.get_size_inches() * fig_source.dpi)
+        fig_source.set_size_inches(fig_source.get_size_inches() * 0.5)
         ax.imshow(fig_source.canvas.buffer_rgba())
         ax.axis('off')
 
