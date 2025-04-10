@@ -360,7 +360,7 @@ class RGB_Conv2d(nn.Module):
         weight_tensor = weight_tensor.repeat(1, kernel_h, kernel_w, 1)
 
         # 註冊為可訓練參數
-        self.weight = nn.Parameter(weight_tensor, requires_grad=False)
+        self.weight = nn.Parameter(weight_tensor, requires_grad=True)
 
         self.out_channels = out_channels
         self.kernel_size = kernel_size
@@ -414,10 +414,7 @@ class RGB_Conv2d(nn.Module):
             1e-8
         ).sum(dim=4).sum(dim=4)
 
-        distance = distance / (25 * 768)
-        #
-        # print(f"distance {distance.shape}")
-        # print(f"distance {distance}")
+        distance = distance / (self.kernel_size[0] * self.kernel_size[1] * 768)
 
         return distance
 
@@ -851,14 +848,11 @@ class triangle(nn.Module):
             self.w = nn.Parameter(self.w, requires_grad=True)
 
     def forward(self, d):
-        # Ensure that values below w are linearly increasing and values above w are linearly decreasing
-        w_tmp = self.w
-        d_clamped = torch.clamp(d, max=w_tmp)  # Clamp d values at w_tmp to ensure triangular shape
-
-        # Create the triangular function:
-        # When d < w_tmp, the function increases linearly, and when d >= w_tmp, it decreases
+        w_tmp = self.w.to(d.device)
+        d_clamped = torch.clamp(d, max=w_tmp)
         result = torch.abs(torch.ones_like(d) - torch.div(d_clamped, w_tmp))
         return result
+
 
     def extra_repr(self) -> str:
         return f"w = {self.w.item()}"
@@ -871,12 +865,10 @@ class gauss(nn.Module):
             self.std = nn.Parameter(self.std)
 
     def forward(self, d):
-        # print('Before Gauss:', torch.max(d), torch.min(d))
-        # self.std = torch.std(d.reshape(d.shape[0], -1), dim = -1).reshape(-1, 1, 1, 1)
-        # print('std:', torch.max(self.std), torch.min(self.std))
-        # self.std = self.std.repeat(1, *d.shape[1:])
-        result = torch.exp(torch.pow(d, 2) / (-2 * torch.pow(self.std, 2)))
+        std = self.std.to(d.device)
+        result = torch.exp(torch.pow(d, 2) / (-2 * torch.pow(std, 2)))
         return result
+
 
     def extra_repr(self) -> str:
         return f"std={self.std.item()}"
@@ -893,9 +885,10 @@ class cReLU(nn.Module):
             self.bias = nn.Parameter(self.bias, requires_grad=True)
 
     def forward(self, x):
-        bias_tmp = self.bias
+        bias_tmp = self.bias.to(x.device)
         result = x * torch.ge(x, bias_tmp.repeat(x.shape[0]).view(-1, 1, 1, 1)).float()
         return result
+
 
     def extra_repr(self) -> str:
         return f"bias={self.bias.item()}"
@@ -908,23 +901,22 @@ class cReLU_percent(nn.Module):
         self.device = device
 
     def forward(self, x):
-        # 攤平成 [batch, h * w, count]
+        percent = self.percent.to(x.device)
+
         batch_size, count, h, w = x.shape
         x_flatten = x.permute(0, 2, 3, 1).reshape(batch_size, h * w, count)
 
-        # 計算每個位置要保留的前 k 個元素
-        k = math.ceil(self.percent * count)  # 保留前 0.4 * count 的元素
-        top_k, _ = x_flatten.topk(k, dim=2, largest=True)  # 找到每個 [h * w] 的 top-k 值
-        threshold = top_k[:, :, -1].unsqueeze(2)  # 每個 [h * w] 的最小保留值，形狀為 [batch, h * w, 1]
+        k = math.ceil(percent.item() * count)
+        top_k, _ = x_flatten.topk(k, dim=2, largest=True)
+        threshold = top_k[:, :, -1].unsqueeze(2)
 
-        # 應用閥值篩選，確保同時滿足 >= threshold 和 >= 0
-        x_filtered = torch.where(x_flatten >= threshold, x_flatten, torch.tensor(0.0))
-        x_filtered = torch.clamp(x_filtered, min=0)  # 確保所有值都大於等於 0
+        x_filtered = torch.where(x_flatten >= threshold, x_flatten, torch.tensor(0.0, device=x.device))
+        x_filtered = torch.clamp(x_filtered, min=0)
 
-        # 恢復到原始形狀
         result = x_filtered.reshape(batch_size, h, w, count).permute(0, 3, 1, 2)
 
         return result
+
 
 
     def extra_repr(self) -> str:
@@ -967,65 +959,36 @@ class SFM(nn.Module):
                                     requires_grad=False).reshape(*self.filter)
         self.device = device
         self.method = method
-        
-        # 新增可訓練的卷積權重參數
-        # if method == "conv":
-        #     self.conv_weight = nn.Parameter(
-        #         torch.empty(1, 1, *self.filter).uniform_(-0.1, 0.1)
-        #     )
-        # else:
-        #     self.register_buffer("conv_weight", torch.zeros(1, 1, *self.filter))
 
     def forward(self, input: Tensor) -> Tensor:
         batch_num, channels, height, width = input.shape
-        
-        # if self.method == "conv":
-        #     # 將權重擴展到對應的通道數
-        #     expanded_weight = self.conv_weight.repeat(channels, 1, 1, 1)
-        #
-        #     # 進行卷積操作
-        #     output = F.conv2d(
-        #         input=input,
-        #         weight=expanded_weight,
-        #         stride=self.filter,  # 使用 filter 作為 stride
-        #         groups=channels  # 每個通道獨立卷積
-        #     )
-        #     return output
-            
-        # 其他方法保持不變
-        alpha_pows = self.alpha.repeat(input.shape[1], 1, 1).to(self.device)
+
+        alpha_pows = self.alpha.to(input.device).repeat(input.shape[1], 1, 1)
         _, filter_h, filter_w = alpha_pows.shape
 
-        unfolded_input = input.unfold(2, filter_h, filter_h).unfold(3, filter_w, filter_w).reshape(batch_num, channels,
-                                                                                               -1,
-                                                                                               filter_h * filter_w)
+        unfolded_input = input.unfold(2, filter_h, filter_h).unfold(3, filter_w, filter_w)
+        unfolded_input = unfolded_input.reshape(batch_num, channels, -1, filter_h * filter_w)
 
         if self.method == "max":
-            # 直接取最大值，不進行與 alpha 的乘法計算
             output_width = math.floor((width - (filter_w - 1) - 1) / filter_w + 1)
             output_height = math.floor((height - (filter_h - 1) - 1) / filter_h + 1)
             output = unfolded_input.max(dim=-1).values.reshape(batch_num, channels, output_height, output_width)
-        elif self.method == "alpha_mean":  # 預設為 mean
-
+        elif self.method == "alpha_mean":
             expanded_filter = alpha_pows.reshape(channels, 1, -1)
             expanded_filter = expanded_filter.repeat(batch_num, 1, 1, 1)
-
             result = unfolded_input * expanded_filter
 
             output_width = math.floor((width - (filter_w - 1) - 1) / filter_w + 1)
             output_height = math.floor((height - (filter_h - 1) - 1) / filter_h + 1)
             output = result.mean(dim=-1).reshape(batch_num, channels, output_height, output_width)
         else:
-            raise ValueError(f"Unknown method: {self.method}")  # 處理未知方法的情況
-
+            raise ValueError(f"Unknown method: {self.method}")
 
         return output
 
     def extra_repr(self) -> str:
-        base_repr = f"filter={self.filter}, method={self.method}"
-        if self.method == "conv":
-            return base_repr + f", conv_weight_shape={self.conv_weight.shape}"
-        return base_repr + f", alpha={self.alpha.detach().numpy()}"
+        return f"filter={self.filter}, method={self.method}, alpha={self.alpha.detach().numpy()}"
+
 
 
 class Sigmoid(nn.Module):
@@ -1049,10 +1012,11 @@ class bia_gauss(nn.Module):
         self.std = torch.tensor(std).to(device)
         if requires_grad:
             self.std = nn.Parameter(self.std)
- 
+
     def forward(self, x):
-        # 計算 1 - 以 0 為中心的高斯函數
-        return 1 - torch.exp(-((x) ** 2) / (2 * self.std ** 2))
- 
+        std = self.std.to(x.device)
+        return 1 - torch.exp(-((x) ** 2) / (2 * std ** 2))
+
+
     def extra_repr(self) -> str:
         return f"std={self.std.item()}"
