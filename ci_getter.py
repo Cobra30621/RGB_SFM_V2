@@ -88,7 +88,12 @@ def get_CIs(model, images):
 
 
 
-def load_or_generate_CIs(model, images, force_regenerate=False, cache_path="cache/cis.pt"):
+def load_or_generate_CIs(model, images, force_regenerate=False, save_path = "cache"):
+    cache_dir = f'{save_path}/cache'
+    os.makedirs(cache_dir, exist_ok=True)
+
+    cache_path = f"{cache_dir}/cis.pt"
+
     if os.path.exists(cache_path) and not force_regenerate:
         print("Loading cached CIs...")
         return torch.load(cache_path)

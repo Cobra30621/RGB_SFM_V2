@@ -7,7 +7,7 @@ from models.RGB_SFMCNN import RGB_SFMCNN
 from models.RGB_SFMCNN_V2 import RGB_SFMCNN_V2
 from dataloader import get_dataloader
 
-def load_model_and_data(checkpoint_filename):
+def load_model_and_data(checkpoint_filename, test_data = False):
     """
     加載模型和數據
 
@@ -45,10 +45,11 @@ def load_model_and_data(checkpoint_filename):
         print(model)
 
         # Test Model
-        batch_num = 1000
-        pred = model(images[:batch_num])
-        y = labels[:batch_num]
-        correct = (pred.argmax(1) == y.argmax(1)).type(torch.float).sum().item()
-        print("Test Accuracy: " + str(correct / len(pred)))
+        if test_data:
+            batch_num = 1000
+            pred = model(images[:batch_num])
+            y = labels[:batch_num]
+            correct = (pred.argmax(1) == y.argmax(1)).type(torch.float).sum().item()
+            print("Test Accuracy: " + str(correct / len(pred)))
 
         return model, train_dataloader, test_dataloader, images, labels

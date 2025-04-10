@@ -26,7 +26,15 @@ matplotlib.use('Agg')
 
 # 載入模型與資料集
 checkpoint_filename = config["load_model_name"]
-model, train_dataloader, test_dataloader, images, labels = load_model_and_data(checkpoint_filename)
+test_data = False # 測試模型準確度
+model, train_dataloader, test_dataloader, images, labels = load_model_and_data(checkpoint_filename, test_data=test_data)
+
+# 路徑
+save_path = f'./detect/{config["dataset"]}_{checkpoint_filename}/example'
+if os.path.exists(save_path):
+    shutil.rmtree(save_path)  # 刪除資料夾及其內容
+    os.makedirs(save_path)  # 重新建立資料夾
+
 
 # 提取 RGB 與 Gray 分支的 feature extraction 層
 rgb_layers, gray_layers = get_feature_extraction_layers(model)
@@ -35,7 +43,8 @@ rgb_layers, gray_layers = get_feature_extraction_layers(model)
 preprocess_images = check_then_preprocess_images(images)
 
 # 取得所有層的 Critical Inputs
-CIs, CI_values = get_CIs(model, preprocess_images)
+force_regenerate=False
+CIs, CI_values = load_or_generate_CIs(model, preprocess_images, force_regenerate=force_regenerate, save_path= f'./detect/{config["dataset"]}_{checkpoint_filename}')
 
 # 設定需處理的資料筆數
 example_num = 450
@@ -43,10 +52,7 @@ example_num = 450
 
 # 繪製反應 RM 圖，並存到陣列中
 
-save_path = f'./detect/{config["dataset"]}_{checkpoint_filename}/example'
-if os.path.exists(save_path):
-    shutil.rmtree(save_path)  # 刪除資料夾及其內容
-    os.makedirs(save_path)  # 重新建立資料夾
+
 
 
 gray_transform = torchvision.transforms.Compose([
@@ -70,7 +76,7 @@ def process_layer(
     """
     處理單層的 RM, FM, CI 可視化並儲存圖檔。
     """
-    print(f"Processing {layer_name}...")
+    print(f"--- Processing {layer_name}...")
     t0 = time.time()
 
     in_channels = 1 if use_gray else arch_args['in_channels']
@@ -172,8 +178,15 @@ def process_image(image, label, test_id):
                       RM_figs=RM_figs, RM_CI_figs=RM_CI_figs)
 
     # 合併圖
+    t1 = time.time()
+
     plot_combine_images(RM_figs, RM_save_path + f'RGB_combine')
+    t2 = time.time()
+    print(f"Finished plot combine RM fig - time: {t2 - t1:.3f} sec")
+
     RM_CI_combine_fig = plot_combine_images(RM_CI_figs, RM_CI_save_path + f'combine')
+    t3 = time.time()
+    print(f"Finished plot combine RM_CI fig - time: {t3 - t2:.3f} sec")
 
     # 如果啟用 CAM，則繪製所有 CAM 方法的對應圖像
     if PLOT_CAM:

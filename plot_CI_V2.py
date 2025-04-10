@@ -13,7 +13,8 @@ import matplotlib
 
 # 1️⃣ 讀取模型與資料
 checkpoint_filename = config["load_model_name"]
-model, train_dataloader, test_dataloader, images, labels = load_model_and_data(checkpoint_filename)
+test_data = False # 測試模型準確度
+model, train_dataloader, test_dataloader, images, labels = load_model_and_data(checkpoint_filename, test_data=test_data)
 
 # 2️⃣ 建立儲存目錄
 save_path = f'./detect/{config["dataset"]}_{checkpoint_filename}/'

@@ -48,7 +48,7 @@ def plot_RM_map(layers,model,layer_num, plot_shape, img, save_path, is_gray = Fa
              path=save_path + f'{layer_num}_RM')
 
 
-def plot_map(rm, path=None, padding=2, pad_value=0.0, return_type="image", **kwargs):
+def plot_map(rm, path=None, padding=1, pad_value=0.0, return_type="image", **kwargs):
     """
     繪製濾波器圖像的網格視覺化。
 
@@ -133,10 +133,6 @@ def plot_combine_images(figs, save_path=None, spacing=0.05, fixed_width=5, fixed
         axes = [axes]
 
     for i, ((key, fig_source), ax) in enumerate(zip(figs.items(), axes)):
-        # 將 `fig_source` 等比例縮小 90%
-        print("plt figure size (inches):", fig_source.get_size_inches())
-        print("plt figure size (pixels):", fig_source.get_size_inches() * fig_source.dpi)
-        fig_source.set_size_inches(fig_source.get_size_inches() * 0.5)
         ax.imshow(fig_source.canvas.buffer_rgba())
         ax.axis('off')
 
