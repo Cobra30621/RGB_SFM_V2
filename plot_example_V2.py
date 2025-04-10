@@ -1,3 +1,5 @@
+import torchvision
+from matplotlib import pyplot as plt
 from pytorch_grad_cam import ( GradCAM, HiResCAM, GradCAMPlusPlus,
                               GradCAMElementWise, XGradCAM, AblationCAM, ScoreCAM, EigenCAM, EigenGradCAM,
                               LayerCAM, KPCA_CAM)
@@ -7,7 +9,7 @@ from diabetic_retinopathy_handler import preprocess_retinal_tensor_image, displa
 from load_tools import load_model_and_data
 from models.RGB_SFMCNN_V2 import get_feature_extraction_layers
 from plot_cam import  generate_cam_visualizations
-from plot_graph import plot_combine_images, plot_combine_images_vertical
+from plot_graph import plot_combine_images, plot_combine_images_vertical, plot_map
 from ci_getter import *
 import time
 import matplotlib

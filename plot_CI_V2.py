@@ -1,7 +1,7 @@
 # 匯入所需模組與工具函式
 from diabetic_retinopathy_handler import check_then_preprocess_images
 from load_tools import load_model_and_data
-from plot_graph import plot_combine_images, plot_heatmap
+from plot_graph import plot_combine_images, plot_heatmap, plot_map
 from ci_getter import *
 from typing import Tuple, List, Dict
 import torch
