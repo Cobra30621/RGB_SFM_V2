@@ -1,9 +1,7 @@
 import numpy as np
 from matplotlib import pyplot as plt
 import torch
-from matplotlib.backends.backend_agg import FigureCanvasAgg
 from PIL import Image
-import io
 
 
 def tensor_to_numpy_image(tensor, save_path=None):

@@ -34,7 +34,7 @@ class MetricBaseLoss(nn.Module):
         self.min_weight = 1
 
 
-    def forward(self, predictions, targets, model, layers, layers_infos, images):
+    def forward(self, predictions, targets, model, rgb_layers, gray_layers, images):
         """
         計算損失和懲罰。
 
@@ -50,7 +50,8 @@ class MetricBaseLoss(nn.Module):
 
 
         images.requires_grad_()
-        layer_stats, overall_stats = get_all_layers_stats(model, layers, layers_infos, images, keep_tensor=True, without_RGBConv0=True)
+
+        layer_stats, overall_stats = get_all_layers_stats(model, rgb_layers, gray_layers, images, keep_tensor=True, without_RGBConv0=True)
 
         # print(layer_stats['RGB_convs_2']['最大值限制 (each channel max > 0.8)'])
 

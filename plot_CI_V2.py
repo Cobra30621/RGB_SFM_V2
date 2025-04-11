@@ -1,7 +1,7 @@
 # 匯入所需模組與工具函式
 from diabetic_retinopathy_handler import check_then_preprocess_images
 from load_tools import load_model_and_data
-from plot_grap_method import plot_combine_images, plot_heatmap, plot_map
+from plot_graph_method import plot_combine_images, plot_heatmap, plot_map
 from ci_getter import *
 from typing import Tuple, List, Dict
 import torch
@@ -15,6 +15,8 @@ import matplotlib
 checkpoint_filename = config["load_model_name"]
 test_data = False # 測試模型準確度
 model, train_dataloader, test_dataloader, images, labels = load_model_and_data(checkpoint_filename, test_data=test_data)
+use_gray = arch['args']['use_gray'] # 使否使用輪廓層
+
 
 # 2️⃣ 建立儲存目錄
 save_path = f'./detect/{config["dataset"]}_{checkpoint_filename}/'
@@ -94,7 +96,9 @@ kernel_size = arch['args']['Conv2d_kernel'][0]     # 第一層 Gray 的 num_filt
 images = check_then_preprocess_images(images)
 
 # 8️⃣ 計算各層的 CI 與對應值
-CIs, CI_values = get_CIs(model, images)
+force_regenerate=False
+CIs, CI_values = load_or_generate_CIs(model, images, force_regenerate=force_regenerate, save_path= f'./detect/{config["dataset"]}_{checkpoint_filename}')
+
 
 # 9️⃣ 定義：繪製單層 CI
 def plot_CI(
@@ -163,5 +167,6 @@ def plot_CI_branch(
 layer_count = len(arch["args"]["Conv2d_kernel"])
 print(f"layer count {layer_count}")
 plot_CI_branch(CIs, CI_values, layer_count, channels[0], "RGB_convs", CIs_save_path)
-plot_CI_branch(CIs, CI_values, layer_count, channels[1], "Gray_convs", CIs_save_path)
+if use_gray:
+    plot_CI_branch(CIs, CI_values, layer_count, channels[1], "Gray_convs", CIs_save_path)
 print('CI saved.')

@@ -6,6 +6,9 @@ from config import *
 import os
 from functools import reduce
 import operator
+from models.RGB_SFMCNN_V2 import get_basic_target_layers
+
+
 
 def multiply_tuples(a, b):
     return tuple(operator.mul(x, y) for x, y in zip(a, b))
@@ -63,14 +66,18 @@ def get_ci(input, layer, kernel_size=(5, 5), stride=(5, 5), sfm_filter=(1, 1)):
     return CI, indices.unsqueeze(1), CI_values
 
 def get_CIs(model, images):
-    from models.RGB_SFMCNN_V2 import get_CI_target_layers
-    rgb_layers, gray_layers = get_CI_target_layers(model)
+    use_gray = arch['args']['use_gray']  # 使否使用輪廓層
+
+    rgb_layers, gray_layers = get_basic_target_layers(model, use_gray)
     CIs, CI_values = {}, {}
 
-    for mode, layers in zip(["RGB", "Gray"], [rgb_layers, gray_layers]):
-        stride_acc = 1
+    mode_layers = [("RGB_convs", rgb_layers)]
+    if use_gray:
+        mode_layers.append(("Gray_convs", gray_layers))
+
+    for mode, layers in mode_layers:
         for idx, (layer_name, layer) in enumerate(layers.items()):
-            full_layer_name = f"{mode}_convs_{idx}"
+            full_layer_name = f"{mode}_{idx}"
             print(full_layer_name)
 
             kernel_size = get_accumulated_kernel(arch['args']['Conv2d_kernel'], idx)
@@ -78,7 +85,7 @@ def get_CIs(model, images):
             stride = (stride_acc, stride_acc)
 
             sfm_filter = torch.prod(torch.tensor(arch['args']['SFM_filters'][:idx]), dim=0) if idx > 0 else (1, 1)
-            input_img = images if mode == "RGB" else model.gray_transform(images)
+            input_img = images if "RGB" in mode else model.gray_transform(images)
 
             CIs[full_layer_name], CI_idx, CI_values[full_layer_name] = get_ci(
                 input_img, layer, kernel_size, stride, sfm_filter
@@ -88,11 +95,15 @@ def get_CIs(model, images):
 
 
 
+
+
 def load_or_generate_CIs(model, images, force_regenerate=False, save_path = "cache"):
     cache_dir = f'{save_path}/cache'
     os.makedirs(cache_dir, exist_ok=True)
 
     cache_path = f"{cache_dir}/cis.pt"
+
+
 
     if os.path.exists(cache_path) and not force_regenerate:
         print("Loading cached CIs...")

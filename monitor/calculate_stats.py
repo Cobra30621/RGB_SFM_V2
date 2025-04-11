@@ -1,13 +1,10 @@
-import numpy as np
-import scipy.stats
-import torch
 
 
-def calculate_RM(layers, layer_num, images):
+def calculate_RM(layer, images):
     """
     計算 layer_num 層，對於所有圖片的輸出值
     """
-    RM = layers[layer_num](images)
+    RM = layer(images)
 
     filter_count = RM.shape[1]
     reshape_RM = RM.permute(1, 0, 2, 3).reshape(filter_count, -1)

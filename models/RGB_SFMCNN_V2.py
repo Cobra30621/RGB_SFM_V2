@@ -12,6 +12,8 @@ import torch.nn.functional as F
 import torch
 import math
 
+from config import config
+
 '''
 來自 2025 陳俊宇的碩士論文:
 '''
@@ -26,24 +28,57 @@ def get_feature_extraction_layers(model):
     回傳:
         (dict, dict): RGB 分支與灰階分支的特徵圖提取器字典
     """
-    rgb_layers = extract_branch_layers(model.RGB_convs, "RGB_convs", CI_only=False)
-    gray_layers = extract_branch_layers(model.Gray_convs, "Gray_convs", CI_only=False)
+    use_gray = config['model']['args']['use_gray']
+    layers = extract_dual_branch_layers(model, branch_names=("RGB_convs", "Gray_convs"), CI_only=False,
+                                        use_gray=use_gray)
+    rgb_layers = layers.get("RGB_convs", {})
+    gray_layers = layers.get("Gray_convs", None)
     return rgb_layers, gray_layers
 
 
-def get_CI_target_layers(model):
+def get_basic_target_layers(model, use_gray = True):
     """
     獲取用於 CI（Critical Input）分析所需的層（僅提取包含 activation 的部分）
 
     參數:
         model: 要分析的模型
+        use_gray: 使否使用輪廓層
 
     回傳:
         (dict, dict): RGB 分支與灰階分支的 CI 分析層字典
     """
-    rgb_CI_layers = extract_branch_layers(model.RGB_convs, "RGB_convs", CI_only=True)
-    gray_CI_layers = extract_branch_layers(model.Gray_convs, "Gray_convs", CI_only=True)
-    return rgb_CI_layers, gray_CI_layers
+    layers = extract_dual_branch_layers(model, branch_names=("RGB_convs", "Gray_convs"), CI_only=True,
+                                        use_gray=use_gray)
+    rgb_layers = layers.get("RGB_convs", {})
+    gray_layers = layers.get("Gray_convs", {})
+    return rgb_layers, gray_layers
+
+
+def extract_dual_branch_layers(model, branch_names=("RGB_conv", "Gray_conv"), CI_only=False, use_gray=True):
+    """
+    根據模型與分支名稱，自動提取 RGB 與 Gray 卷積層（可選用 Gray）。
+
+    Args:
+        model: 模型
+        branch_names: 分支名稱前綴（預設為 RGB_conv, Gray_conv）
+        CI_only: 是否僅提取 activation 層
+        use_gray: 是否使用 Gray 分支
+
+    Returns:
+        Dict[str, Dict[str, nn.Sequential]]: {branch: {layer_name: layer}}
+    """
+    layer_map = {}
+
+    rgb_convs = getattr(model, f"{branch_names[0]}", None)
+    if rgb_convs:
+        layer_map[branch_names[0]] = extract_branch_layers(rgb_convs, branch_names[0], CI_only=CI_only)
+
+    if use_gray:
+        gray_convs = getattr(model, f"{branch_names[1]}", None)
+        if gray_convs:
+            layer_map[branch_names[1]] = extract_branch_layers(gray_convs, branch_names[1], CI_only=CI_only)
+
+    return layer_map
 
 
 def extract_branch_layers(conv_blocks, branch_name, CI_only=False):
@@ -107,18 +142,18 @@ class RGB_SFMCNN_V2(nn.Module):
                  paddings,
                  fc_input,
                  device,
-                 activate_params) -> None:
+                 activate_params,
+                 use_gray=True) -> None:  # 新增參數
         super().__init__()
 
-        # 灰階前處理
+        self.use_gray = use_gray  # 儲存是否啟用 Gray 層
+
         self.gray_transform = torchvision.transforms.Compose([
             torchvision.transforms.Grayscale(),
-            # Sobel_Conv2d(),
-            # Renormalize(),
             NormalizeToRange(),
         ])
 
-        # 彩色卷積第一層
+        # 彩色卷積部分
         RGB_conv2d = self._make_RGBBlock(
             in_channels,
             channels[0][0],
@@ -127,12 +162,11 @@ class RGB_SFMCNN_V2(nn.Module):
             padding=paddings[0],
             rbfs=rbfs[0][0],
             initial='uniform',
-            SFM_method= SFM_methods[0][0],
-            SFM_filters = SFM_filters[0],
+            SFM_method=SFM_methods[0][0],
+            SFM_filters=SFM_filters[0],
             device=device,
             activate_param=activate_params[0][0])
 
-        #   彩色第二層以後的特徵傳遞區塊(色彩特徵傳遞區塊)
         rgb_basicBlocks = []
         for i in range(1, len(Conv2d_kernel)):
             basicBlock = self._make_BasicBlock(
@@ -151,52 +185,52 @@ class RGB_SFMCNN_V2(nn.Module):
             )
             rgb_basicBlocks.append(basicBlock)
 
-        # 整個彩色部分
         self.RGB_convs = nn.Sequential(
             RGB_conv2d,
             *rgb_basicBlocks
         )
 
-        # 輪廓卷積第一層
-        GRAY_conv2d = self._make_GrayBlock(
-            1,
-            channels[1][0],
-            Conv2d_kernel[0],
-            stride=strides[0],
-            padding=paddings[0],
-            rbfs=rbfs[1][0],
-            initial=initial[1][0],
-            SFM_method=SFM_methods[1][0],
-            SFM_filters=SFM_filters[0],
-            device=device,
-            activate_param=activate_params[1][0],
-            conv_method=conv_method[1][0]
-        )
+        print(f"use_gray {use_gray}")
 
-        #   灰階第二層以後的特徵傳遞區塊(輪廓特徵傳遞區塊)
-        gray_basicBlocks = []
-        for i in range(1, len(Conv2d_kernel)):
-            basicBlock = self._make_BasicBlock(
-                channels[1][i - 1],
-                channels[1][i],
-                Conv2d_kernel[i],
-                stride=strides[i],
-                padding=paddings[i],
-                filter=SFM_filters[i],
-                rbfs=rbfs[1][i],
-                SFM_method=SFM_methods[1][i],
-                initial=initial[1][i],
+        # 灰階部分：僅當使用時才初始化
+        if self.use_gray:
+            GRAY_conv2d = self._make_GrayBlock(
+                1,
+                channels[1][0],
+                Conv2d_kernel[0],
+                stride=strides[0],
+                padding=paddings[0],
+                rbfs=rbfs[1][0],
+                initial=initial[1][0],
+                SFM_method=SFM_methods[1][0],
+                SFM_filters=SFM_filters[0],
                 device=device,
-                activate_param=activate_params[1][i],
-                conv_method=conv_method[1][i]
+                activate_param=activate_params[1][0],
+                conv_method=conv_method[1][0]
             )
-            gray_basicBlocks.append(basicBlock)
 
-        # 整個灰階部分
-        self.Gray_convs = nn.Sequential(
-            GRAY_conv2d,
-            *gray_basicBlocks,
-        )
+            gray_basicBlocks = []
+            for i in range(1, len(Conv2d_kernel)):
+                basicBlock = self._make_BasicBlock(
+                    channels[1][i - 1],
+                    channels[1][i],
+                    Conv2d_kernel[i],
+                    stride=strides[i],
+                    padding=paddings[i],
+                    filter=SFM_filters[i],
+                    rbfs=rbfs[1][i],
+                    SFM_method=SFM_methods[1][i],
+                    initial=initial[1][i],
+                    device=device,
+                    activate_param=activate_params[1][i],
+                    conv_method=conv_method[1][i]
+                )
+                gray_basicBlocks.append(basicBlock)
+
+            self.Gray_convs = nn.Sequential(
+                GRAY_conv2d,
+                *gray_basicBlocks,
+            )
 
         self.fc1 = nn.Sequential(
             nn.Linear(fc_input, out_channels)
@@ -204,11 +238,17 @@ class RGB_SFMCNN_V2(nn.Module):
 
     def forward(self, x):
         rgb_output = self.RGB_convs(x)
-        gray_output = self.Gray_convs(self.gray_transform(x))
         rgb_output = rgb_output.reshape(x.shape[0], -1)
-        gray_output = gray_output.reshape(x.shape[0], -1)
-        output = torch.concat(([rgb_output, gray_output]), dim=-1)
-        output = self.fc1(output)
+
+        if self.use_gray:
+            gray_output = torch.zeros_like(rgb_output, device=x.device)
+            concat_output = torch.concat([rgb_output, gray_output], dim=-1)
+            output = self.fc1(concat_output)
+        else:
+            # 僅使用 RGB 輸出
+            concat_output = torch.concat([rgb_output], dim=-1)
+            output = self.fc1(concat_output)
+
         return output
 
     '''

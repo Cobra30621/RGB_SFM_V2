@@ -2,8 +2,8 @@ import matplotlib.pyplot as plt
 import os
 import numpy as np
 
+from config import arch
 from monitor.calculate_stats import calculate_RM, get_stats
-
 
 def plot_channel_histograms(raw, plot_shape=(5, 6), save_dir='.', layer_num='layer', xlim=(0, 1), space_count=5):
     """
@@ -68,7 +68,7 @@ def plot_layer_graph(model, layers, layer_num, images, is_gray=False, plot_shape
     else:
         input_images = images
 
-    raw = calculate_RM(layers, layer_num, input_images)
+    raw = calculate_RM(layers[layer_num], input_images)
     stats, global_stats = get_stats(raw)
 
     if plot_shape is None:
@@ -80,11 +80,24 @@ def plot_layer_graph(model, layers, layer_num, images, is_gray=False, plot_shape
                             space_count=space_count)
 
 
-def plot_all_layers_graph(model, layers, layers_infos, images, save_dir='./output', space_count=10):
-    for layer_info in layers_infos:
-        layer_num = layer_info["layer_num"]
-        is_gray = layer_info["is_gray"]
-        plot_shape = layer_info["plot_shape"]
+def plot_all_layers_graph(model, rgb_layers, gray_layers, images, save_dir='./output', space_count=10):
+    use_gray = arch['args']['use_gray']  # 使否使用輪廓層
+    channels = arch['args']['channels']
+    for key, layer in rgb_layers.items():
+        print(f"plotting {key} graph")
+        index = int(key.split('_')[-1])
+        plot_shape = channels[0][index]
 
-        print(f"plotting {layer_num} graph")
-        plot_layer_graph(model, layers, layer_num, images, is_gray, plot_shape, save_dir, space_count)
+        plot_layer_graph(model, rgb_layers, key, images, is_gray = False, plot_shape = plot_shape, save_dir = save_dir, space_count = space_count)
+
+    if use_gray:
+        for key, layer in gray_layers.items():
+            print(f"plotting {key} graph")
+            index = int(key.split('_')[-1])
+            plot_shape = channels[1][index]
+
+            plot_layer_graph(model, rgb_layers, key, images, is_gray=True, plot_shape=plot_shape, save_dir=save_dir,
+                             space_count=space_count)
+
+
+

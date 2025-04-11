@@ -1,7 +1,9 @@
+import shutil
+
 import wandb
 import numpy as np
 
-from torch import optim
+from torch import optim, nn
 from tqdm.autonotebook import tqdm
 from torch.utils.data import DataLoader
 from torchsummary import summary
@@ -12,7 +14,7 @@ import models
 from diabetic_retinopathy_handler import preprocess_retinal_tensor_image, preprocess_retinal_tensor_batch
 from file_tools import increment_path
 from loss.loss_function import get_loss_function, MetricBaseLoss
-from models.RGB_SFMCNN_V2 import get_feature_extraction_layers
+from models.RGB_SFMCNN_V2 import get_feature_extraction_layers, get_basic_target_layers
 from monitor.monitor_method import get_all_layers_stats
 
 
@@ -27,9 +29,8 @@ def train(train_dataloader: DataLoader, valid_dataloader: DataLoader, model: nn.
     use_preprocessed_image= config['use_preprocessed_image']
     checkpoint = {}
 
-    layers = get_feature_extraction_layers(model)
-    print(layers)
-    layers_infos = config['layers_infos']
+    use_gray = arch['args']['use_gray']  # 使否使用輪廓層
+    rgb_layers, gray_layers = get_basic_target_layers(model, use_gray=use_gray)
 
     with torch.autograd.set_detect_anomaly(True):
         for e in range(epoch):
@@ -50,7 +51,7 @@ def train(train_dataloader: DataLoader, valid_dataloader: DataLoader, model: nn.
                 pred = model(X)
                 # 判斷是否使用 metric-based loss
                 if use_metric_based_loss:
-                    loss = training_loss_fn(pred, y, model, layers, layers_infos, X)
+                    loss = training_loss_fn(pred, y, model, rgb_layers, gray_layers, X)
                 else:
                     loss = eval_loss_fn(pred, y)
 
@@ -126,7 +127,7 @@ def train(train_dataloader: DataLoader, valid_dataloader: DataLoader, model: nn.
         imgs, lbls = batch
         images = torch.cat((images, imgs.to(device)))
         labels = torch.cat((labels, lbls.to(device)))
-    layer_stats, overall_stats = get_all_layers_stats(model, layers, layers_infos, images)
+    layer_stats, overall_stats = get_all_layers_stats(model, rgb_layers, gray_layers, images)
 
     for key, value in overall_stats.items():
         wandb.summary[key] = value

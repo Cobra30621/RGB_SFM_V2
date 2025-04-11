@@ -3,7 +3,7 @@ import os
 import warnings
 
 from Code.runs.train.exp.config import layers_infos
-from plot_grap_method import plot_map, plot_combine_images
+from plot_graph_method import plot_map, plot_combine_images
 
 warnings.filterwarnings('ignore')
 from torchvision import transforms
@@ -41,6 +41,7 @@ def generate_cam_visualizations(model: torch.nn.Module,
                               label: int,
                               image: torch.Tensor,
                               origin_img,
+                              target_layers,
                               RM_CIs,
                               save_path,
                               method: Callable = GradCAM,
@@ -68,6 +69,7 @@ def generate_cam_visualizations(model: torch.nn.Module,
     """
     # 獲取需要生成 CAM 的目標層
     heatmap_layers = get_cam_target_layers(model)
+    print(heatmap_layers)
 
     # 對每一層生成 CAM (Class Activation Map)
     cams = get_each_layers_cam(
@@ -150,15 +152,16 @@ def get_each_layers_cam(
 
     for layer_name in target_layers:
         layer = target_layers[layer_name]
-
-        with cam_method(
-                model=wrapped_model,
-                target_layers=[layer]
-        ) as cam:
-            # 移除批次處理邏輯，直接使用單個輸入
-            input_batch = input_tensor.unsqueeze(0)
-            grayscale_cam = cam(input_tensor=input_batch, targets=[cam_target])[0]
-            cams[layer_name] = grayscale_cam
+        try:
+            with cam_method(
+                    model=wrapped_model,
+                    target_layers=[layer]
+            ) as cam:
+                input_batch = input_tensor.unsqueeze(0)
+                grayscale_cam = cam(input_tensor=input_batch, targets=[cam_target])[0]
+                cams[layer_name] = grayscale_cam
+        except Exception as e:
+            print(f"[CAM WARNING] 跳過層 {layer_name}，因為發生錯誤：{e}")
 
     return cams
 
@@ -224,12 +227,12 @@ def get_cam_target_layers(model: torch.nn.Module) -> dict:
         dict: 包含所有目標層的字典，鍵為層名稱，值為層物件
     """
     return {
-        'RGB_convs_0': model.RGB_convs[0], # RGB 第一層無梯度，無法計算
-        'RGB_convs_1': model.RGB_convs[2][1],
-        'RGB_convs_2': model.RGB_convs[3],
-        'Gray_convs_0': model.Gray_convs[0][1],
-        'Gray_convs_1': model.Gray_convs[2][1],
-        'Gray_convs_2': model.Gray_convs[3]
+        'RGB_convs_0': model.RGB_convs[0][1], # RGB 第一層無梯度，無法計算
+        'RGB_convs_1': model.RGB_convs[1][1],
+        'RGB_convs_2': model.RGB_convs[2][1],
+        # 'Gray_convs_0': model.Gray_convs[0][1],
+        # 'Gray_convs_1': model.Gray_convs[2][1],
+        # 'Gray_convs_2': model.Gray_convs[3]
     }
 
 

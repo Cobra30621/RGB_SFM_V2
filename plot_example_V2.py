@@ -9,14 +9,14 @@ from diabetic_retinopathy_handler import preprocess_retinal_tensor_image, displa
 from load_tools import load_model_and_data
 from models.RGB_SFMCNN_V2 import get_feature_extraction_layers
 from plot_cam import  generate_cam_visualizations
-from plot_grap_method import plot_combine_images, plot_combine_images_vertical, plot_map, tensor_to_numpy_image
+from plot_graph_method import plot_combine_images, plot_combine_images_vertical, plot_map, tensor_to_numpy_image
 from ci_getter import *
 import time
 import matplotlib
 
 
 # 設定是否繪製 CAM
-PLOT_CAM = False
+PLOT_CAM = True
 
 # 設定是否使用預處理後的影像
 use_preprocessed_image = config['use_preprocessed_image']
@@ -39,6 +39,16 @@ if os.path.exists(save_path):
 # 提取 RGB 與 Gray 分支的 feature extraction 層
 rgb_layers, gray_layers = get_feature_extraction_layers(model)
 
+if PLOT_CAM:
+    use_gray = arch['args']['use_gray']  # 使否使用輪廓層
+    rgb_layers_cam, gray_layers_cam = get_basic_target_layers(model, use_gray)
+    if use_gray:
+        target_layers_cam = rgb_layers_cam | gray_layers_cam
+    else:
+        target_layers_cam = rgb_layers_cam
+
+    print(target_layers_cam)
+
 # 視情況進行視網膜影像預處理
 preprocess_images = check_then_preprocess_images(images)
 
@@ -48,12 +58,6 @@ CIs, CI_values = load_or_generate_CIs(model, preprocess_images, force_regenerate
 
 # 設定需處理的資料筆數
 example_num = 450
-
-
-# 繪製反應 RM 圖，並存到陣列中
-
-
-
 
 gray_transform = torchvision.transforms.Compose([
         torchvision.transforms.Grayscale(),
@@ -67,6 +71,7 @@ def process_layer(
     layers,
     plot_shape,
     CIs,
+    RM_CIs,
     arch_args,
     RM_save_path: str,
     RM_CI_save_path: str,
@@ -101,6 +106,7 @@ def process_layer(
     top_idx = torch.topk(RM, k=1, dim=0, largest=True).indices.flatten()
     CI_H, CI_W = CIs[layer_name].shape[2], CIs[layer_name].shape[3]
     RM_CI = CIs[layer_name][top_idx].reshape(RM_H, RM_W, CI_H, CI_W, in_channels)
+    RM_CIs[layer_name] = RM_CI
 
     t3 = time.time()
     print(f"Complete calculate RM_CI - time: {t3 - t2:.3f} sec")
@@ -125,6 +131,8 @@ def process_image(image, label, test_id):
     os.makedirs(RM_save_path, exist_ok=True)
     os.makedirs(RM_CI_save_path, exist_ok=True)
 
+    use_gray = arch['args']['use_gray']  # 使否使用輪廓層
+
     RM_CIs = {}
     RM_figs = {}
     RM_CI_figs = {}
@@ -147,12 +155,13 @@ def process_image(image, label, test_id):
         image = final_img
 
     # 灰階圖
-    fig_gray = plt.figure(figsize=(5, 5), facecolor="white")
-    gray_image = gray_transform(image.unsqueeze(0))[0]
-    plt.imshow(gray_image.squeeze().detach().numpy(), cmap='gray')
-    plt.axis('off')
-    plt.savefig(save_path + f'gray_{test_id}.png', bbox_inches='tight', pad_inches=0)
-    RM_CI_figs['Gray'] = fig_gray
+    if use_gray:
+        fig_gray = plt.figure(figsize=(5, 5), facecolor="white")
+        gray_image = gray_transform(image.unsqueeze(0))[0]
+        plt.imshow(gray_image.squeeze().detach().numpy(), cmap='gray')
+        plt.axis('off')
+        plt.savefig(save_path + f'gray_{test_id}.png', bbox_inches='tight', pad_inches=0)
+        RM_CI_figs['Gray'] = fig_gray
 
     # 切割原圖，並顯示其分區反應
     segments = split(image.unsqueeze(0), kernel_size=arch['args']['Conv2d_kernel'][0], stride=(arch['args']['strides'][0], arch['args']['strides'][0]))[0]
@@ -165,17 +174,17 @@ def process_image(image, label, test_id):
     for i in range(len(model.RGB_convs)):
         layer_name = f'RGB_convs_{i}'
         plot_shape = channels[0][i]
-        process_layer(image, layer_name, use_gray=False, model=model, layers=rgb_layers, plot_shape= plot_shape,CIs=CIs,
+        process_layer(image, layer_name, use_gray=False, model=model, layers=rgb_layers, plot_shape= plot_shape,CIs=CIs, RM_CIs=RM_CIs,
                       arch_args=arch['args'], RM_save_path=RM_save_path, RM_CI_save_path=RM_CI_save_path,
                       RM_figs=RM_figs, RM_CI_figs=RM_CI_figs)
-
-    # 處理 Gray 分支所有層
-    for i in range(len(model.Gray_convs)):
-        layer_name = f'Gray_convs_{i}'
-        plot_shape = channels[1][i]
-        process_layer(image, layer_name, use_gray=True, model=model, layers=gray_layers, plot_shape= plot_shape, CIs=CIs,
-                      arch_args=arch['args'], RM_save_path=RM_save_path, RM_CI_save_path=RM_CI_save_path,
-                      RM_figs=RM_figs, RM_CI_figs=RM_CI_figs)
+    if use_gray:
+        # 處理 Gray 分支所有層
+        for i in range(len(model.Gray_convs)):
+            layer_name = f'Gray_convs_{i}'
+            plot_shape = channels[1][i]
+            process_layer(image, layer_name, use_gray=True, model=model, layers=gray_layers, plot_shape= plot_shape, CIs=CIs,RM_CIs=RM_CIs,
+                          arch_args=arch['args'], RM_save_path=RM_save_path, RM_CI_save_path=RM_CI_save_path,
+                          RM_figs=RM_figs, RM_CI_figs=RM_CI_figs)
 
     # 合併圖
     t1 = time.time()
@@ -196,17 +205,25 @@ def process_image(image, label, test_id):
         cam_figs = {}
         RM_CI_figs = {'raw': RM_CI_combine_fig}
 
+
         for method in cam_methods:
-            print(f"drawing {method.__name__}")
+            print(f"\nDrawing {method.__name__}...")
+            start_time = time.time()  # ⏱️ 開始計時
+
             cam_fig, RM_CI_fig = generate_cam_visualizations(
                 model=model,
                 label=label.argmax().item(),
                 image=image,
+                target_layers=target_layers_cam,
                 origin_img=origin_split_img,
                 RM_CIs=RM_CIs,
                 save_path=RM_CI_save_path,
                 method=method
             )
+
+            elapsed = time.time() - start_time  # ⏱️ 結束時間
+            print(f"{method.__name__} took {elapsed:.2f} seconds")
+
             cam_figs[method.__name__] = cam_fig
             RM_CI_figs[method.__name__] = RM_CI_fig
 
