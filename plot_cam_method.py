@@ -67,14 +67,10 @@ def generate_cam_visualizations(model: torch.nn.Module,
             - cam_fig: 原始 CAM 可視化圖
             - RM_CI_with_cam_fig: CAM 遮罩後的 RM_CI 圖
     """
-    # 獲取需要生成 CAM 的目標層
-    heatmap_layers = get_cam_target_layers(model)
-    print(heatmap_layers)
-
     # 對每一層生成 CAM (Class Activation Map)
     cams = get_each_layers_cam(
         model=model,
-        target_layers=heatmap_layers,
+        target_layers=target_layers,
         label=label,
         input_tensor=image,
         cam_method=method)
@@ -214,26 +210,6 @@ def plot_cams_on_image(
 
     return cam_fig
 
-
-def get_cam_target_layers(model: torch.nn.Module) -> dict:
-    """獲取模型中需要分析的目標層
-    
-    返回模型中所有需要進行 CAM 分析的層級。
-    
-    Args:
-        model (torch.nn.Module): 目標模型
-        
-    Returns:
-        dict: 包含所有目標層的字典，鍵為層名稱，值為層物件
-    """
-    return {
-        'RGB_convs_0': model.RGB_convs[0][1], # RGB 第一層無梯度，無法計算
-        'RGB_convs_1': model.RGB_convs[1][1],
-        'RGB_convs_2': model.RGB_convs[2][1],
-        # 'Gray_convs_0': model.Gray_convs[0][1],
-        # 'Gray_convs_1': model.Gray_convs[2][1],
-        # 'Gray_convs_2': model.Gray_convs[3]
-    }
 
 
 def get_reduced_cam(cam, output_shape):

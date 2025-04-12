@@ -17,7 +17,7 @@ rgb_layers, gray_layers = get_basic_target_layers(model, use_gray)
 
 layer_stats, overall_stats = get_all_layers_stats(model, rgb_layers, gray_layers, images)
 
-save_path = f'./detect/{config["dataset"]}_{checkpoint_filename}/RM_monitor'
+save_path = f'./detect/{config["dataset"]}/{checkpoint_filename}/RM_monitor'
 
 # 確保保存目錄存在
 os.makedirs(save_path, exist_ok=True)

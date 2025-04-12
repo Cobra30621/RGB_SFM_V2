@@ -1,3 +1,5 @@
+import shutil
+
 import torchvision
 from matplotlib import pyplot as plt
 from pytorch_grad_cam import ( GradCAM, HiResCAM, GradCAMPlusPlus,
@@ -8,7 +10,7 @@ from diabetic_retinopathy_handler import preprocess_retinal_tensor_image, displa
     check_then_preprocess_images
 from load_tools import load_model_and_data
 from models.RGB_SFMCNN_V2 import get_feature_extraction_layers
-from plot_cam import  generate_cam_visualizations
+from plot_cam_method import  generate_cam_visualizations
 from plot_graph_method import plot_combine_images, plot_combine_images_vertical, plot_map, tensor_to_numpy_image
 from ci_getter import *
 import time
@@ -30,7 +32,7 @@ test_data = False # 測試模型準確度
 model, train_dataloader, test_dataloader, images, labels = load_model_and_data(checkpoint_filename, test_data=test_data)
 
 # 路徑
-save_path = f'./detect/{config["dataset"]}_{checkpoint_filename}/example'
+save_path = f'./detect/{config["dataset"]}/{checkpoint_filename}/example'
 if os.path.exists(save_path):
     shutil.rmtree(save_path)  # 刪除資料夾及其內容
     os.makedirs(save_path)  # 重新建立資料夾
