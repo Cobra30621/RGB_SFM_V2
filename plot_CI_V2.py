@@ -19,7 +19,7 @@ use_gray = arch['args']['use_gray'] # 使否使用輪廓層
 
 
 # 2️⃣ 建立儲存目錄
-save_path = f'./detect/{config["dataset"]}/{checkpoint_filename}/example'
+save_path = f'./detect/{config["dataset"]}/{checkpoint_filename}/'
 FMs_save_path = save_path + 'FMs/'
 CIs_save_path = save_path + 'CIs/'
 os.makedirs(FMs_save_path, exist_ok=True)

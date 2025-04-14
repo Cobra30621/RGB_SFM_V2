@@ -3,6 +3,7 @@ import os
 import warnings
 
 from Code.runs.train.exp.config import layers_infos
+from config import arch
 from plot_graph_method import plot_map, plot_combine_images
 
 warnings.filterwarnings('ignore')
@@ -41,7 +42,6 @@ def generate_cam_visualizations(model: torch.nn.Module,
                               label: int,
                               image: torch.Tensor,
                               origin_img,
-                              target_layers,
                               RM_CIs,
                               save_path,
                               method: Callable = GradCAM,
@@ -67,6 +67,11 @@ def generate_cam_visualizations(model: torch.nn.Module,
             - cam_fig: 原始 CAM 可視化圖
             - RM_CI_with_cam_fig: CAM 遮罩後的 RM_CI 圖
     """
+
+    # 獲取需要生成 CAM 的目標層
+    target_layers = get_cam_target_layers(model)
+    print(target_layers)
+
     # 對每一層生成 CAM (Class Activation Map)
     cams = get_each_layers_cam(
         model=model,
@@ -118,6 +123,30 @@ def generate_cam_visualizations(model: torch.nn.Module,
                                          title=f"{method.__name__}")
 
     return cam_fig,  RM_CI_with_cam_fig
+
+
+def get_cam_target_layers(model: torch.nn.Module) -> dict:
+    """獲取模型中需要分析的目標層
+
+    返回模型中所有需要進行 CAM 分析的層級。
+
+    Args:
+        model (torch.nn.Module): 目標模型
+
+    Returns:
+        dict: 包含所有目標層的字典，鍵為層名稱，值為層物件
+    """
+    layers = {}
+    use_gray = arch['args']['use_gray']  # 使否使用輪廓層
+
+    for index in range(len(model.RGB_convs)):
+        layers[f"RGB_convs_{index}"] = model.RGB_convs[index][1]
+
+    if use_gray:
+        for index in range(len(model.RGB_convs)):
+            layers[f"Gray_convs_{index}"] = model.Gray_convs[index][1]
+
+    return layers
 
 
 def get_each_layers_cam(

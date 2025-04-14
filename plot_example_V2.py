@@ -18,7 +18,7 @@ import matplotlib
 
 
 # 設定是否繪製 CAM
-PLOT_CAM = True
+PLOT_CAM = False
 
 # 設定是否使用預處理後的影像
 use_preprocessed_image = config['use_preprocessed_image']
@@ -32,11 +32,13 @@ test_data = False # 測試模型準確度
 model, train_dataloader, test_dataloader, images, labels = load_model_and_data(checkpoint_filename, test_data=test_data)
 
 # 路徑
-save_path = f'./detect/{config["dataset"]}/{checkpoint_filename}/example'
-if os.path.exists(save_path):
-    shutil.rmtree(save_path)  # 刪除資料夾及其內容
-    os.makedirs(save_path)  # 重新建立資料夾
-
+save_root = f'./detect/{config["dataset"]}/{checkpoint_filename}/example'
+print(save_root)
+if os.path.exists(save_root):
+    shutil.rmtree(save_root)  # 刪除資料夾及其內容
+    os.makedirs(save_root)  # 重新建立資料夾
+else:
+    os.makedirs(save_root)  # 重新建立資料夾
 
 # 提取 RGB 與 Gray 分支的 feature extraction 層
 rgb_layers, gray_layers = get_feature_extraction_layers(model)
@@ -56,7 +58,7 @@ preprocess_images = check_then_preprocess_images(images)
 
 # 取得所有層的 Critical Inputs
 force_regenerate=False
-CIs, CI_values = load_or_generate_CIs(model, preprocess_images, force_regenerate=force_regenerate, save_path= f'./detect/{config["dataset"]}_{checkpoint_filename}')
+CIs, CI_values = load_or_generate_CIs(model, preprocess_images, force_regenerate=force_regenerate, save_path= save_root)
 
 # 設定需處理的資料筆數
 example_num = 450
@@ -127,7 +129,7 @@ def process_image(image, label, test_id):
     """
     print(f"處理編號: {test_id}")
 
-    save_path = f'./detect/{config["dataset"]}_{checkpoint_filename}/example/{label.argmax().item()}/example_{test_id}/'
+    save_path = f'{save_root}/{label.argmax().item()}/example_{test_id}/'
     RM_save_path = f'{save_path}/RMs/'
     RM_CI_save_path = f'{save_path}/RM_CIs/'
     os.makedirs(RM_save_path, exist_ok=True)
@@ -216,7 +218,6 @@ def process_image(image, label, test_id):
                 model=model,
                 label=label.argmax().item(),
                 image=image,
-                target_layers=target_layers_cam,
                 origin_img=origin_split_img,
                 RM_CIs=RM_CIs,
                 save_path=RM_CI_save_path,

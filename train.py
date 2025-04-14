@@ -29,8 +29,12 @@ def train(train_dataloader: DataLoader, valid_dataloader: DataLoader, model: nn.
     use_preprocessed_image= config['use_preprocessed_image']
     checkpoint = {}
 
-    use_gray = arch['args']['use_gray']  # 使否使用輪廓層
-    rgb_layers, gray_layers = get_basic_target_layers(model, use_gray=use_gray)
+    # 需要計算 RM 分布指標
+    need_calculate_status = arch["need_calculate_status"]
+    if need_calculate_status:
+        use_gray = arch['args']['use_gray']  # 使否使用輪廓層
+        rgb_layers, gray_layers = get_basic_target_layers(model, use_gray=use_gray)
+
 
     with torch.autograd.set_detect_anomaly(True):
         for e in range(epoch):
@@ -43,12 +47,14 @@ def train(train_dataloader: DataLoader, valid_dataloader: DataLoader, model: nn.
             X, y = next(iter(train_dataloader))
             for batch, (X, y) in progress:
                 X = X.to(device); y= y.to(device)
-
+                print(f"X.shape: {X.shape}")
                 # 使用影像愈處理
                 if use_preprocessed_image:
                     X = preprocess_retinal_tensor_batch(X, final_size=config['input_shape'])
 
+                print(f"X.shape 2: {X.shape}")
                 pred = model(X)
+                print(f"pred.shape: {pred.shape}, y.shape: {y.shape}")
                 # 判斷是否使用 metric-based loss
                 if use_metric_based_loss:
                     loss = training_loss_fn(pred, y, model, rgb_layers, gray_layers, X)
@@ -127,13 +133,19 @@ def train(train_dataloader: DataLoader, valid_dataloader: DataLoader, model: nn.
         imgs, lbls = batch
         images = torch.cat((images, imgs.to(device)))
         labels = torch.cat((labels, lbls.to(device)))
-    layer_stats, overall_stats = get_all_layers_stats(model, rgb_layers, gray_layers, images)
 
-    for key, value in overall_stats.items():
-        wandb.summary[key] = value
+    # 需要計算 RM 分布指標
+    need_calculate_status = arch["need_calculate_status"]
+    if need_calculate_status:
+        use_gray = arch['args']['use_gray']  # 使否使用輪廓層
+        rgb_layers, gray_layers = get_basic_target_layers(model, use_gray=use_gray)
+        layer_stats, overall_stats = get_all_layers_stats(model, rgb_layers, gray_layers, images)
 
-    wandb.summary['layers'] = layer_stats
-    print(layer_stats)
+        for key, value in overall_stats.items():
+            wandb.summary[key] = value
+
+        wandb.summary['layers'] = layer_stats
+        print(layer_stats)
 
     return cur_train_loss, cur_train_acc, best_valid_loss, best_valid_acc, checkpoint
 
@@ -215,7 +227,8 @@ shutil.copyfile(f'./config.py', f'{config["save_dir"]}/config.py')
 
 # wandb.watch(model, loss_fn, log="all", log_freq=1)
 train_loss, train_acc, valid_loss, valid_acc, checkpoint = train(train_dataloader, test_dataloader, model, eval_loss_fn,
-                                                                 optimizer, scheduler, config['epoch'], device = config['device'], training_loss_fn=training_loss_fn, use_metric_based_loss=use_metric_based_loss)
+                                                                 optimizer, scheduler, config['epoch'], device = config['device'],
+                                                                 training_loss_fn=training_loss_fn, use_metric_based_loss=use_metric_based_loss)
 print("Train: \n\tAccuracy: {}, Avg loss: {} \n".format(train_acc, train_loss))
 print("Valid: \n\tAccuracy: {}, Avg loss: {} \n".format(valid_acc, valid_loss))
 
