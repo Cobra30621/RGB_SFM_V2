@@ -2,7 +2,6 @@ import shutil
 
 from sklearn.model_selection import KFold
 
-import wandb
 import numpy as np
 
 from torch import optim, nn
@@ -84,8 +83,6 @@ def train(train_dataloader: DataLoader, valid_dataloader: DataLoader, model: nn.
                 "valid/loss": valid_loss,
                 "valid/accuracy": valid_acc,
             }
-            wandb.log(metrics, step=e)
-
             # early stopping
             if config['early_stop']:
                 if valid_acc < best_valid_acc:
@@ -158,8 +155,6 @@ def eval(dataloader: DataLoader, model: nn.Module, loss_fn, need_table=True, dev
                     X = np.transpose(np.array(X[0]), (1, 2, 0))
                 else:
                     X = np.array(X[0])
-                table.append([wandb.Image(X), y[0], pred.argmax(1)[0], loss,
-                              (pred.argmax(1) == y.argmax(1)).type(torch.float).sum().item()])
 
             test_loss = losses / (batch + 1)
             test_acc = correct / size

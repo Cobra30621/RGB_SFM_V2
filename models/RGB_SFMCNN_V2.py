@@ -241,7 +241,8 @@ class RGB_SFMCNN_V2(nn.Module):
         rgb_output = rgb_output.reshape(x.shape[0], -1)
 
         if self.use_gray:
-            gray_output = torch.zeros_like(rgb_output, device=x.device)
+            gray_output = self.Gray_convs(self.gray_transform(x))
+            gray_output = gray_output.reshape(x.shape[0], -1)
             concat_output = torch.concat([rgb_output, gray_output], dim=-1)
             output = self.fc1(concat_output)
         else:
@@ -312,7 +313,7 @@ class RGB_SFMCNN_V2(nn.Module):
         rgb_conv_layer = Gray_Conv2d(in_channel, out_channel, kernel_size=kernel_size, stride=stride, padding=padding,
                             initial=initial, conv_method=conv_method, device=device)
         # 建立響應模組
-        rbf_layer = make_rbfs(rbfs, activate_param, device, required_grad=False)
+        rbf_layer = make_rbfs(rbfs, activate_param, device, required_grad=True)
         # 建立空間合併模組
         sfm_layer = SFM(filter=SFM_filters, device=device, method=SFM_method)
 
@@ -343,7 +344,7 @@ class RGB_SFMCNN_V2(nn.Module):
         rgf_conv_layer = RBF_Conv2d(in_channel, out_channel, kernel_size=kernel_size, stride=stride, padding=padding,
                            initial=initial,  conv_method=conv_method, device=device)
         # 建立響應模組
-        rbf_layer = make_rbfs(rbfs, activate_param, device, required_grad=False)
+        rbf_layer = make_rbfs(rbfs, activate_param, device, required_grad=True)
 
         layers.append(rgf_conv_layer)
         layers.append(rbf_layer)

@@ -30,8 +30,8 @@ class MetricBaseLoss(nn.Module):
         """
         super(MetricBaseLoss, self).__init__()
         self.loss_fn = nn.CrossEntropyLoss(weight=weight, reduction=reduction)
-        self.each_channel_max_weight = 1
-        self.min_weight = 1
+        self.each_channel_max_weight = 0.5
+        self.min_weight = 0.5
 
 
     def forward(self, predictions, targets, model, rgb_layers, gray_layers, images):
@@ -55,9 +55,7 @@ class MetricBaseLoss(nn.Module):
 
         # print(layer_stats['RGB_convs_2']['最大值限制 (each channel max > 0.8)'])
 
-        # each_channel_max =  torch.tensor(overall_stats['最大值限制 (each channel max > 0.8)'], requires_grad=True)
-        # max_loss = (1 - each_channel_max) * self.each_channel_max_weight
-        max_loss = overall_stats['最大值限制 (each channel max > 0.8)']
+        max_loss = overall_stats['避免高效反應 (ratio_above_0.9 < 20%)']
         min_loss = overall_stats['避免低效反應 (ratio_above_0.1 > 1%)']
 
         total_loss = base_loss - max_loss * self.each_channel_max_weight - min_loss * self.min_weight

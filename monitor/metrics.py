@@ -34,8 +34,8 @@ def create_metrics_dict():
     - 包含指標計算方法的字典
     """
     metrics = {
-        '避免高效反應 (ratio_above_0.9 < 50%)': lambda stats: (
-            smooth_threshold(stats['ratio_above_0.9'], '<', 0.5)
+        '避免高效反應 (ratio_above_0.9 < 20%)': lambda stats: (
+            smooth_threshold(stats['ratio_above_0.9'], '<', 0.2)
         ),
         '避免低效反應 (ratio_above_0.1 > 1%)': lambda stats: (
             smooth_threshold(stats['ratio_above_0.1'], '>', 0.01)

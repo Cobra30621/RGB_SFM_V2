@@ -43,6 +43,8 @@ else:
 # 提取 RGB 與 Gray 分支的 feature extraction 層
 rgb_layers, gray_layers = get_feature_extraction_layers(model)
 
+print(rgb_layers.keys())
+
 if PLOT_CAM:
     use_gray = arch['args']['use_gray']  # 使否使用輪廓層
     rgb_layers_cam, gray_layers_cam = get_basic_target_layers(model, use_gray)
@@ -90,6 +92,16 @@ def process_layer(
 
     in_channels = 1 if use_gray else arch_args['in_channels']
     input_image = model.gray_transform(image.unsqueeze(0)) if use_gray else image.unsqueeze(0)
+
+    RM_Conv = layers[layer_name + '_after_Conv'](input_image)[0]
+    RM_H, RM_W =RM_Conv.shape[1], RM_Conv.shape[2]
+
+    fig_rm_conv = plot_map(
+        RM_Conv.permute(1, 2, 0).reshape(RM_H, RM_W, *plot_shape, 1).detach().numpy(),
+        path=f'{RM_save_path}/{layer_name}_RM_Conv'
+    )
+    RM_figs[layer_name+ '_after_Conv'] = fig_rm_conv
+
 
     RM = layers[layer_name](input_image)[0]
     RM_H, RM_W = RM.shape[1], RM.shape[2]
@@ -177,6 +189,7 @@ def process_image(image, label, test_id):
     # 處理 RGB 分支所有層
     for i in range(len(model.RGB_convs)):
         layer_name = f'RGB_convs_{i}'
+        print(layer_name)
         plot_shape = channels[0][i]
         process_layer(image, layer_name, use_gray=False, model=model, layers=rgb_layers, plot_shape= plot_shape,CIs=CIs, RM_CIs=RM_CIs,
                       arch_args=arch['args'], RM_save_path=RM_save_path, RM_CI_save_path=RM_CI_save_path,

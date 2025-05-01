@@ -23,6 +23,7 @@ def train(train_dataloader: DataLoader, valid_dataloader: DataLoader, model: nn.
           training_loss_fn, use_metric_based_loss=False):
     # best_valid_loss = float('inf')
     best_valid_acc = 0
+    best_valid_loss =  float('inf')
     count = 0
     patience = config['patience']
     # 使用影像前處理
@@ -104,6 +105,7 @@ def train(train_dataloader: DataLoader, valid_dataloader: DataLoader, model: nn.
                         break
 
             if valid_acc > best_valid_acc:
+            # if valid_loss < best_valid_loss:
                 count = 0
                 best_valid_loss = valid_loss
                 best_valid_acc = valid_acc
@@ -135,17 +137,17 @@ def train(train_dataloader: DataLoader, valid_dataloader: DataLoader, model: nn.
         labels = torch.cat((labels, lbls.to(device)))
 
     # 需要計算 RM 分布指標
-    need_calculate_status = arch["need_calculate_status"]
-    if need_calculate_status:
-        use_gray = arch['args']['use_gray']  # 使否使用輪廓層
-        rgb_layers, gray_layers = get_basic_target_layers(model, use_gray=use_gray)
-        layer_stats, overall_stats = get_all_layers_stats(model, rgb_layers, gray_layers, images)
-
-        for key, value in overall_stats.items():
-            wandb.summary[key] = value
-
-        wandb.summary['layers'] = layer_stats
-        print(layer_stats)
+    # need_calculate_status = arch["need_calculate_status"]
+    # if need_calculate_status:
+    #     use_gray = arch['args']['use_gray']  # 使否使用輪廓層
+    #     rgb_layers, gray_layers = get_basic_target_layers(model, use_gray=use_gray)
+    #     layer_stats, overall_stats = get_all_layers_stats(model, rgb_layers, gray_layers, images)
+    #
+    #     for key, value in overall_stats.items():
+    #         wandb.summary[key] = value
+    #
+    #     wandb.summary['layers'] = layer_stats
+    #     print(layer_stats)
 
     return cur_train_loss, cur_train_acc, best_valid_loss, best_valid_acc, checkpoint
 
