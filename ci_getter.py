@@ -66,7 +66,9 @@ def get_ci(input, layer, kernel_size=(5, 5), stride=(5, 5), sfm_filter=(1, 1)):
     return CI, indices.unsqueeze(1), CI_values
 
 def get_CIs(model, images):
-    use_gray = arch['args']['use_gray']  # 使否使用輪廓層
+    # 使否使用輪廓層
+    mode = arch['args']['mode']  # 模式
+    use_gray = mode in ['gray', 'both']
 
     rgb_layers, gray_layers = get_basic_target_layers(model, use_gray)
     CIs, CI_values = {}, {}

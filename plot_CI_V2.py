@@ -15,8 +15,7 @@ import matplotlib
 checkpoint_filename = config["load_model_name"]
 test_data = False # 測試模型準確度
 model, train_dataloader, test_dataloader, images, labels = load_model_and_data(checkpoint_filename, test_data=test_data)
-use_gray = arch['args']['use_gray'] # 使否使用輪廓層
-
+mode = arch['args']['mode'] # 模式
 
 # 2️⃣ 建立儲存目錄
 save_path = f'./detect/{config["dataset"]}/{checkpoint_filename}/'
@@ -166,7 +165,9 @@ def plot_CI_branch(
 
 layer_count = len(arch["args"]["Conv2d_kernel"])
 print(f"layer count {layer_count}")
-plot_CI_branch(CIs, CI_values, layer_count, channels[0], "RGB_convs", CIs_save_path)
-if use_gray:
+if mode in ['rgb', 'both']:
+    plot_CI_branch(CIs, CI_values, layer_count, channels[0], "RGB_convs", CIs_save_path)
+
+if mode in ['gray', 'both']:
     plot_CI_branch(CIs, CI_values, layer_count, channels[1], "Gray_convs", CIs_save_path)
 print('CI saved.')

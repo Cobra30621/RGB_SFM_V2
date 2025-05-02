@@ -31,6 +31,8 @@ checkpoint_filename = config["load_model_name"]
 test_data = False # 測試模型準確度
 model, train_dataloader, test_dataloader, images, labels = load_model_and_data(checkpoint_filename, test_data=test_data)
 
+mode = arch['args']['mode'] # 模式
+
 # 路徑
 save_root = f'./detect/{config["dataset"]}/{checkpoint_filename}/example'
 print(save_root)
@@ -46,12 +48,15 @@ rgb_layers, gray_layers = get_feature_extraction_layers(model)
 print(rgb_layers.keys())
 
 if PLOT_CAM:
-    use_gray = arch['args']['use_gray']  # 使否使用輪廓層
+    use_gray = mode in ['gray', 'both']
     rgb_layers_cam, gray_layers_cam = get_basic_target_layers(model, use_gray)
-    if use_gray:
-        target_layers_cam = rgb_layers_cam | gray_layers_cam
-    else:
+
+    if mode in ['rgb']:
         target_layers_cam = rgb_layers_cam
+    if mode in ['gray']:
+        target_layers_cam = rgb_layers_cam
+    if mode in ['both']:
+        target_layers_cam = rgb_layers_cam | gray_layers_cam
 
     print(target_layers_cam)
 
@@ -147,7 +152,7 @@ def process_image(image, label, test_id):
     os.makedirs(RM_save_path, exist_ok=True)
     os.makedirs(RM_CI_save_path, exist_ok=True)
 
-    use_gray = arch['args']['use_gray']  # 使否使用輪廓層
+    use_gray =  mode in ['gray', 'both']  # 使否使用輪廓層
 
     RM_CIs = {}
     RM_figs = {}
@@ -186,27 +191,32 @@ def process_image(image, label, test_id):
 
     channels = arch['args']['channels']
 
-    # 處理 RGB 分支所有層
-    for i in range(len(model.RGB_convs)):
-        layer_name = f'RGB_convs_{i}'
-        print(layer_name)
-        plot_shape = channels[0][i]
-        process_layer(image, layer_name, use_gray=False, model=model, layers=rgb_layers, plot_shape= plot_shape,CIs=CIs, RM_CIs=RM_CIs,
-                      arch_args=arch['args'], RM_save_path=RM_save_path, RM_CI_save_path=RM_CI_save_path,
-                      RM_figs=RM_figs, RM_CI_figs=RM_CI_figs)
-    if use_gray:
+    if mode in ['rgb', 'both']:
+        # 處理 RGB 分支所有層
+        for i in range(len(model.RGB_convs)):
+            layer_name = f'RGB_convs_{i}'
+            print(layer_name)
+            plot_shape = channels[0][i]
+            process_layer(image, layer_name, use_gray=False, model=model, layers=rgb_layers, plot_shape=plot_shape,
+                          CIs=CIs, RM_CIs=RM_CIs,
+                          arch_args=arch['args'], RM_save_path=RM_save_path, RM_CI_save_path=RM_CI_save_path,
+                          RM_figs=RM_figs, RM_CI_figs=RM_CI_figs)
+
+    if mode in ['gray', 'both']:
         # 處理 Gray 分支所有層
         for i in range(len(model.Gray_convs)):
             layer_name = f'Gray_convs_{i}'
             plot_shape = channels[1][i]
-            process_layer(image, layer_name, use_gray=True, model=model, layers=gray_layers, plot_shape= plot_shape, CIs=CIs,RM_CIs=RM_CIs,
+            process_layer(image, layer_name, use_gray=True, model=model, layers=gray_layers, plot_shape=plot_shape,
+                          CIs=CIs, RM_CIs=RM_CIs,
                           arch_args=arch['args'], RM_save_path=RM_save_path, RM_CI_save_path=RM_CI_save_path,
                           RM_figs=RM_figs, RM_CI_figs=RM_CI_figs)
+
 
     # 合併圖
     t1 = time.time()
 
-    plot_combine_images(RM_figs, RM_save_path + f'RGB_combine')
+    plot_combine_images(RM_figs, RM_save_path + f'combine')
     t2 = time.time()
     print(f"Finished plot combine RM fig - time: {t2 - t1:.3f} sec")
 
