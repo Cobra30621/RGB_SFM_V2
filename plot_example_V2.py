@@ -18,7 +18,7 @@ import matplotlib
 
 
 # 設定是否繪製 CAM
-PLOT_CAM = False
+PLOT_CAM = True
 
 # 設定是否使用預處理後的影像
 use_preprocessed_image = config['use_preprocessed_image']
@@ -241,7 +241,7 @@ def process_image(image, label, test_id):
                 model=model,
                 label=label.argmax().item(),
                 image=image,
-                origin_img=origin_split_img,
+                origin_img=fig_origin,
                 RM_CIs=RM_CIs,
                 save_path=RM_CI_save_path,
                 method=method

@@ -69,6 +69,9 @@ class CustomerRetinaMNIST_224(CustomerMedMNIST):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs, flag="retinamnist", size=224)
 
+class CustomerPathMNIST_224(CustomerMedMNIST):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs, flag="pathmnist", size=224)
 
 
 class CustomerBloodMNIST(CustomerMedMNIST):

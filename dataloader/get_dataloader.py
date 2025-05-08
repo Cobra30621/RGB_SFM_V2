@@ -5,7 +5,7 @@ from torch.utils.data import DataLoader
 
 from .APROS_2019 import APROS_2019Dataset
 from .CustomerMedMNIST import CustomerMedMNIST, CustomerDermaMNIST, CustomerPathMNIST, CustomerRetinaMNIST, \
-    CustomerBloodMNIST, CustomerRetinaMNIST_224
+    CustomerBloodMNIST, CustomerRetinaMNIST_224, CustomerPathMNIST_224
 from .HeartCalcification import *
 from .MNIST import MNISTDataset
 from .MNISTWeight import MNISTWeightDataset
@@ -42,6 +42,7 @@ dataset_classes = {
     'HeartCalcification_Gray': HeartCalcificationGray,
     "MinstWeight" : MNISTWeightDataset,
     "PathMNIST" :  CustomerPathMNIST,
+    "PathMNIST_224" :  CustomerPathMNIST_224,
     "DermaMNIST" : CustomerDermaMNIST,
     "RetinaMNIST" : CustomerRetinaMNIST,
     "RetinaMNIST_224" : CustomerRetinaMNIST_224,

@@ -137,13 +137,14 @@ def get_cam_target_layers(model: torch.nn.Module) -> dict:
         dict: 包含所有目標層的字典，鍵為層名稱，值為層物件
     """
     layers = {}
-    use_gray = arch['args']['use_gray']  # 使否使用輪廓層
+    mode = arch['args']['mode']  # 模式
 
-    for index in range(len(model.RGB_convs)):
-        layers[f"RGB_convs_{index}"] = model.RGB_convs[index][1]
-
-    if use_gray:
+    if mode in ['rgb', 'both']:
         for index in range(len(model.RGB_convs)):
+            layers[f"RGB_convs_{index}"] = model.RGB_convs[index][1]
+
+    if mode in ['gray', 'both']:
+        for index in range(len(model.Gray_convs)):
             layers[f"Gray_convs_{index}"] = model.Gray_convs[index][1]
 
     return layers

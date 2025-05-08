@@ -33,7 +33,9 @@ def train(train_dataloader: DataLoader, valid_dataloader: DataLoader, model: nn.
     # 需要計算 RM 分布指標
     need_calculate_status = arch["need_calculate_status"]
     if need_calculate_status:
-        use_gray = arch['args']['use_gray']  # 使否使用輪廓層
+        # 使否使用輪廓層
+        mode = arch['args']['mode']
+        use_gray = mode in ['gray', 'both']
         rgb_layers, gray_layers = get_basic_target_layers(model, use_gray=use_gray)
 
 
