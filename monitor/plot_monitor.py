@@ -81,7 +81,9 @@ def plot_layer_graph(model, layers, layer_num, images, is_gray=False, plot_shape
 
 
 def plot_all_layers_graph(model, rgb_layers, gray_layers, images, save_dir='./output', space_count=10):
-    use_gray = arch['args']['use_gray']  # 使否使用輪廓層
+    # 使否使用輪廓層
+    mode = arch['args']['mode']
+    use_gray = mode in ['gray', 'both']
     channels = arch['args']['channels']
     for key, layer in rgb_layers.items():
         print(f"plotting {key} graph")

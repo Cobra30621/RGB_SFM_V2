@@ -23,6 +23,7 @@ def train(train_dataloader: DataLoader, valid_dataloader: DataLoader, model: nn.
           training_loss_fn, use_metric_based_loss=False):
     # best_valid_loss = float('inf')
     best_valid_acc = 0
+    best_train_acc = 0
     best_valid_loss =  float('inf')
     count = 0
     patience = config['patience']
@@ -106,11 +107,13 @@ def train(train_dataloader: DataLoader, valid_dataloader: DataLoader, model: nn.
                     if count >= patience:
                         break
 
-            if valid_acc > best_valid_acc:
+            # if valid_acc > best_valid_acc:
             # if valid_loss < best_valid_loss:
+            if train_acc > best_train_acc:
                 count = 0
                 best_valid_loss = valid_loss
                 best_valid_acc = valid_acc
+                best_train_acc = train_acc
                 cur_train_loss = train_loss
                 cur_train_acc = train_acc
 
@@ -127,7 +130,9 @@ def train(train_dataloader: DataLoader, valid_dataloader: DataLoader, model: nn.
                 checkpoint['valid_acc'] = valid_acc
 
                 torch.save(checkpoint, f'{config["save_dir"]}/epochs{e}.pth')
-                # print(model)
+            if e == 200:
+                torch.save(checkpoint, f'{config["save_dir"]}/epochs{e}.pth')
+
                 
     print(model)
     # Monitor

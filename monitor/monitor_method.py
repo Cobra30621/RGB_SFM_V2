@@ -46,7 +46,8 @@ def get_all_layers_stats(model, rgb_layers, gray_layers, images, keep_tensor=Fal
     """
     layer_stats = {}
 
-    use_gray = arch['args']['use_gray']  # 使否使用輪廓層
+    mode = arch['args']['mode']
+    use_gray = mode in ['gray', 'both']
     for key, layer in rgb_layers.items():
         # 可以跳過 RGBConv0 (由於其中的參數不需要訓練)
         if without_RGBConv0 and key == "RGB_convs_0":

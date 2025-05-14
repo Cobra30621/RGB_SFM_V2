@@ -1,5 +1,9 @@
 import os
+import random
+
 from typing import List, Dict, Tuple
+
+import cv2
 from PIL import Image, ImageEnhance
 import numpy as np
 
@@ -253,53 +257,92 @@ class HeartCalcificationDataProcessor:
         
         return label
 
-    def get_model_ready_data(self, use_min_count: bool = False) -> List[Tuple[Tuple[str, int, int], np.ndarray, int]]:
+    def get_model_ready_data(self, use_min_count: bool = False, augment_positive: bool = False,
+                             augment_multiplier: int = 1) -> List[Tuple[Tuple[str, int, int], np.ndarray, int]]:
         """
-        获取模型就绪的数据。
+        取得模型可用資料。
 
-        参数:
-        use_min_count (bool): 是否使用最小数量进行筛选，默认为 True
+        參數:
+        - use_min_count (bool): 是否讓正負樣本數量平衡
+        - augment_positive (bool): 是否擴充正樣本（label=1）
+        - augment_multiplier (int): 每筆正樣本要額外複製幾次（不含原圖），僅在 augment_positive=True 時有效
 
-        返回:
-        List[Tuple[Tuple[str, int, int], Image.Image, int]]: 包含图像名称、位置、分割图像和标签的列表
+        回傳:
+        - List of (image_name, i, j), image patch, label
         """
-        model_ready_data = []
-        label_counts = {}  # 记录每个标签的计数
+        label_0_samples = []
+        label_1_samples = []
 
-        # 统计每个标签的数量
+        # 分類資料
         for image_name, image_data in self.data_dict.items():
-            for label in image_data.labels.values():
-                if label not in label_counts:
-                    label_counts[label] = 0
-                label_counts[label] += 1
-
-        # 计算每个标签的最小数量
-        min_count = min(label_counts.values()) if use_min_count else float('inf')
-
-        # 创建一个字典来存储每个标签的随机选择的索引
-        selected_indices = {label: [] for label in label_counts.keys()}
-
-        for image_name, image_data in self.data_dict.items():
-
             split_images = image_data.split_images
-
             for (i, j), label in image_data.labels.items():
-                if label != -1:
-                    index = i * image_data.split_count[1] + j
+                if label not in [0, 1]:
+                    continue
+                index = i * image_data.split_count[1] + j
+                if index < len(split_images):
+                    entry = ((image_name, i, j), split_images[index], label)
+                    if label == 0:
+                        label_0_samples.append(entry)
+                    else:
+                        label_1_samples.append(entry)
 
-                    # 随机选择标签
-                    if len(selected_indices[label]) < min_count:
-                        if index < len(split_images):  # 检查 index 是否在范围内
-                            selected_indices[label].append((image_name, index, label))  # 存储 image_name 和 index
+        # 平衡正負樣本數量
+        if use_min_count:
+            base_count = min(len(label_0_samples), len(label_1_samples))
+            label_0_samples = random.sample(label_0_samples, base_count)
+            label_1_samples = random.sample(label_1_samples, base_count)
 
-        # 将随机选择的图像添加到 model_ready_data
-        for label, indices in selected_indices.items():
-            for image_name, index, label in indices:
-                if index < len(self.data_dict[image_name].split_images):  # 确保使用当前 image_data 的 split_images
-                    model_ready_data.append(((image_name, i, j), self.data_dict[image_name].split_images[index], label))
+        result = []
 
-        return model_ready_data
+        # 加入負樣本
+        result.extend(label_0_samples)
 
+        # 加入正樣本 + 擴充（如果啟用）
+        for entry in label_1_samples:
+            result.append(entry)  # 原始正樣本
+            if augment_positive:
+                for _ in range(augment_multiplier):
+                    augmented_img = self.augment_image(entry[1])
+                    result.append((entry[0], augmented_img, entry[2]))
+
+        # 若擴充導致正樣本數 > 負樣本，需補足負樣本
+        if use_min_count and augment_positive:
+            count_0 = sum(1 for _, _, lbl in result if lbl == 0)
+            count_1 = sum(1 for _, _, lbl in result if lbl == 1)
+            if count_1 > count_0:
+                diff = count_1 - count_0
+                extra_negatives = random.choices(label_0_samples, k=diff)
+                result.extend(extra_negatives)
+
+        return result
+
+    def augment_image(self, img: np.ndarray) -> np.ndarray:
+        """
+        對圖像進行隨機資料擴充（翻轉、旋轉、對比度等）
+
+        參數:
+        - img: 原始圖像（灰階）
+
+        回傳:
+        - 擴充後圖像（確保 strides 為正）
+        """
+        aug_img = img.copy()
+
+        # 隨機翻轉
+        flip_code = random.choice([-1, 0, 1, None])
+        if flip_code is not None:
+            aug_img = cv2.flip(aug_img, flip_code)
+
+        # 隨機旋轉（0~270°）
+        k = random.choice([0, 1, 2, 3])
+        aug_img = np.rot90(aug_img, k)
+
+        # # 隨機對比度調整
+        # factor = random.uniform(0.8, 1.2)
+        # aug_img = np.clip(aug_img.astype(np.float32) * factor, 0, 255)
+
+        return aug_img.astype(np.uint8).copy()  # <- 確保 strides 是正的
 
     def display_label_counts(self):
         label_counts = {}

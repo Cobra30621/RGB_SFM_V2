@@ -46,7 +46,7 @@ def plot_RM_map(layers,model,layer_num, plot_shape, img, save_path, is_gray = Fa
              path=save_path + f'{layer_num}_RM')
 
 
-def plot_map(rm, path=None, padding=1, pad_value=0.0, return_type="image", **kwargs):
+def plot_map(rm, path=None, padding=1, pad_value=0.0, return_type="image", plot_bar = False, **kwargs):
     """
     繪製濾波器圖像的網格視覺化。
 
@@ -103,8 +103,10 @@ def plot_map(rm, path=None, padding=1, pad_value=0.0, return_type="image", **kwa
     fig, ax = plt.subplots(figsize=(W / 40, H / 40), facecolor="white", dpi=dip)
     im = ax.imshow(canvas, vmin=global_min, vmax=global_max, **kwargs)
     ax.axis('off')
-    cbar = plt.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
-    cbar.ax.tick_params(labelsize=label_fontsize)
+
+    if plot_bar:
+        cbar = plt.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
+        cbar.ax.tick_params(labelsize=label_fontsize)
 
     if path:
         plt.savefig(path, dpi=dip, bbox_inches='tight')

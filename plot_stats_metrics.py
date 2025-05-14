@@ -12,7 +12,9 @@ checkpoint_filename = config["load_model_name"]
 test_data = False # 測試模型準確度
 model, train_dataloader, test_dataloader, images, labels = load_model_and_data(checkpoint_filename, test_data=test_data)
 
-use_gray = arch['args']['use_gray']  # 使否使用輪廓層
+# 使否使用輪廓層
+mode = arch['args']['mode']
+use_gray = mode in ['gray', 'both']
 rgb_layers, gray_layers = get_basic_target_layers(model, use_gray)
 
 layer_stats, overall_stats = get_all_layers_stats(model, rgb_layers, gray_layers, images)

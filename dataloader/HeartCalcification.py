@@ -25,6 +25,9 @@ class HeartCalcificationDataset(Dataset):
         contrast_factor : float = 1.0,
         enhance_method: str = 'none',
         use_vessel_mask: bool = True,
+        use_min_count:bool = True,
+        augment_positive: bool = False,
+        augment_multiplier: int = 1
     ) -> None:
         self.root = root
         self.transform = transform
@@ -41,7 +44,7 @@ class HeartCalcificationDataset(Dataset):
             threshold=threshold, contrast_factor = contrast_factor, enhance_method=enhance_method,
             use_vessel_mask=use_vessel_mask)
 
-        self.model_ready_data = self.data_processor.get_model_ready_data(True)
+        self.model_ready_data = self.data_processor.get_model_ready_data(use_min_count, augment_positive, augment_multiplier)
 
         print("model data count : ",  len(self.model_ready_data))
         self.data_processor.display_label_counts()
@@ -80,7 +83,22 @@ class HeartCalcificationDataset(Dataset):
 
 class HeartCalcificationColor(HeartCalcificationDataset):
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs, color_mode='RGB')
+        grid_size = config["heart_calcification"]["grid_size"]
+        resize_height = config["heart_calcification"]["resize_height"]
+        need_resize_height = config["heart_calcification"]["need_resize_height"]
+        threshold = config["heart_calcification"]["threshold"]
+        contrast_factor = config["heart_calcification"]["contrast_factor"]
+        enhance_method = config["heart_calcification"]["enhance_method"]
+        use_vessel_mask = config["heart_calcification"]["use_vessel_mask"]
+        use_min_count = config["heart_calcification"]["use_min_count"]
+        augment_positive = config["heart_calcification"]["augment_positive"]
+        augment_multiplier = config["heart_calcification"]["augment_multiplier"]
+        super().__init__(*args, **kwargs, color_mode='RGB',
+                         grid_size=grid_size, resize_height=resize_height,
+                         need_resize_height=need_resize_height, threshold=threshold,
+                         contrast_factor=contrast_factor, enhance_method=enhance_method,
+                         use_vessel_mask=use_vessel_mask, use_min_count = use_min_count,
+                         augment_positive = augment_positive, augment_multiplier=augment_multiplier)
 
 class HeartCalcificationGray(HeartCalcificationDataset):
     def __init__(self, *args, **kwargs):
@@ -91,7 +109,12 @@ class HeartCalcificationGray(HeartCalcificationDataset):
         contrast_factor = config["heart_calcification"]["contrast_factor"]
         enhance_method = config["heart_calcification"]["enhance_method"]
         use_vessel_mask = config["heart_calcification"]["use_vessel_mask"]
+        use_min_count = config["heart_calcification"]["use_min_count"]
+        augment_positive = config["heart_calcification"]["augment_positive"]
+        augment_multiplier = config["heart_calcification"]["augment_multiplier"]
         super().__init__(*args, **kwargs, color_mode='L',
                          grid_size = grid_size, resize_height = resize_height,
                          need_resize_height = need_resize_height, threshold=threshold,
-                         contrast_factor = contrast_factor, enhance_method=enhance_method, use_vessel_mask=use_vessel_mask)
+                         contrast_factor = contrast_factor, enhance_method=enhance_method,
+                         use_vessel_mask=use_vessel_mask, use_min_count = use_min_count,
+                         augment_positive=augment_positive, augment_multiplier=augment_multiplier)
