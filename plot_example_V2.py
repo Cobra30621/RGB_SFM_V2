@@ -65,7 +65,7 @@ preprocess_images = check_then_preprocess_images(images)
 
 # 取得所有層的 Critical Inputs
 force_regenerate=False
-CIs, CI_values = load_or_generate_CIs(model, preprocess_images, force_regenerate=force_regenerate, save_path= save_root)
+CIs, CI_values = load_or_generate_CIs(model, preprocess_images, force_regenerate=force_regenerate, save_path= f'./detect/{config["dataset"]}/{checkpoint_filename}')
 
 # 設定需處理的資料筆數
 example_num = 450

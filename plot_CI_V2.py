@@ -96,7 +96,7 @@ images = check_then_preprocess_images(images)
 
 # 8️⃣ 計算各層的 CI 與對應值
 force_regenerate=False
-CIs, CI_values = load_or_generate_CIs(model, images, force_regenerate=force_regenerate, save_path= f'./detect/{config["dataset"]}_{checkpoint_filename}')
+CIs, CI_values = load_or_generate_CIs(model, images, force_regenerate=force_regenerate, save_path= f'./detect/{config["dataset"]}/{checkpoint_filename}')
 
 
 # 9️⃣ 定義：繪製單層 CI
