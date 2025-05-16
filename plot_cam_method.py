@@ -70,7 +70,7 @@ def generate_cam_visualizations(model: torch.nn.Module,
 
     # 獲取需要生成 CAM 的目標層
     target_layers = get_cam_target_layers(model)
-    print(target_layers)
+    # print(target_layers)
 
     # 對每一層生成 CAM (Class Activation Map)
     cams = get_each_layers_cam(
@@ -297,7 +297,7 @@ def plot_RM_CI_with_cam_mask(RM_CI, reduced_cam, is_gray = False, save_path=None
     else:
         RM_CI_copy[mask] = 0
 
-    fig = plot_map(RM_CI_copy, path=save_path + "temp")
+    fig = plot_map(RM_CI_copy, path=save_path + "temp", cmap='gray' if is_gray else None)
 
     return fig
 

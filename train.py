@@ -51,14 +51,11 @@ def train(train_dataloader: DataLoader, valid_dataloader: DataLoader, model: nn.
             X, y = next(iter(train_dataloader))
             for batch, (X, y) in progress:
                 X = X.to(device); y= y.to(device)
-                print(f"X.shape: {X.shape}")
                 # 使用影像愈處理
                 if use_preprocessed_image:
                     X = preprocess_retinal_tensor_batch(X, final_size=config['input_shape'])
 
-                print(f"X.shape 2: {X.shape}")
                 pred = model(X)
-                print(f"pred.shape: {pred.shape}, y.shape: {y.shape}")
                 # 判斷是否使用 metric-based loss
                 if use_metric_based_loss:
                     loss = training_loss_fn(pred, y, model, rgb_layers, gray_layers, X)

@@ -104,7 +104,8 @@ def plot_CI(
     CI: torch.Tensor,
     channel: Tuple[int, int],
     path: str,
-    layer_name: str
+    layer_name: str,
+    is_gray: bool = False
 ) -> "matplotlib.figure.Figure":
     """
     將 Critical Input (CI) reshape 成可視化格式並繪圖。
@@ -114,14 +115,16 @@ def plot_CI(
         channel: 該層的濾波器排列方式 (rows, cols)
         path: 儲存圖片的資料夾
         layer_name: 圖片檔名用的層名稱
+        is_gray: 是否使用灰階 colormap
 
     回傳:
         fig: matplotlib 繪製完成的圖像對象
     """
-
     reshape_CI = CI.reshape(channel[0], channel[1], *CI.shape[2:]).detach().numpy()
-    fig = plot_map(reshape_CI, path=path + f'/CIs_{layer_name}')
+    cmap = 'gray' if is_gray else None
+    fig = plot_map(reshape_CI, path=path + f'/CIs_{layer_name}', cmap=cmap)
     return fig
+
 
 # 🔟 定義：繪製整個分支的 CI（含熱圖與合併圖）
 def plot_CI_branch(
@@ -130,7 +133,8 @@ def plot_CI_branch(
     layer_count: int,
     channels: List[Tuple[int, int]],
     branch_name: str,
-    path: str
+    path: str,
+    is_gray: bool = False
 ) -> None:
     """
     繪製整個分支的 CI 圖與對應的 CI 激活值熱圖，並合併展示。
@@ -142,6 +146,7 @@ def plot_CI_branch(
         channels: 每層濾波器排列設定 [(rows, cols), ...]
         branch_name: 分支名稱（如 RGB_convs）
         path: 輸出圖片的儲存資料夾
+        is_gray: 是否使用灰階色彩
     """
 
     CI_figs = {}
@@ -152,7 +157,7 @@ def plot_CI_branch(
         print(f"plot CI {layer_name}, CIs: {CI.shape}, channel: {channel}")
 
         # 畫 CI 圖
-        CI_fig = plot_CI(CI, channel, path, layer_name)
+        CI_fig = plot_CI(CI, channel, path, layer_name, is_gray=is_gray)
         CI_figs[layer_name] = CI_fig
 
         # 畫熱圖
@@ -166,8 +171,8 @@ def plot_CI_branch(
 layer_count = len(arch["args"]["Conv2d_kernel"])
 print(f"layer count {layer_count}")
 if mode in ['rgb', 'both']:
-    plot_CI_branch(CIs, CI_values, layer_count, channels[0], "RGB_convs", CIs_save_path)
+    plot_CI_branch(CIs, CI_values, layer_count, channels[0], "RGB_convs", CIs_save_path, is_gray=False)
 
 if mode in ['gray', 'both']:
-    plot_CI_branch(CIs, CI_values, layer_count, channels[1], "Gray_convs", CIs_save_path)
+    plot_CI_branch(CIs, CI_values, layer_count, channels[1], "Gray_convs", CIs_save_path, is_gray=True)
 print('CI saved.')

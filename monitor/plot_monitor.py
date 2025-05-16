@@ -98,7 +98,7 @@ def plot_all_layers_graph(model, rgb_layers, gray_layers, images, save_dir='./ou
             index = int(key.split('_')[-1])
             plot_shape = channels[1][index]
 
-            plot_layer_graph(model, rgb_layers, key, images, is_gray=True, plot_shape=plot_shape, save_dir=save_dir,
+            plot_layer_graph(model, gray_layers, key, images, is_gray=True, plot_shape=plot_shape, save_dir=save_dir,
                              space_count=space_count)
 
 
