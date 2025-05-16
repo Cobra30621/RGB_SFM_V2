@@ -104,9 +104,9 @@ def train(train_dataloader: DataLoader, valid_dataloader: DataLoader, model: nn.
                     if count >= patience:
                         break
 
-            # if valid_acc > best_valid_acc:
+            if valid_acc > best_valid_acc:
             # if valid_loss < best_valid_loss:
-            if train_acc > best_train_acc:
+            # if train_acc > best_train_acc:
                 count = 0
                 best_valid_loss = valid_loss
                 best_valid_acc = valid_acc

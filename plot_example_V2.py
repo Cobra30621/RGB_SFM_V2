@@ -159,8 +159,11 @@ def process_image(image, label, test_id):
     RM_CI_figs = {}
 
     fig_origin = plt.figure(figsize=(5, 5), facecolor="white")
+    # # **關鍵：把 axes 填滿整個 figure**
+    # fig_origin.subplots_adjust(left=0, right=1, top=1, bottom=0)
     plt.imshow(image.permute(1, 2, 0).detach().numpy())
     plt.axis('off')
+
     plt.savefig(save_path + f'origin_{test_id}.png', bbox_inches='tight', pad_inches=0)
     RM_CI_figs['Origin'] = fig_origin
 
@@ -182,7 +185,7 @@ def process_image(image, label, test_id):
         plt.imshow(gray_image.squeeze().detach().numpy(), cmap='gray')
         plt.axis('off')
         plt.savefig(save_path + f'gray_{test_id}.png', bbox_inches='tight', pad_inches=0)
-        RM_CI_figs['Gray'] = fig_gray
+        # RM_CI_figs['Gray'] = fig_gray
 
     # 切割原圖，並顯示其分區反應
     segments = split(image.unsqueeze(0), kernel_size=arch['args']['Conv2d_kernel'][0], stride=(arch['args']['strides'][0], arch['args']['strides'][0]))[0]

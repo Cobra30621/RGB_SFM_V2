@@ -115,34 +115,46 @@ def plot_map(rm, path=None, padding=1, pad_value=0.0, return_type="image", plot_
     return fig
 
 
-def plot_combine_images(figs, save_path=None, spacing=0.05, fixed_width=5, fixed_height=5, show=False, title="Combined Images"):
+def plot_combine_images(figs, save_path=None, spacing=0.05,
+                        fixed_width=5, fixed_height=5,
+                        show=False, title="Combined Images"):
     num_images = len(figs)
+    # 計算整張圖的大小：每張圖 fixed_width，高度固定，寬度加上間距
     fig_width = num_images * fixed_width + (num_images - 1) * spacing
-    fig_height = fixed_height + 2
+    fig_height = fixed_height
 
-    # 創建畫布，啟用 constrained_layout
+    # 先關閉 constrained_layout，改用 tight_layout + subplots_adjust
     fig, axes = plt.subplots(
         1, num_images,
         figsize=(fig_width, fig_height),
-        gridspec_kw={'width_ratios': [1] * num_images, 'wspace': spacing / fixed_width},
-        constrained_layout=True
+        gridspec_kw={'width_ratios': [1] * num_images}
     )
 
-    # 確保 axes 是列表
     if num_images == 1:
         axes = [axes]
 
-    for i, ((key, fig_source), ax) in enumerate(zip(figs.items(), axes)):
+    for ax, (key, fig_source) in zip(axes, figs.items()):
         ax.imshow(fig_source.canvas.buffer_rgba())
         ax.axis('off')
 
-        ax.set_title(key, fontsize=20, pad=10)
+    # 調整左右上下邊界為 0，並設定圖間距
+    fig.subplots_adjust(
+        left=0,      # 左邊貼齊
+        right=1,     # 右邊貼齊
+        top=1,       # 上邊貼齊
+        bottom=0,    # 下邊貼齊
+        wspace=spacing / fixed_width,  # 圖之間水平間距
+        hspace=0     # 無垂直間距
+    )
 
-    # 新增整張大圖片的標題
-    fig.suptitle(title, fontsize=24, y=0.96)
+    # （若你比較喜歡 tight_layout 的方式，也可以把上面兩行換成下面這行）
+    # plt.tight_layout(pad=0, w_pad=spacing, h_pad=0)
+
+    # 如果要加大標題或其它設定，可在這裡放：
+    # fig.suptitle(title, fontsize=24, y=1.02)
 
     if save_path:
-        plt.savefig(save_path, dpi=300)
+        plt.savefig(save_path, dpi=300, bbox_inches='tight', pad_inches=0)
         if not show:
             plt.close(fig)
         else:
