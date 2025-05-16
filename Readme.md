@@ -1,5 +1,6 @@
 # A New CNN-Based Interpretable Deep Learning Model
-Implementation of paper - [https://etd.lib.nycu.edu.tw/cgi-bin/gs32/ncugsweb.cgi/ccd=koGVez/record?r1=1&h1=0](https://etd.lib.nycu.edu.tw/cgi-bin/gs32/ncugsweb.cgi?o=dncucdr&s=id=%22GC111522094%22.&searchmode=basic)
+[ [Implementation of paper](https://etd.lib.nycu.edu.tw/cgi-bin/gs32/ncugsweb.cgi?o=dncucdr&s=id=%22GC111522094%22.&searchmode=basic) ]\
+[ [Introduction PPT](https://docs.google.com/presentation/d/1RVQyYK1Z_ld_ynAwWAJSIH9tQb7rh1GJ/edit?usp=drive_link&ouid=115867738728025033314&rtpof=true&sd=true) ]
 
 ## 簡介
 本研究提出了基於卷積神經網路的新型可解釋性深度學習模型，
@@ -22,6 +23,11 @@ Implementation of paper - [https://etd.lib.nycu.edu.tw/cgi-bin/gs32/ncugsweb.cgi
 各個區塊架構：\
 <img src="https://github.com/user-attachments/assets/6e3198eb-b0eb-43ec-b479-a46fc0cecdb8" alt="Editor" width="600">
 
+# 可解釋性原理
+<img src="https://github.com/user-attachments/assets/a2300822-8adf-45db-92aa-45957f2d44b5" alt="Editor" width="600">
+<img src="https://github.com/user-attachments/assets/c0fc6de0-89f3-4c9d-bbae-51b0c5d113c4" alt="Editor" width="600">
+<img src="https://github.com/user-attachments/assets/9330de2e-35d3-4fe1-a63c-302f7f3a780b" alt="Editor" width="600">
+<img src="https://github.com/user-attachments/assets/b4f46300-ff98-4bae-8b1a-6be2eb2fad35" alt="Editor" width="600">
 
 # 可解釋性成果
 <img src="https://github.com/user-attachments/assets/49552508-29ea-4584-98ac-0d357f2d0d7f" alt="Editor" width="600">
