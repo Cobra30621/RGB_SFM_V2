@@ -144,6 +144,7 @@ class RGB_SFMCNN_V2(nn.Module):
                  fc_input,
                  device,
                  activate_params,
+                 color30: str = "old",
                  mode='both') -> None:
         super().__init__()
 
@@ -168,6 +169,7 @@ class RGB_SFMCNN_V2(nn.Module):
                 initial='uniform',
                 SFM_method=SFM_methods[0][0],
                 SFM_filters=SFM_filters[0],
+                color30=color30,
                 device=device,
                 activate_param=activate_params[0][0]
             )
@@ -275,6 +277,7 @@ class RGB_SFMCNN_V2(nn.Module):
                        initial: str = "kaiming",
                        rbfs=['gauss', 'cReLU_percent'],
                        activate_param=[0, 0],
+                       color30: str = "old",
                        SFM_method: str = "alpha_mean",
                        SFM_filters: tuple = (1, 1),
                        device: str = "cuda"):
@@ -284,9 +287,9 @@ class RGB_SFMCNN_V2(nn.Module):
         # rgb 卷基層
         out_channel = out_channels[0] * out_channels[1]
         rgb_conv_layer = RGB_Conv2d(in_channel, out_channel, kernel_size=kernel_size, stride=stride, padding=padding,
-                             initial=initial, device=device)
+                             initial=initial, device=device, color30=color30)
         # 建立響應模組
-        rbf_layer = make_rbfs(rbfs, activate_param, device, required_grad=False)
+        rbf_layer = make_rbfs(rbfs, activate_param, device, required_grad=True)
         # 建立空間合併模組
         sfm_layer = SFM(filter=SFM_filters, device=device, method=SFM_method)
 
@@ -386,15 +389,44 @@ class RGB_Conv2d(nn.Module):
                  stride: int = 1,
                  padding: int = 0,
                  initial: str = "kaiming",
+                 color30: str = "old",
+                 requires_grad: bool = False,
                  device=None,
                  dtype=None) -> None:
         super().__init__()
 
-        weights = [[255, 255, 255], [219, 178, 187], [210, 144, 98], [230, 79, 56], [207, 62, 108], [130, 44, 28],
-                   [91, 31, 58], [209, 215, 63], [194, 202, 119], [224, 148, 36], [105, 147, 29], [131, 104, 50],
-                   [115, 233, 72], [189, 211, 189], [109, 215, 133], [72, 131, 77], [69, 81, 65], [77, 212, 193],
-                   [101, 159, 190], [120, 142, 215], [121, 102, 215], [111, 42, 240], [75, 42, 185], [57, 41, 119],
-                   [42, 46, 71], [216, 129, 199], [214, 67, 205], [147, 107, 128], [136, 48, 133], [0, 0, 0]]
+
+        if color30 == "old":
+            weights = [[185, 31, 87],
+                       [208, 47, 72],
+                       [221, 68, 59],
+                       [233, 91, 35],
+                       [230, 120, 0],
+                       [244, 157, 0],
+                       [241, 181, 0],
+                       [238, 201, 0],
+                       [210, 193, 0],
+                       [168, 187, 0],
+                       [88, 169, 29],
+                       [0, 161, 90],
+                       [0, 146, 110],
+                       [0, 133, 127],
+                       [0, 116, 136],
+                       [0, 112, 155],
+                       [0, 96, 156],
+                       [0, 91, 165],
+                       [26, 84, 165],
+                       [83, 74, 160],
+                       [112, 63, 150], [129, 55, 138],
+                       [143, 46, 124], [173, 46, 108], [255, 0, 0], [0, 255, 0], [0, 0, 255], [128, 128, 128], [0, 0, 0], [255, 255, 255]]
+        else:
+            weights = [[255, 255, 255], [219, 178, 187], [210, 144, 98], [230, 79, 56], [207, 62, 108], [130, 44, 28],
+                       [91, 31, 58], [209, 215, 63], [194, 202, 119], [224, 148, 36], [105, 147, 29], [131, 104, 50],
+                       [115, 233, 72], [189, 211, 189], [109, 215, 133], [72, 131, 77], [69, 81, 65], [77, 212, 193],
+                       [101, 159, 190], [120, 142, 215], [121, 102, 215], [111, 42, 240], [75, 42, 185], [57, 41, 119],
+                       [42, 46, 71], [216, 129, 199], [214, 67, 205], [147, 107, 128], [136, 48, 133], [0, 0, 0]]
+
+
 
         kernel_h, kernel_w = kernel_size
 
@@ -411,7 +443,7 @@ class RGB_Conv2d(nn.Module):
         weight_tensor = weight_tensor.repeat(1, kernel_h, kernel_w, 1)
 
         # 註冊為可訓練參數
-        self.weight = nn.Parameter(weight_tensor, requires_grad=True)
+        self.weight = nn.Parameter(weight_tensor, requires_grad=requires_grad)
 
         self.out_channels = out_channels
         self.kernel_size = kernel_size

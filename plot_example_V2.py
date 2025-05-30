@@ -229,8 +229,11 @@ def process_image(image, label, test_id):
 
     # 如果啟用 CAM，則繪製所有 CAM 方法的對應圖像
     if PLOT_CAM:
-        cam_methods = [GradCAM, HiResCAM, GradCAMPlusPlus, GradCAMElementWise, XGradCAM, AblationCAM,
-                       ScoreCAM, EigenCAM, EigenGradCAM, LayerCAM, KPCA_CAM]
+        # cam_methods = [GradCAM, HiResCAM, GradCAMPlusPlus, GradCAMElementWise, XGradCAM, AblationCAM,
+        #                ScoreCAM, EigenCAM, EigenGradCAM, LayerCAM, KPCA_CAM]
+
+        cam_methods = [GradCAM, HiResCAM, GradCAMPlusPlus, AblationCAM,
+                       ScoreCAM, EigenCAM, LayerCAM]
 
         cam_figs = {}
         RM_CI_figs = {'raw': RM_CI_combine_fig}

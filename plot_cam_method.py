@@ -92,6 +92,7 @@ def generate_cam_visualizations(model: torch.nn.Module,
         # 設定輸出形狀為 RM_CI 的高寬
         RM_CI = RM_CIs[layer_name]
         output_shape = (RM_CI.shape[0], RM_CI.shape[1])
+
         # 將 CAM 縮減到指定大小
         reduced_cam = get_reduced_cam(cam, output_shape)
 
@@ -102,6 +103,12 @@ def generate_cam_visualizations(model: torch.nn.Module,
         is_gray = target_layer["is_gray"]
 
         RM_CI_cams[layer_name] = plot_RM_CI_with_cam_mask(RM_CI, reduced_cam, is_gray = is_gray, save_path = save_path)
+        # else:
+        #     # 繪製並保存使用 CAM 遮罩後的 RM_CI 圖
+        #     target_layer = next(item for item in layers_infos if item["layer_num"] == layer_name)
+        #     is_gray = target_layer["is_gray"]
+        #
+        #     RM_CI_cams[layer_name] = plot_RM_CI_with_cam_mask(RM_CI, reduced_cam, is_gray=is_gray, save_path=save_path)
 
     # 創建保存 Cam 的目錄
     cam_save_pth = os.path.join(save_path, 'cam')
@@ -188,6 +195,7 @@ def get_each_layers_cam(
                 cams[layer_name] = grayscale_cam
         except Exception as e:
             print(f"[CAM WARNING] 跳過層 {layer_name}，因為發生錯誤：{e}")
+            # cams[layer_name] = None
 
     return cams
 

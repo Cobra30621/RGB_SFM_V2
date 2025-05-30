@@ -244,6 +244,7 @@ class RGB_SFMCNN(nn.Module):
                     rbf = 'triangle',
                     device:str = "cuda",
                     activate_param = [0,0]):
+        print(f"rbf {rbf}")
         if rbf == "triangle":
             return nn.Sequential(
                 Gray_Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride = stride, padding = padding, initial = initial,device = device),

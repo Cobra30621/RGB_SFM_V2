@@ -105,15 +105,17 @@ def train(train_dataloader: DataLoader, valid_dataloader: DataLoader, model: nn.
                         break
 
             if valid_acc > best_valid_acc:
-            # if valid_loss < best_valid_loss:
-            # if train_acc > best_train_acc:
-                count = 0
                 best_valid_loss = valid_loss
                 best_valid_acc = valid_acc
-                best_train_acc = train_acc
+            # if valid_loss < best_valid_loss:
+            #     best_valid_acc = valid_acc
+            # if train_acc >= best_train_acc:
+            #     best_train_acc = train_acc
+
                 cur_train_loss = train_loss
                 cur_train_acc = train_acc
 
+                count = 0
 
                 del checkpoint
                 checkpoint = {}
@@ -218,7 +220,7 @@ train_dataloader, test_dataloader = get_dataloader(dataset=config['dataset'], ro
 model = getattr(getattr(models, config['model']['name']), config['model']['name'])(**dict(config['model']['args']))
 model = model.to(config['device'])
 print(model)
-summary(model, input_size = (config['model']['args']['in_channels'], *config['input_shape']))
+# summary(model, input_size = (config['model']['args']['in_channels'], *config['input_shape']))
 
 
 eval_loss_fn = get_loss_function(config['loss_fn'])
@@ -245,15 +247,24 @@ test_acc, test_loss, test_table = eval(test_dataloader, model, eval_loss_fn, dev
 print("Test: \n\tAccuracy: {}, Avg loss: {} \n".format(test_acc, test_loss))
 
 # Record result into Wandb
-wandb.summary['train_accuracy'] = train_acc
-wandb.summary['train_avg_loss'] = train_loss
-wandb.summary['test_accuracy'] = test_acc
-wandb.summary['test_avg_loss'] = test_loss
+wandb.summary['final_train_accuracy'] = train_acc
+wandb.summary['final_train_avg_loss'] = train_loss
+wandb.summary['final_test_accuracy'] = test_acc
+wandb.summary['final_test_avg_loss'] = test_loss
 record_table = wandb.Table(columns=["Image", "Answer", "Predict", "batch_Loss", "batch_Correct"], data = test_table)
 wandb.log({"Test Table": record_table})
 print(f'checkpoint keys: {checkpoint.keys()}')
 
+# 儲存模型到 run 中
 torch.save(checkpoint, f'{config["save_dir"]}/{config["model"]["name"]}_best.pth')
+
+# 儲存模型到 pth 中
+load_model_name= config["load_model_name"]
+load_model_path = f'./pth/{config["dataset"]}_pth'
+if not os.path.exists(load_model_path):
+    os.makedirs(load_model_path)  # 建立資料夾
+torch.save(checkpoint, load_model_path + f'/{load_model_name}.pth')
+
 art = wandb.Artifact(f'{config["model"]["name"]}_{config["dataset"]}', type="model")
 art.add_file(f'{config["save_dir"]}/{config["model"]["name"]}_best.pth')
 art.add_file(f'{config["save_dir"]}/{config["model"]["name"]}.py')

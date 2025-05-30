@@ -33,7 +33,6 @@ class HeartCalcificationDataset(Dataset):
         self.transform = transform
         self.target_transform = target_transform
         self.train = train
-        self.augmentation = augmentation
         self.grid_size = grid_size
         self.color_mode = color_mode
 
@@ -44,7 +43,15 @@ class HeartCalcificationDataset(Dataset):
             threshold=threshold, contrast_factor = contrast_factor, enhance_method=enhance_method,
             use_vessel_mask=use_vessel_mask)
 
-        self.model_ready_data = self.data_processor.get_model_ready_data(use_min_count, augment_positive, augment_multiplier)
+        need_augmentation =  augment_positive
+        if not self.train:
+            need_augmentation = False
+
+        print(f"is train :{train}")
+        print(f"augment_positive :{augment_positive}")
+        print(f"need_augmentation :{need_augmentation}")
+
+        self.model_ready_data = self.data_processor.get_model_ready_data(use_min_count, need_augmentation, augment_multiplier)
 
         print("model data count : ",  len(self.model_ready_data))
         self.data_processor.display_label_counts()
