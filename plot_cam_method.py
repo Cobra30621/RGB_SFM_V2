@@ -2,7 +2,6 @@
 import os
 import warnings
 
-from Code.runs.train.exp.config import layers_infos
 from config import arch
 from plot_graph_method import plot_map, plot_combine_images
 
@@ -99,8 +98,7 @@ def generate_cam_visualizations(model: torch.nn.Module,
         # 繪製並保存縮減後的 CAM
         reduced_cams[layer_name] = plot_reduced_cam(reduced_cam)
         # 繪製並保存使用 CAM 遮罩後的 RM_CI 圖
-        target_layer = next(item for item in layers_infos if item["layer_num"] == layer_name)
-        is_gray = target_layer["is_gray"]
+        is_gray = 'Gray' in layer_name
 
         RM_CI_cams[layer_name] = plot_RM_CI_with_cam_mask(RM_CI, reduced_cam, is_gray = is_gray, save_path = save_path)
         # else:
