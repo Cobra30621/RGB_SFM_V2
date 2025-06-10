@@ -162,27 +162,27 @@ class RGB_SFMCNN_V2(nn.Module):
             RGB_conv2d = self._make_RGBBlock(
                 in_channels,
                 channels[0][0],
-                Conv2d_kernel[0],
-                stride=strides[0],
-                padding=paddings[0],
+                Conv2d_kernel[0][0],
+                stride=strides[0][0],
+                padding=paddings[0][0],
                 rbfs=rbfs[0][0],
                 initial='uniform',
                 SFM_method=SFM_methods[0][0],
-                SFM_filters=SFM_filters[0],
+                SFM_filters=SFM_filters[0][0],
                 color30=color30,
                 device=device,
                 activate_param=activate_params[0][0]
             )
 
             rgb_basicBlocks = []
-            for i in range(1, len(Conv2d_kernel)):
+            for i in range(1, len(Conv2d_kernel[0])):
                 basicBlock = self._make_BasicBlock(
                     channels[0][i - 1],
                     channels[0][i],
-                    Conv2d_kernel[i],
-                    stride=strides[i],
-                    padding=paddings[i],
-                    filter=SFM_filters[i],
+                    Conv2d_kernel[0][i],
+                    stride=strides[0][i],
+                    padding=paddings[0][i],
+                    filter=SFM_filters[0][i],
                     rbfs=rbfs[0][i],
                     SFM_method=SFM_methods[0][i],
                     initial=initial[0][i],
@@ -202,27 +202,27 @@ class RGB_SFMCNN_V2(nn.Module):
             GRAY_conv2d = self._make_GrayBlock(
                 1,
                 channels[1][0],
-                Conv2d_kernel[0],
-                stride=strides[0],
-                padding=paddings[0],
+                Conv2d_kernel[1][0],
+                stride=strides[1][0],
+                padding=paddings[1][0],
                 rbfs=rbfs[1][0],
                 initial=initial[1][0],
                 SFM_method=SFM_methods[1][0],
-                SFM_filters=SFM_filters[0],
+                SFM_filters=SFM_filters[1][0],
                 device=device,
                 activate_param=activate_params[1][0],
                 conv_method=conv_method[1][0]
             )
 
             gray_basicBlocks = []
-            for i in range(1, len(Conv2d_kernel)):
+            for i in range(1, len(Conv2d_kernel[1])):
                 basicBlock = self._make_BasicBlock(
                     channels[1][i - 1],
                     channels[1][i],
-                    Conv2d_kernel[i],
-                    stride=strides[i],
-                    padding=paddings[i],
-                    filter=SFM_filters[i],
+                    Conv2d_kernel[1][i],
+                    stride=strides[1][i],
+                    padding=paddings[1][i],
+                    filter=SFM_filters[1][i],
                     rbfs=rbfs[1][i],
                     SFM_method=SFM_methods[1][i],
                     initial=initial[1][i],

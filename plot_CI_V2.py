@@ -13,7 +13,7 @@ import matplotlib
 
 # 1️⃣ 讀取模型與資料
 checkpoint_filename = config["load_model_name"]
-test_data = True # 測試模型準確度
+test_data = False # 測試模型準確度
 model, train_dataloader, test_dataloader, images, labels = load_model_and_data(checkpoint_filename, test_data=test_data)
 mode = arch['args']['mode'] # 模式
 
@@ -96,8 +96,7 @@ images = check_then_preprocess_images(images)
 
 # 8️⃣ 計算各層的 CI 與對應值
 force_regenerate=False
-CIs, CI_values = load_or_generate_CIs(model, images, force_regenerate=force_regenerate, save_path= f'./detect/{config["dataset"]}/{checkpoint_filename}')
-
+CIs, CI_values = get_CIs(model, images)
 
 # 9️⃣ 定義：繪製單層 CI
 def plot_CI(
@@ -168,11 +167,12 @@ def plot_CI_branch(
     plot_combine_images(CI_figs, path + f'/{branch_name}_combine')
 
 
-layer_count = len(arch["args"]["Conv2d_kernel"])
-print(f"layer count {layer_count}")
+
 if mode in ['rgb', 'both']:
+    layer_count = len(arch["args"]["Conv2d_kernel"][0])
     plot_CI_branch(CIs, CI_values, layer_count, channels[0], "RGB_convs", CIs_save_path, is_gray=False)
 
 if mode in ['gray', 'both']:
+    layer_count = len(arch["args"]["Conv2d_kernel"][1])
     plot_CI_branch(CIs, CI_values, layer_count, channels[1], "Gray_convs", CIs_save_path, is_gray=True)
 print('CI saved.')

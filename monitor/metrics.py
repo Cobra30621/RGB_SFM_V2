@@ -34,29 +34,15 @@ def create_metrics_dict():
     - 包含指標計算方法的字典
     """
     metrics = {
-        '避免高效反應 (ratio_above_0.9 < 20%)': lambda stats: (
+        '避免過度響應(ratio_above_0.9 < 20%)': lambda stats: (
             smooth_threshold(stats['ratio_above_0.9'], '<', 0.2)
         ),
-        '避免低效反應 (ratio_above_0.1 > 1%)': lambda stats: (
+        '避免過低響應(ratio_above_0.1 > 1%)': lambda stats: (
             smooth_threshold(stats['ratio_above_0.1'], '>', 0.01)
         ),
-        '最大值限制 (each channel max > 0.8)': lambda stats: (
-            smooth_threshold(stats['max'], '>', 0.8)
+        '最大值必要性(each channel max > 0.5)': lambda stats: (
+            smooth_threshold(stats['max'], '>', 0.5)
         ),
-
-
-        # 1. 避免過於極端的反應
-        # ## 避免高效反應：濾波器通道輸出大於 0.9 的數據比例需低於 50%。
-        # '避免高效反應 (ratio_above_0.9 < 50%)': lambda stats: len(
-        #     [ratio for ratio in stats["ratio_above_0.9"] if ratio < 0.5]) / len(
-        #     stats["ratio_above_0.9"]),
-        # ## 避免低效反應 ：濾波器通道輸出大於 0.1 的數據比例需高於 1%。
-        # '避免低效反應 (ratio_above_0.1 > 1%)': lambda stats: len([ratio for ratio in stats["ratio_above_0.1"] if ratio > 0.01]) / len(
-        #     stats["ratio_above_0.1"]),
-        # # 2.針對特定特徵的有效反應
-        # ## 最大值限制 ：每個濾波器通道的輸出最大值需大於 0.8
-        # '最大值限制 (each channel max > 0.8)': lambda stats: len([max_val for max_val in stats["max"] if max_val > 0.8]) / len(
-        #     stats["max"]),
     }
 
     return metrics

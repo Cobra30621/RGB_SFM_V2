@@ -65,53 +65,80 @@ def get_ci(input, layer, kernel_size=(5, 5), stride=(5, 5), sfm_filter=(1, 1)):
 
     return CI, indices.unsqueeze(1), CI_values
 
+# def get_CIs(model, images):
+#     # 使否使用輪廓層
+#     mode = arch['args']['mode']  # 模式
+#     use_gray = mode in ['gray', 'both']
+#
+#     rgb_layers, gray_layers = get_basic_target_layers(model, use_gray)
+#     CIs, CI_values = {}, {}
+#
+#     mode_layers = [("RGB_convs", rgb_layers)]
+#     if use_gray:
+#         mode_layers.append(("Gray_convs", gray_layers))
+#
+#     for mode, layers in mode_layers:
+#         for idx, (layer_name, layer) in enumerate(layers.items()):
+#             full_layer_name = f"{mode}_{idx}"
+#             print(full_layer_name)
+#
+#             kernel_size = get_accumulated_kernel(arch['args']['Conv2d_kernel'], idx)
+#             stride_acc = get_accumulated_stride(arch['args']['strides'], idx)
+#             stride = (stride_acc, stride_acc)
+#
+#             sfm_filter = torch.prod(torch.tensor(arch['args']['SFM_filters'][:idx]), dim=0) if idx > 0 else (1, 1)
+#             input_img = images if "RGB" in mode else model.gray_transform(images)
+#
+#             CIs[full_layer_name], CI_idx, CI_values[full_layer_name] = get_ci(
+#                 input_img, layer, kernel_size, stride, sfm_filter
+#             )
+#
+#     return CIs, CI_values
+
+
+
+
 def get_CIs(model, images):
-    # 使否使用輪廓層
+    """
+    從模型中提取每一層的 CIs (Critical Inputs)
+    """
     mode = arch['args']['mode']  # 模式
     use_gray = mode in ['gray', 'both']
+    Conv2d_kernel = arch['args']['Conv2d_kernel']
+    strides = arch['args']['strides']
+    SFM_filters = arch['args']['SFM_filters']
 
     rgb_layers, gray_layers = get_basic_target_layers(model, use_gray)
     CIs, CI_values = {}, {}
 
-    mode_layers = [("RGB_convs", rgb_layers)]
-    if use_gray:
-        mode_layers.append(("Gray_convs", gray_layers))
-
-    for mode, layers in mode_layers:
+    # 封裝處理邏輯
+    def process_layers(mode_name, layers, input_img, Conv2d_kernel, strides, SFM_filters):
+        nonlocal CIs, CI_values
         for idx, (layer_name, layer) in enumerate(layers.items()):
-            full_layer_name = f"{mode}_{idx}"
+            full_layer_name = f"{mode_name}_{idx}"
             print(full_layer_name)
 
-            kernel_size = get_accumulated_kernel(arch['args']['Conv2d_kernel'], idx)
-            stride_acc = get_accumulated_stride(arch['args']['strides'], idx)
+            kernel_size = get_accumulated_kernel(Conv2d_kernel, idx)
+            stride_acc = get_accumulated_stride(strides, idx)
             stride = (stride_acc, stride_acc)
 
-            sfm_filter = torch.prod(torch.tensor(arch['args']['SFM_filters'][:idx]), dim=0) if idx > 0 else (1, 1)
-            input_img = images if "RGB" in mode else model.gray_transform(images)
+            sfm_filter = torch.prod(torch.tensor(SFM_filters[:idx]), dim=0) if idx > 0 else (1, 1)
 
             CIs[full_layer_name], CI_idx, CI_values[full_layer_name] = get_ci(
                 input_img, layer, kernel_size, stride, sfm_filter
             )
 
+
+    # 處理 RGB_convs
+    process_layers("RGB_convs", rgb_layers, images,
+                   Conv2d_kernel[0], strides[0], SFM_filters[0])
+
+    # 處理 Gray_convs (如果需要)
+    if use_gray:
+        gray_images = model.gray_transform(images)
+        process_layers("Gray_convs", gray_layers, gray_images,
+                       Conv2d_kernel[1], strides[1], SFM_filters[1])
+
     return CIs, CI_values
 
 
-
-
-
-def load_or_generate_CIs(model, images, force_regenerate=False, save_path = "cache"):
-    cache_dir = f'{save_path}/cache'
-    os.makedirs(cache_dir, exist_ok=True)
-
-    cache_path = f"{cache_dir}/cis.pt"
-
-
-
-    if os.path.exists(cache_path) and not force_regenerate:
-        print("Loading cached CIs...")
-        return torch.load(cache_path)
-    else:
-        print("Generating CIs...")
-        CIs, CI_values = get_CIs(model, images)
-        torch.save((CIs, CI_values), cache_path)
-        return CIs, CI_values

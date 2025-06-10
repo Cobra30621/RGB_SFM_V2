@@ -109,8 +109,8 @@ def train(train_dataloader: DataLoader, valid_dataloader: DataLoader, model: nn.
                 best_valid_acc = valid_acc
             # if valid_loss < best_valid_loss:
             #     best_valid_acc = valid_acc
-            # if train_acc >= best_train_acc:
-            #     best_train_acc = train_acc
+            if train_acc >= best_train_acc:
+                best_train_acc = train_acc
 
                 cur_train_loss = train_loss
                 cur_train_acc = train_acc
@@ -133,14 +133,14 @@ def train(train_dataloader: DataLoader, valid_dataloader: DataLoader, model: nn.
                 torch.save(checkpoint, f'{config["save_dir"]}/epochs{e}.pth')
 
                 
-    print(model)
+    # print(model)
     # Monitor
     # Prepare monitor
-    images, labels = torch.tensor([]).to(device), torch.tensor([]).to(device)
-    for batch in train_dataloader:
-        imgs, lbls = batch
-        images = torch.cat((images, imgs.to(device)))
-        labels = torch.cat((labels, lbls.to(device)))
+    # images, labels = torch.tensor([]).to(device), torch.tensor([]).to(device)
+    # for batch in train_dataloader:
+    #     imgs, lbls = batch
+    #     images = torch.cat((images, imgs.to(device)))
+    #     labels = torch.cat((labels, lbls.to(device)))
 
     # 需要計算 RM 分布指標
     # need_calculate_status = arch["need_calculate_status"]
@@ -240,11 +240,19 @@ train_loss, train_acc, valid_loss, valid_acc, checkpoint = train(train_dataloade
 print("Train: \n\tAccuracy: {}, Avg loss: {} \n".format(train_acc, train_loss))
 print("Valid: \n\tAccuracy: {}, Avg loss: {} \n".format(valid_acc, valid_loss))
 
+# print(f"check point {checkpoint}")
+
+test_acc, test_loss, test_table = eval(test_dataloader, model, eval_loss_fn, device = config['device'], need_table=False, use_preprocessed_image=config['use_preprocessed_image'])
+print("Test 1: \n\tAccuracy: {}, Avg loss: {} \n".format(test_acc, test_loss))
+
 # Test model
-model.load_state_dict(checkpoint['model_weights'])
+if 'model_weights' not in checkpoint:
+    print("Warning: No model_weights found in checkpoint!")
+else:
+    model.load_state_dict(checkpoint['model_weights'])
 model.to(device)
 test_acc, test_loss, test_table = eval(test_dataloader, model, eval_loss_fn, device = config['device'], need_table=False, use_preprocessed_image=config['use_preprocessed_image'])
-print("Test: \n\tAccuracy: {}, Avg loss: {} \n".format(test_acc, test_loss))
+print("Test 2: \n\tAccuracy: {}, Avg loss: {} \n".format(test_acc, test_loss))
 
 # Record result into Wandb
 wandb.summary['final_train_accuracy'] = train_acc

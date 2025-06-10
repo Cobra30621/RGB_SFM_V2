@@ -14,7 +14,8 @@ rcParams['axes.unicode_minus'] = False  # 解決負號顯示問題
 
 def plot_heatmap(data, output_path, title=None):
     """
-    Plot a heatmap from a DataFrame and save as an image.
+    Plot a heatmap from a DataFrame and save as an image,
+    with the column labels displayed on top and laid out horizontally.
 
     Args:
         data (pd.DataFrame): The DataFrame to visualize.
@@ -22,20 +23,31 @@ def plot_heatmap(data, output_path, title=None):
         title (str, optional): Title of the heatmap.
     """
     plt.figure(figsize=(10, 6))
-    sns.heatmap(
+    ax = sns.heatmap(
         data,
-        annot=True,  # 顯示數值
-        fmt=".2f",   # 數值格式
-        cmap="YlGnBu",  # 色彩樣式
+        annot=True,            # 顯示數值
+        fmt=".2f",             # 數值格式
+        annot_kws={'fontsize': 14},  # 放大數值字體
+        cmap="YlGnBu",         # 色彩樣式
         cbar_kws={'label': '數值範圍'},
-        xticklabels=True  # 將 x 軸標籤設置為橫向顯示
+        xticklabels=True,
+        yticklabels=True
     )
 
-    # 添加標題（如果有）
-    if title:
-        plt.title(title, fontsize=16)
+    # 將 x 軸刻度移到上方
+    ax.xaxis.tick_top()
+    ax.xaxis.set_label_position('top')
 
-    # 保存圖片
+    # 讓 x 軸標籤水平顯示
+    ax.set_xticklabels(ax.get_xticklabels(), rotation=0, ha='center')
+
+    # y 軸標籤也水平顯示
+    ax.set_yticklabels(ax.get_yticklabels(), rotation=0, va='center')
+
+    # # 添加標題（如果有），並適當調整與圖的距離
+    # if title:
+    #     plt.title(title, fontsize=16, pad=20)
+
     plt.tight_layout()
     plt.savefig(output_path, dpi=300)
     plt.close()

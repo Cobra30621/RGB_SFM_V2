@@ -28,7 +28,7 @@ matplotlib.use('Agg')
 
 # 載入模型與資料集
 checkpoint_filename = config["load_model_name"]
-test_data = False # 測試模型準確度
+test_data = True # 測試模型準確度
 model, train_dataloader, test_dataloader, images, labels = load_model_and_data(checkpoint_filename, test_data=test_data)
 
 mode = arch['args']['mode'] # 模式
@@ -65,7 +65,7 @@ preprocess_images = check_then_preprocess_images(images)
 
 # 取得所有層的 Critical Inputs
 force_regenerate=False
-CIs, CI_values = load_or_generate_CIs(model, preprocess_images, force_regenerate=force_regenerate, save_path= f'./detect/{config["dataset"]}/{checkpoint_filename}')
+CIs, CI_values = get_CIs(model, images)
 
 # 設定需處理的資料筆數
 example_num = 450
@@ -188,7 +188,8 @@ def process_image(image, label, test_id):
         # RM_CI_figs['Gray'] = fig_gray
 
     # 切割原圖，並顯示其分區反應
-    segments = split(image.unsqueeze(0), kernel_size=arch['args']['Conv2d_kernel'][0], stride=(arch['args']['strides'][0], arch['args']['strides'][0]))[0]
+    segments = split(image.unsqueeze(0), kernel_size=arch['args']['Conv2d_kernel'][0][0],
+                     stride=(arch['args']['strides'][0][0], arch['args']['strides'][0][0]))[0]
     origin_split_img = plot_map(segments.permute(1, 2, 3, 4, 0), path=save_path + f'origin_split_{test_id}.png')
     RM_figs['Origin_Split'] = origin_split_img
 
