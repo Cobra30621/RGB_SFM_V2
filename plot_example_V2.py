@@ -65,7 +65,7 @@ preprocess_images = check_then_preprocess_images(images)
 
 # 取得所有層的 Critical Inputs
 force_regenerate=False
-CIs, CI_values = get_CIs(model, images)
+CIs, CI_values = get_CIs(model, preprocess_images)
 
 # 設定需處理的資料筆數
 example_num = 450

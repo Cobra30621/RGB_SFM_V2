@@ -38,11 +38,9 @@ def plot_heatmap(data, output_path, title=None):
     ax.xaxis.tick_top()
     ax.xaxis.set_label_position('top')
 
-    # 讓 x 軸標籤水平顯示
-    ax.set_xticklabels(ax.get_xticklabels(), rotation=0, ha='center')
-
-    # y 軸標籤也水平顯示
-    ax.set_yticklabels(ax.get_yticklabels(), rotation=0, va='center')
+    # 放大 x/y 軸 tick 標籤字體並水平顯示
+    ax.tick_params(axis='x', labelsize=14, rotation=0, labelrotation=0)
+    ax.tick_params(axis='y', labelsize=14, rotation=0)
 
     # # 添加標題（如果有），並適當調整與圖的距離
     # if title:

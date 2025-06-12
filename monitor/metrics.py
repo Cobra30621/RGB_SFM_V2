@@ -34,13 +34,13 @@ def create_metrics_dict():
     - 包含指標計算方法的字典
     """
     metrics = {
-        '避免過度響應(ratio_above_0.9 < 20%)': lambda stats: (
+        '避免過度響應': lambda stats: (
             smooth_threshold(stats['ratio_above_0.9'], '<', 0.2)
         ),
-        '避免過低響應(ratio_above_0.1 > 1%)': lambda stats: (
+        '避免過低響應': lambda stats: (
             smooth_threshold(stats['ratio_above_0.1'], '>', 0.01)
         ),
-        '最大值必要性(each channel max > 0.5)': lambda stats: (
+        '最大值必要性': lambda stats: (
             smooth_threshold(stats['max'], '>', 0.5)
         ),
     }
