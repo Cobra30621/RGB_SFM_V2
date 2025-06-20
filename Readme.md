@@ -37,27 +37,70 @@
 ```
   1. conda create --name SFM python=3.9
   2. conda activate SFM
-  3. Install pytorch==2.0.0 && torchvision==0.15.2 
-    - conda install pytorch torchvision torchaudio pytorch-cuda=11.8 -c pytorch -c nvidia
-  4. conda install requirements.txt
+  3. Install pytorch==2.0.0 && torchvision==0.15.2 (要下載 GPU 用的版本)
+    - pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+  4. pip install -r requirements.txt
 ```
 
-## Train
+### 資料集
+
+- 請去實驗室 NAS 上下載，並創建 data 資料夾，將其放入  data 中
+
+
+## 執行專案
+
+### 訓練模型
+
+- 請先將要訓練的設定，寫入 config.py 中
+- 執行
 ```
-  python train.py
+# 一般訓練
+python train.py
+# kfold 訓練
+python train_kfold.py
 ```
 
-## Test
+### 畫圖
 ```
-  python test.py
+# 畫可解釋性圖
+python plot_example_V2.py
+# 畫 CI 圖
+python plot_CI_V2.py
+#  畫指標表格
+python plot_stats_metrics.py
+
+# 畫以上所有東西
+python plot_every_graph.py 
 ```
 
-## Citation
+### GUI 介面
 ```
-  @mastersthesis{TU2024InterpretableModel,
-    title={以卷積神經網路為基礎之新型可解釋性深度學習模型},
-    author={TU, CHIEN-MING and Su, Mu-Chun},
-    school={National Central University},
-    year={2024}
-  }
+python display_gui.py 
 ```
+
+
+## 專案架構說明
+
+
+
+
+
+
+
+[//]: # (## Citation)
+
+[//]: # (```)
+
+[//]: # (  @mastersthesis{TU2024InterpretableModel,)
+
+[//]: # (    title={以卷積神經網路為基礎之新型可解釋性深度學習模型},)
+
+[//]: # (    author={TU, CHIEN-MING and Su, Mu-Chun},)
+
+[//]: # (    school={National Central University},)
+
+[//]: # (    year={2024})
+
+[//]: # (  })
+
+[//]: # (```)

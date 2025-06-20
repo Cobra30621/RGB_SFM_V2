@@ -268,7 +268,7 @@ torch.save(checkpoint, f'{config["save_dir"]}/{config["model"]["name"]}_best.pth
 
 # 儲存模型到 pth 中
 load_model_name= config["load_model_name"]
-load_model_path = f'./pth/{config["dataset"]}_pth'
+load_model_path = f'./pth/{config["dataset"]}'
 if not os.path.exists(load_model_path):
     os.makedirs(load_model_path)  # 建立資料夾
 torch.save(checkpoint, load_model_path + f'/{load_model_name}.pth')

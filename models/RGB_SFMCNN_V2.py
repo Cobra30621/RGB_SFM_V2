@@ -915,8 +915,6 @@ def get_rbf(rbf, activate_param, device, required_grad = True):
         return cReLU()
     elif rbf == 'cReLU_percent':
         return cReLU_percent(percent=activate_param[1])
-    elif rbf == 'bia_gauss':
-        return bia_gauss(std=activate_param[0], device=device)
     elif rbf == 'regularization':
         return MeanVarianceRegularization()
     else:
@@ -1089,17 +1087,3 @@ class Sigmoid(nn.Module):
         return "Sigmoid activation"
 
 
-class bia_gauss(nn.Module):
-    def __init__(self, std: float = 1.0, requires_grad: bool = True, device: str = "cuda"):
-        super().__init__()
-        self.std = torch.tensor(std).to(device)
-        if requires_grad:
-            self.std = nn.Parameter(self.std)
-
-    def forward(self, x):
-        std = self.std.to(x.device)
-        return 1 - torch.exp(-((x) ** 2) / (2 * std ** 2))
-
-
-    def extra_repr(self) -> str:
-        return f"std={self.std.item()}"

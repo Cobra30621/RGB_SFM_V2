@@ -35,7 +35,7 @@ def load_model_and_data(checkpoint_filename, test_data = False):
 
         # Load Model
         models = {'SFMCNN': SFMCNN, 'RGB_SFMCNN': RGB_SFMCNN, 'RGB_SFMCNN_V2': RGB_SFMCNN_V2}
-        checkpoint = torch.load(f'./pth/{config["dataset"]}_pth/{checkpoint_filename}.pth', weights_only=True)
+        checkpoint = torch.load(f'./pth/{config["dataset"]}/{checkpoint_filename}.pth', weights_only=True)
         model = models[arch['name']](**dict(config['model']['args']))
         model.load_state_dict(checkpoint['model_weights'])
         model.cpu()
