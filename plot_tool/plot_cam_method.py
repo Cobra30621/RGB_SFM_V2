@@ -3,7 +3,7 @@ import os
 import warnings
 
 from config import arch
-from plot_graph_method import plot_map, plot_combine_images
+from plot_tool.plot_graph_method import plot_map, plot_combine_images
 
 warnings.filterwarnings('ignore')
 from torchvision import transforms
