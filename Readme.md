@@ -1,8 +1,12 @@
 
 # 🧠 A New CNN-Based Interpretable Deep Learning Model
 
-[📄 Paper (Master Thesis)](https://etd.lib.nycu.edu.tw/cgi-bin/gs32/ncugsweb.cgi?o=dncucdr&s=id=%22GC111522094%22.&searchmode=basic)  
-[📊 Introduction Slides (Google Drive)](https://docs.google.com/presentation/d/1RVQyYK1Z_ld_ynAwWAJSIH9tQb7rh1GJ/edit?usp=drive_link&ouid=115867738728025033314&rtpof=true&sd=true)
+
+
+[//]: # ([📄 Paper &#40;Master Thesis&#41;]&#40;https://etd.lib.nycu.edu.tw/cgi-bin/gs32/ncugsweb.cgi?o=dncucdr&s=id=%22GC111522094%22.&searchmode=basic&#41;  )
+
+[//]: # ([📊 Introduction Slides &#40;Google Drive&#41;]&#40;https://docs.google.com/presentation/d/1RVQyYK1Z_ld_ynAwWAJSIH9tQb7rh1GJ/edit?usp=drive_link&ouid=115867738728025033314&rtpof=true&sd=true&#41;)
+
 
 ---
 
@@ -14,48 +18,16 @@
 - **輪廓感知模組**：將影像轉為灰階後，使用高斯卷積與特徵增強提取輪廓資訊。
 - **特徵傳遞模組**：合併來自色彩與輪廓模組的資訊，透過多層高斯卷積傳遞至最終分類層。
 
-### 🪄 可解釋性方法
-
-本模型可產生：
-1. 每層 filter 的對應圖形。
-2. 對每張輸入圖片，選出每層最有反應的特徵響應圖。
-3. 合成不同層的視覺化結果，使用者可觀察模型的決策依據。
-
----
-
-## 🧱 模型架構
-
-### 整體結構圖
-<img src="https://github.com/user-attachments/assets/092c883e-4de1-4b1b-af0c-a31526849c7f" width="800">
-
-### 子模組結構
-<img src="https://github.com/user-attachments/assets/6e3198eb-b0eb-43ec-b479-a46fc0cecdb8" width="600">
-
----
-
-## 👁 可解釋性原理示意
-
-<img src="https://github.com/user-attachments/assets/a2300822-8adf-45db-92aa-45957f2d44b5" width="600">
-<img src="https://github.com/user-attachments/assets/c0fc6de0-89f3-4c9d-bbae-51b0c5d113c4" width="600">
-<img src="https://github.com/user-attachments/assets/9330de2e-35d3-4fe1-a63c-302f7f3a780b" width="600">
-<img src="https://github.com/user-attachments/assets/b4f46300-ff98-4bae-8b1a-6be2eb2fad35" width="600">
-
----
-
-## 🖼 可解釋性成果範例
-
-<img src="https://github.com/user-attachments/assets/49552508-29ea-4584-98ac-0d357f2d0d7f" width="600">
-
 ---
 
 ## ⚙️ 安裝說明
 
 ```bash
 # 1. 建立 Conda 環境
-conda create --name SFM python=3.9
+conda create --name SFM python=3.10
 conda activate SFM
 
-# 2. 安裝 PyTorch（請依 GPU 支援下載對應版本）
+# 2. 安裝 PyTorch（請依 GPU ，自行到 Pytorch 官網下載對應版本）
 pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
 
 # 3. 安裝其他套件
@@ -93,7 +65,7 @@ python plot_example_V2.py
 
 # CI (Critical Inputs) 圖
 python plot_CI_V2.py
-
+ 
 # 指標統計圖
 python plot_stats_metrics.py
 
